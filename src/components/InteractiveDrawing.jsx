@@ -1,0 +1,2003 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Save, Plus } from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { GripVertical } from 'lucide-react';
+
+
+// Constants for our grid and layout
+const G = 75;  // Grid size
+const T = 175; // Text width
+const H = '70%'; // Drawing height
+const P = 8;   // Point radius
+const D = 32;  // Hover area size
+const MOBILE_BREAKPOINT = 425;  // Mobile width breakpoint in pixels
+
+// Generate hash points for our grid
+const HASH_COUNT = 10;
+const HASH_POINTS = Array.from(
+  { length: HASH_COUNT * 2 + 1 }, 
+  (_, i) => ((i - HASH_COUNT) / HASH_COUNT) * 50 + 50
+);
+
+const findClosestPoint = y => {
+  return HASH_POINTS.reduce((prev, curr) => 
+    Math.abs(curr - y) < Math.abs(prev - y) ? curr : prev
+  );
+};
+
+const InteractiveDrawing = () => {
+  // State management
+  const [points, setPoints] = useState([]);
+  const [ghostPoints, setGhostPoints] = useState([]);
+  const [undoStack, setUndoStack] = useState([]);
+  const [filename, setFilename] = useState('My Drawing');
+  const [cursor, setCursor] = useState({ x: 0, y: 50 });
+  const textareaRef = useRef(null);  // Add this here with other refs
+  const [rotated, setRotated] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [draggedPoint, setDraggedPoint] = useState(null);
+  const [hoveredId, setHoveredId] = useState(null);
+  const [justDropped, setJustDropped] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingPoint, setEditingPoint] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
+  const [draggedDescriptionIndex, setDraggedDescriptionIndex] = useState(null);
+  const [draggedOverIndex, setDraggedOverIndex] = useState(null);
+  const [previewPositions, setPreviewPositions] = useState([]);
+  const [draggedItemId, setDraggedItemId] = useState(null);
+  const [lastUpdateTime, setLastUpdateTime] = useState(0);
+  const DEBOUNCE_TIME = 100; // milliseconds
+  const [originalPoints, setOriginalPoints] = useState(null);
+  const [originalIndex, setOriginalIndex] = useState(null);
+  const [showPoints, setShowPoints] = useState(true);
+  const [showBars, setShowBars] = useState(false);
+  const [cumulativeType, setCumulativeType] = useState('none');
+  const [editMode, setEditMode] = useState(false);
+
+
+  // Add this with your other functions near the top of your component
+  const handleEditModeToggle = () => {
+    setEditMode(!editMode);
+    setHoveredId(null);  // Clear hoveredId when toggling edit mode
+  };
+
+  // Add this helper function at the top level of your component
+  const toggleScrollLock = (lock) => {
+    if (lock) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+  };
+
+  // First, add a new state for tracking hover between items
+  const [hoverInsertIndex, setHoverInsertIndex] = useState(null);
+
+  // Add a function to handle inserting at an index
+  const handleInsertAt = (index) => {
+    const allPoints = getAllPoints();
+    const newX = (allPoints[index].x + (index > 0 ? allPoints[index - 1].x : 0)) / 2;
+    
+    const newPoint = {
+      x: newX,
+      y: 50,
+      text: '',
+      isGhost: !isMobile, // Create as real point on mobile
+      id: Date.now()
+    };
+    
+    // Insert the new point
+    if (isMobile || !newPoint.isGhost) {
+      const newPoints = [...points];
+      newPoints.splice(index, 0, newPoint);
+      // Update x positions
+      newPoints.forEach((point, i) => {
+        point.x = (i + 1) * G;
+      });
+      setPoints(newPoints);
+    } else {
+      const newGhostPoints = [...ghostPoints, newPoint];
+      // Update x positions for all points
+      const allNewPoints = [...points, ...newGhostPoints].sort((a, b) => a.x - b.x);
+      allNewPoints.forEach((point, i) => {
+        point.x = (i + 1) * G;
+      });
+      setGhostPoints(newGhostPoints.filter(p => p.isGhost));
+      setPoints(allNewPoints.filter(p => !p.isGhost));
+    }
+  };
+
+
+  // Refs for DOM elements
+  const scrollRef = useRef(null);
+  const containerRef = useRef(null);
+  const drawingRef = useRef(null);
+
+  const getAllPoints = () => {
+    const allPoints = [...points, ...ghostPoints].sort((a, b) => a.x - b.x);
+    return allPoints;
+  };
+
+const getNextX = () => {
+    const allPoints = getAllPoints();
+    // If no points yet, return just G for the first line
+    return allPoints.length < 1 ? G : allPoints[allPoints.length - 1].x + G;
+};
+
+const getGridExtent = () => {
+    const allPoints = getAllPoints();
+    // This should be based only on existing points
+    return allPoints.length < 1 ? G : allPoints[allPoints.length - 1].x;
+};
+
+const scrollToPoint = x => {
+  if (!scrollRef.current) return;
+  requestAnimationFrame(() => {
+    let pos;
+    if (rotated) {
+      pos = x + (scrollRef.current.clientHeight / 2);
+    } else {
+      pos = x + (scrollRef.current.clientWidth / 2);  // Changed minus to plus
+    }
+    
+    scrollRef.current.scrollTo({
+      [rotated ? 'top' : 'left']: pos,
+      behavior: 'smooth'
+    });
+  });
+};
+
+  const toPercent = (pos, total) => total ? Math.max(0, Math.min(100, (pos/total) * 100)) : 50;
+  
+  const fromPercent = (pct, total) => total ? Math.max(0, Math.min(total, (pct/100) * total)) : 0;
+
+  const getMousePos = e => {
+    if (!drawingRef.current) return { x: 0, y: 50 };
+    const rect = drawingRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    return {
+      x: toPercent(x, rect.width),
+      y: toPercent(y, rect.height)
+    };
+  };
+
+
+// First, update the handleReorder function to handle both regular and ghost points
+const handleReorder = (from, to) => {
+  const allPoints = getAllPoints();
+  console.log('🔄 Starting Reorder:', {
+    from,
+    to,
+    initialOrder: allPoints.map(p => p.text)
+  });
+  
+  // Find the point we want to move by its ID
+  const pointToMove = allPoints.find(p => p.id === draggedItemId);
+  const currentIndex = allPoints.findIndex(p => p.id === draggedItemId);
+  
+  console.log('📍 Moving point:', {
+    text: pointToMove.text,
+    from: currentIndex,
+    to
+  });
+  
+  const orderedPoints = [...allPoints];
+  
+  // Remove the point by its current index
+  orderedPoints.splice(currentIndex, 1);
+  console.log('🔹 After removal:', orderedPoints.map(p => p.text));
+  
+  // Insert at the target position
+  orderedPoints.splice(to, 0, pointToMove);
+  console.log('🔸 After insertion:', orderedPoints.map(p => p.text));
+  
+  // Update x positions
+  orderedPoints.forEach((point, index) => {
+    point.x = (index + 1) * G;
+  });
+  
+  const newPoints = orderedPoints.filter(p => !p.isGhost);
+  const newGhostPoints = orderedPoints.filter(p => p.isGhost);
+  
+  console.log('✅ Final order:', orderedPoints.map(p => p.text));
+  
+  setPoints(newPoints);
+  setGhostPoints(newGhostPoints);
+  setPreviewPositions([]);
+};
+
+  const handleMouseMove = e => {
+    if (!drawingRef.current) return;
+    const pos = getMousePos(e);
+    if (dragging && draggedPoint) {
+      const y = rotated ? 100-pos.x : pos.y;
+      setDraggedPoint(prev => ({...prev, z: y}));
+    } else if (!dragging) {
+      setCursor(rotated ? {x: pos.x, y: pos.x} : {x: pos.x, y: pos.y});
+    }
+  };
+
+const handleClick = e => {
+  console.log('Click event:', {
+    editMode,
+    dragging,
+    hoveredId,
+    justDropped,
+    target: e.target.closest('.drawing-area')
+  });
+
+  if (!drawingRef.current || dragging || hoveredId || justDropped || 
+      !e.target.closest('.drawing-area')) {
+    console.log('Click blocked by:', {
+      noDrawingRef: !drawingRef.current,
+      dragging,
+      hoveredId,
+      justDropped,
+      noDrawingArea: !e.target.closest('.drawing-area')
+    });
+    return;
+  }
+  
+  const pos = getMousePos(e);
+  const x = getNextX();
+  const rawY = rotated ? 100-pos.x : pos.y;
+  
+  console.log('Position calculations:', {
+    pos,
+    x,
+    rawY,
+    mouseX: fromPercent(pos.x, drawingRef.current.getBoundingClientRect().width),
+    nextX: getNextX()
+  });
+
+  // Calculate if we're near enough to create a dot
+  const mouseX = fromPercent(pos.x, drawingRef.current.getBoundingClientRect().width);
+  const isNearGridLine = rotated
+    ? Math.abs(mouseX - (75 * Math.round(mouseX / 75))) < G/2  // Check if near any grid line
+    : Math.abs(mouseX - x) < G/2;  // Keep horizontal the same
+
+  console.log('Grid line check:', {
+    mouseX,
+    isNearGridLine,
+    rotated
+  });
+
+  if (!isNearGridLine) {
+    console.log('Click not near grid line');
+    return;
+  }
+
+  const y = findClosestPoint(rawY);
+  
+  // Calculate new width before point is added
+  const newWidth = ((points.length + 1 + ghostPoints.length + 4) * G);
+  
+  if (!rotated && containerRef.current) {
+    containerRef.current.style.width = `${newWidth}px`;
+  }
+  
+  setPoints(s => [...s, {x, y, isAbove: y < 50, text: '', id: Date.now()}]);
+  setUndoStack([]);
+  scrollToPoint(x);
+};
+
+const handleExport = () => {
+  const allPoints = getAllPoints();
+  const totalWidth = (allPoints.length + 1) * G;  // Total width needed
+  
+  // Calculate available space (in inches converted to pixels)
+  const availableWidth = 10 * 96;  // 10 inches * 96dpi
+  const availableHeight = 7.5 * 96;  // 7.5 inches * 96dpi
+  
+  // Calculate scale to fit content, but never scale up
+  const scale = Math.min(
+    availableWidth / totalWidth,
+    availableHeight / 600,  // Your standard height
+    1  // Add this to prevent scale up
+  );
+
+  // Create scaled SVG of our current view
+const svgContent = `
+  <svg 
+    width="${totalWidth * scale}px"
+    height="${600 * scale}px" 
+    viewBox="0 0 ${totalWidth} 600"
+    style="background-color: white;"
+  >
+    <!-- Grid Pattern -->
+    <defs>
+      <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
+        ${HASH_POINTS.map((hp, i) => `
+          <line 
+            x1="-6" y1="${hp}%" 
+            x2="6" y2="${hp}%" 
+            stroke="grey"
+          />
+        `).join('')}
+        <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="grey"/>
+      </pattern>
+    </defs>
+    <!-- Solid start line -->
+    <line x1="0" y1="0" x2="0" y2="100%" stroke="grey"/>
+
+    <!-- Add emojis -->
+    <text x="24" y="10%" text-anchor="middle" alignment-baseline="middle" font-size="32">🙂</text>
+    <text x="24" y="90%" text-anchor="middle" alignment-baseline="middle" font-size="32">☹️</text>
+
+    <!-- First grid line with dot -->
+    <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="#ADADAD"/>
+    <!-- Pattern rect starts after solid line -->
+    <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
+    <line x1="0" y1="50%" x2="100%" y2="50%" stroke="grey"/>
+    
+    <!-- Rest of your SVG content -->
+      
+      <!-- Lines -->
+      ${allPoints.map((point, i) => i > 0 ? `
+        <line 
+          x1="${allPoints[i-1].x}" 
+          y1="${allPoints[i-1].y}%" 
+          x2="${point.x}" 
+          y2="${point.y}%" 
+          stroke="black" 
+          stroke-width="5"
+        />
+      ` : '').join('')}
+      
+      <!-- Points -->
+      ${allPoints.map(point => `
+        <circle 
+          cx="${point.x}" 
+          cy="${point.y}%" 
+          r="${P}" 
+          fill="black"
+        />
+      `).join('')}
+
+      <line 
+        x1="${totalWidth}" 
+        y1="0" 
+        x2="${totalWidth}" 
+        y2="100%" 
+        stroke="white" 
+        stroke-width="2"
+      />
+    </svg>
+  `;
+
+// Create description layout
+const descriptionsContent = `
+  <div style="
+    position: absolute; 
+    bottom: 0;
+    width: 100%; 
+    height: auto;
+  ">
+    ${allPoints.map((point, i) => {
+      const fontSize = Math.max(12, 16 * scale);
+      const textLength = point.text.length * fontSize;
+      const boxWidth = 60; // Width of our text box
+      
+      // In your existing handleExport function, just modify the div style in descriptionsContent:
+
+    return `
+      <div style="
+        position: absolute; 
+        left: ${(point.x * scale) - ((boxWidth/2) * (scale/0.985) * (.75/scale))}px;
+        width: ${boxWidth}px;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        transform-origin: bottom center;
+        text-orientation: mixed;
+        direction: ltr;
+        white-space: pre-line;
+        max-height: 350px;
+        overflow: hidden;
+        font-size: ${fontSize}px;
+        bottom: 0;
+        height: 300px;
+        text-align: right;
+        text-indent: 0;
+        border: none; // <-- Red border
+        padding-left: 0;
+        padding-right: 0;
+        padding-bottom: ${fontSize * scale * 2}px;  
+        margin-left: 0;
+        margin-right: 0;
+        box-sizing: border-box;
+      ">
+        ${point.text || ''}
+      </div>
+    `;
+    }).join('')}
+  </div>
+`;
+
+  const printWindow = window.open('', '', 'width=960,height=672');
+  
+  const content = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${filename}</title>
+        <style>
+          @page {
+            size: landscape letter;
+            margin: 0.25in;
+            marks: none;
+          }
+          @media print {
+            @page {
+              margin: 0.5in;
+            }
+            body {
+              width: 11in;
+              height: 8.5in;
+              margin: 0;
+              padding: 0;
+              font-family: Arial, sans-serif;
+              -webkit-print-color-adjust: exact;
+            }
+            html {
+              width: 11in;
+              height: 8.5in;
+            }
+            @page { margin: 0.5in }
+            @page :first { margin-top: 0.5in }
+            @page :left { margin-left: 0.5in }
+            @page :right { margin-right: 0.5in }
+          }
+        </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="chrome" content="noPrintingHeaderFooter">
+        <meta name="PrintCSS" content="landscape">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+      </head>
+      <body>
+        <div style="
+          max-width: 11in;
+          margin: 0 auto;
+          height: 8.5in;
+          display: flex;
+          flex-direction: column;
+          overflow: visible;
+          position: relative;
+          align-items: center;  // Add this
+        ">
+          <h1 style="text-align: center; margin: 0.25in 0 0.2in 0; font-family: Arial, sans-serif;">
+            ${filename}
+          </h1>
+            <div style="
+            text-align: center;
+            margin: 0 0 0.375in 0;
+            font-family: Arial, sans-serif;
+            color: #000;
+            font-size: 14px;
+          ">
+            ${allPoints.length} events
+          </div>
+          <div style="
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transform-origin: top center;
+            margin: 0 auto;  // Add this
+          ">
+            ${svgContent}
+            ${descriptionsContent}
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  printWindow.document.write(content);
+  printWindow.document.close();
+  
+  printWindow.onload = () => {
+    printWindow.print();
+  };
+};
+
+const handlePointDrag = (i, isGhost) => e => {
+  e.stopPropagation();
+  const allPoints = getAllPoints();  // Get combined points
+  const point = allPoints[i];        // Get correct point by combined index
+  
+  setDraggedPoint({
+    i,
+    k: point.isGhost,  // Use point's own isGhost property
+    y: point.y,
+    z: point.y,
+    id: point.id
+  });
+  setDragging(true);
+};
+
+  useEffect(() => {
+    if (drawingRef.current) {
+      const rect = drawingRef.current.getBoundingClientRect();
+      setCursor(rotated ? {x: cursor.y, y: cursor.y} : {x: cursor.x, y: cursor.x});
+    }
+  }, [rotated]);
+
+  useEffect(() => {
+  if (modalOpen && textareaRef.current) {
+    textareaRef.current.focus();
+    // Set cursor position to end of text
+    textareaRef.current.selectionStart = textareaRef.current.value.length;
+    textareaRef.current.selectionEnd = textareaRef.current.value.length;
+  }
+}, [modalOpen]);
+
+useEffect(() => {
+  const handleMouseUp = () => {
+    if (dragging && draggedPoint && drawingRef.current) {
+      console.log('Before update - draggedPoint:', draggedPoint);
+      console.log('Before update - all points:', points);
+
+      const allPoints = getAllPoints();
+      const point = allPoints[draggedPoint.i];
+      const finalY = findClosestPoint(draggedPoint.z);
+
+      console.log('Point to update:', point);
+      console.log('Final Y position:', finalY);
+
+      if (point) {  // Add null check here
+        if (point.isGhost) {
+          setPoints(s => [...s, {...point, y: finalY, isAbove: finalY < 50, isGhost: false, id: point.id}]);
+          setGhostPoints(s => s.filter(p => p.id !== point.id));
+          setUndoStack([]);
+        } else {
+          setPoints(s => s.map(p => 
+            p.id === point.id ? {...p, y: finalY, isAbove: finalY < 50} : p
+          ));
+        }
+      }
+      
+      setJustDropped(true);
+      setTimeout(() => setJustDropped(false), 100);
+    }
+    setDragging(false);
+    setDraggedPoint(null);
+  };
+
+  window.addEventListener('mouseup', handleMouseUp);
+  window.addEventListener('touchend', handleMouseUp);
+  
+  return () => {
+    window.removeEventListener('mouseup', handleMouseUp);
+    window.removeEventListener('touchend', handleMouseUp);
+  };
+}, [dragging, draggedPoint, rotated, points, ghostPoints]);
+
+// Also add cleanup in case component unmounts during drag
+useEffect(() => {
+  return () => {
+    toggleScrollLock(false);  // Ensure scroll is unlocked when component unmounts
+  };
+}, []);
+
+  const addGhostPoint = () => {
+  const x = getNextX();
+  
+  if (isMobile) {
+    // On mobile, directly create a real point at the center line
+    setPoints(s => [...s, {
+      x,
+      y: 50, // Center line
+      text: '',
+      isAbove: false,
+      id: Date.now()
+    }]);
+  } else {
+    // On desktop, keep the existing ghost point behavior
+    setGhostPoints(s => [...s, {
+      x,
+      y: 50,
+      text: '',
+      isGhost: true,
+      id: Date.now()
+    }]);
+  }
+  scrollToPoint(x);
+};
+
+  const handleTextInput = (index, text, isGhost) => {
+    const point = getAllPoints()[index];
+    if (isGhost) {
+      setGhostPoints(s => s.map(p => 
+        p.id === point.id ? {...p, text} : p
+      ));
+    } else {
+      setPoints(s => s.map(p => 
+        p.id === point.id ? {...p, text} : p
+      ));
+    }
+  };
+
+  const handleInputClick = (point, i) => {
+    setEditingPoint({point, index: i});
+    setEditText(point.text);
+    setModalOpen(true);
+  };
+
+  // Update the touch handlers
+  const handleTouchStart = (index, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const allPoints = getAllPoints();
+    const point = allPoints[index];
+    
+    console.log('📱 Touch Start:', { index, text: point.text });
+    
+    setDraggedDescriptionIndex(index);
+    setDraggedItemId(point.id);
+    setOriginalPoints([...allPoints]);
+    setOriginalIndex(index);
+    
+    if (isMobile) {
+      toggleScrollLock(true);
+    }
+  };
+
+
+const handleTouchMove = (e) => {
+  if (draggedDescriptionIndex === null) return;
+  
+  const touch = e.touches[0];
+  const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+  const descriptionElement = elements.find(el => el.getAttribute('data-description-index'));
+  
+  if (descriptionElement) {
+    const index = parseInt(descriptionElement.getAttribute('data-description-index'));
+    const currentTime = Date.now();
+    
+    if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+      if (originalIndex !== null) {  // Removed check for originalIndex !== index
+        console.log('📱 Touch Move:', { toIndex: index });
+        
+        // Create preview based on original points
+        const previewPoints = [...originalPoints];
+        const [movedPoint] = previewPoints.splice(originalIndex, 1);
+        previewPoints.splice(index, 0, movedPoint);
+        
+        // Update x positions
+        previewPoints.forEach((point, idx) => {
+          point.x = (idx + 1) * G;
+        });
+        
+        setLastUpdateTime(currentTime);
+        setDraggedOverIndex(index);
+        setPreviewPositions(previewPoints);
+      }
+    }
+  }
+};
+
+const handleTouchEnd = () => {
+  console.log('📱 Touch End:', {
+    fromIndex: originalIndex,
+    toIndex: draggedOverIndex
+  });
+  
+  if (originalIndex !== null && draggedOverIndex !== null) {
+    handleReorder(originalIndex, draggedOverIndex);
+  }
+  
+  setDraggedDescriptionIndex(null);
+  setDraggedOverIndex(null);
+  setDraggedItemId(null);
+  setPreviewPositions([]);
+  setLastUpdateTime(0);
+  setOriginalPoints(null);
+  setOriginalIndex(null);
+  
+  if (isMobile) {
+    toggleScrollLock(false);
+  }
+};
+
+// Score calculation function
+const calculateScores = (points) => {
+  let runningScores = points.map(point => {
+    console.log('Raw y-value:', point.y);
+    // Divide by 5 to convert y-units to hash marks
+    const distanceFromCenter = point.y > 50 ? 
+      -Math.round((point.y - 50) / 5) : 
+      Math.round((50 - point.y) / 5);
+    console.log('Calculated hash distance:', distanceFromCenter);
+    return distanceFromCenter;
+  });
+  
+  let cumulativeScores = [];
+  let total = 0;
+  runningScores.forEach(score => {
+    total += score;
+    cumulativeScores.push(total);
+  });
+  
+  return {
+    individual: runningScores,
+    cumulative: cumulativeScores,
+    total: total
+  };
+};
+
+const renderSVG = (isVertical) => {
+  const allPoints = getAllPoints();
+  const rect = drawingRef.current?.getBoundingClientRect();
+  if (!rect) return null;
+  const width = rect.width;
+  const height = rect.height;
+  const getPos = (point, i) => {
+    const y = isVertical ? 100-point.y : point.y;
+    let displayY = draggedPoint?.i === i ? draggedPoint.z : point.y;
+    const yPos = fromPercent(isVertical ? 100-displayY : displayY, isVertical ? rect.width : rect.height);
+    return {
+      x: isVertical ? yPos : point.x,
+      y: isVertical ? point.x : yPos
+    };
+  };
+
+  const previewY = rotated ? 100-cursor.x : cursor.y;
+  const snappedY = findClosestPoint(previewY);
+  const previewPos = {
+      x: isVertical 
+          ? fromPercent(isVertical ? 100-snappedY : snappedY, rect.width) 
+          : getNextX(),  // Use getNextX instead
+      y: isVertical 
+          ? getNextX()
+          : fromPercent(snappedY, rect.height)
+  };
+
+  const nextX = getNextX();
+  const mouseX = fromPercent(cursor.x, rect.width);
+
+  const isNearNextLine = rotated
+      ? Math.abs(mouseX - (75 * Math.round(mouseX / 75))) < G/2  // Check if near any grid line
+      : Math.abs(mouseX - nextX) < G/2;  // Keep horizontal the same
+
+      // Debug log
+      if (rotated) {
+        console.log('Position check:', {
+          mouseX,
+          nearestGridLine: 75 * Math.round(mouseX / 75),
+          nextX,
+          isNear: Math.abs(mouseX - (75 * Math.round(mouseX / 75))) < G/2
+        });
+      }
+
+      return (
+          <svg 
+            className="absolute top-0 left-0 w-full h-full" 
+            style={{pointerEvents: 'none'}}
+            viewBox={`0 0 ${width} ${rotated ? height : (isMobile ? rect.height : 600)}`}
+            preserveAspectRatio="none"
+          >
+          <defs>
+            <pattern 
+              id={isVertical ? "gv" : "g"}
+              width={isVertical ? "100%" : G}
+              height={isVertical ? G : "100%"}
+              patternUnits="userSpaceOnUse"
+            >
+          {HASH_POINTS.map((hp, i) => 
+            isVertical ? (
+              <line 
+                key={i}
+                x1={`${hp}%`} y1="-6"
+                x2={`${hp}%`} y2="6"
+                stroke="#ddd"
+                strokeWidth="1"
+              />
+            ) : (
+              <line
+                key={i}
+                x1="-6" y1={`${hp}%`}
+                x2="6" y2={`${hp}%`}
+                stroke="#ddd"
+                strokeWidth="1"
+              />
+            )
+          )}
+          <line 
+            x1={isVertical ? "0" : G}
+            y1={isVertical ? G : "0"}
+            x2={isVertical ? "100%" : G}
+            y2={isVertical ? G : "100%"}
+            stroke="#ddd"
+          />
+        </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill={`url(#${isVertical ? 'gv' : 'g'})`}/>
+        <line
+          x1={isVertical ? "50%" : "0"}
+          y1={isVertical ? "0" : "50%"}
+          x2={isVertical ? "50%" : "100%"}
+          y2={isVertical ? "100%" : "50%"}
+          stroke="black"
+        />
+        <text 
+          x={isVertical ? "90%" : "32"} 
+          y={isVertical ? "32" : "10%"} 
+          textAnchor="middle" 
+          alignmentBaseline="middle" 
+          fontSize="32"
+        >
+          🙂
+        </text>
+        <text 
+          x={isVertical ? "10%" : "32"} 
+          y={isVertical ? "32" : "90%"} 
+          textAnchor="middle" 
+          alignmentBaseline="middle" 
+          fontSize="32"
+        >
+          ☹️
+        </text>
+        {!dragging && !hoveredId && isNearNextLine && (
+          <circle
+            cx={previewPos.x}
+            cy={previewPos.y}
+            r={P}
+            fill="gray"
+            opacity="0.5"
+          />
+        )}
+
+{/* Cumulative Line */}
+{cumulativeType === 'line' && allPoints.length > 0 && (() => {
+  const scores = calculateScores(allPoints);
+  
+  let segments = [];
+  let currentSegment = { points: [], isPositive: scores.cumulative[0] >= 0 };
+  
+  scores.cumulative.forEach((score, i) => {
+    // NEW: Calculate position based on orientation
+    let x, y;
+    if (isVertical) {
+      // Vertical view: x is score-based, y is grid-based
+      x = fromPercent(50, rect.width) + (score * 5);
+      y = (i + 1) * G;
+    } else {
+      // Horizontal view: original calculation
+      x = (i + 1) * G;
+      y = fromPercent(50, rect.height) - (score * 5);
+    }
+    
+    if (i > 0 && (score >= 0) !== currentSegment.isPositive) {
+      const prevScore = scores.cumulative[i - 1];
+      
+      // NEW: Calculate previous point based on orientation
+      let prevX, prevY;
+      if (isVertical) {
+        prevX = fromPercent(50, rect.width) + (prevScore * 5);
+        prevY = i * G;
+      } else {
+        prevX = i * G;
+        prevY = fromPercent(50, rect.height) - (prevScore * 5);
+      }
+      
+      const ratio = Math.abs(prevScore) / (Math.abs(prevScore) + Math.abs(score));
+      
+      // NEW: Calculate crossing point based on orientation
+      let crossingX, crossingY;
+      if (isVertical) {
+        crossingX = fromPercent(50, rect.width);
+        crossingY = prevY + (y - prevY) * ratio;
+      } else {
+        crossingX = prevX + (x - prevX) * ratio;
+        crossingY = fromPercent(50, rect.height);
+      }
+      
+      currentSegment.points.push({ x: crossingX, y: crossingY });
+      segments.push(currentSegment);
+      
+      currentSegment = {
+        points: [{ x: crossingX, y: crossingY }, { x, y }],
+        isPositive: score >= 0
+      };
+    } else {
+      currentSegment.points.push({ x, y });
+    }
+  });
+  segments.push(currentSegment);
+
+  // The rest of your code remains exactly the same
+  return (
+    <>
+      {segments.map((segment, i) => {
+        const points = segment.points;
+        let d = `M ${points[0].x} ${points[0].y}`;
+        
+        for (let i = 1; i < points.length; i++) {
+          d += ` S ${points[i].x} ${points[i].y} ${points[i].x} ${points[i].y}`;
+        }
+
+        return (
+          <path
+            key={`segment-${i}`}
+            d={d}
+            stroke={editMode ? 
+              (segment.isPositive ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") : // Faded in edit mode
+              (segment.isPositive ? "rgba(52, 211, 153, 1)" : "rgba(248, 113, 113, 1)")}      // Normal colors
+            strokeWidth="2"
+            fill="none"
+            style={{
+              transition: 'stroke 0.2s ease'
+            }}
+          />
+        );
+      })}
+    </>
+  );
+})()}
+
+{/* Score Bars */}
+{cumulativeType === 'bars' && allPoints.length > 0 && (() => {
+  const scores = calculateScores(allPoints);
+  return scores.cumulative.map((score, i) => {
+    const barHeight = Math.abs(score * 5);
+    
+    if (isVertical) {
+  const x = score >= 0 ? 
+    fromPercent(50, rect.width) : 
+    fromPercent(50, rect.width) - barHeight;
+  return (
+    <rect
+      key={`bar-${i}`}
+      x={x}
+      y={(i + 1) * G - (G * 0.4)}
+      height={G * 0.8}
+      width={barHeight}
+      fill={editMode ?
+        (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
+        (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
+      rx={2}
+      style={{
+        transition: 'fill 0.2s ease'
+      }}
+    />
+  );
+} else {
+  const y = score >= 0 ? 
+    fromPercent(50, rect.height) - barHeight : 
+    fromPercent(50, rect.height);
+  return (
+    <rect
+      key={`bar-${i}`}
+      x={(i + 1) * G - (G * 0.4)}
+      y={y}
+      width={G * 0.8}
+      height={barHeight}
+      fill={editMode ?
+        (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
+        (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
+      rx={2}
+      style={{
+        transition: 'fill 0.2s ease'
+      }}
+    />
+  );
+}
+  });
+})()}
+
+        {/* Connecting lines */}
+        {showPoints && allPoints.map((point, i) => 
+          i > 0 && (
+            <line
+              key={`l${i}`}
+              x1={getPos(allPoints[i-1], i-1).x}
+              y1={getPos(allPoints[i-1], i-1).y}
+              x2={getPos(point, i).x}
+              y2={getPos(point, i).y}
+              stroke="black"
+              strokeWidth="2"
+              style={{
+                transition: previewPositions.length > 0 ? 'all 0.2s ease' : 'none'
+              }}
+            />
+          )
+        )}  
+
+      {/* Points */}
+      {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
+        const pos = getPos(point, i);
+        const isHovered = hoveredId === point.id;
+        const isBeingDragged = point.id === draggedItemId;  // Compare by ID instead of index
+        const shouldEnlarge = isHovered || isBeingDragged;
+        
+        return (
+          <g
+            key={point.id}
+            style={{
+              pointerEvents: 'all',
+              cursor: editMode ? 'pointer' : dragging ? 'grabbing' : 'grab',
+              transition: previewPositions.length > 0 ? 'transform 0.2s ease' : 'none'
+            }}
+            onMouseEnter={() => setHoveredId(point.id)}
+            onMouseLeave={() => setHoveredId(null)}
+            onMouseDown={editMode ? undefined : handlePointDrag(i, point.isGhost)}
+            onDoubleClick={editMode ? () => {
+              const newPoints = points.filter((_, index) => index !== i);
+
+              // Update x positions of remaining points
+              newPoints.forEach((point, index) => {
+                point.x = (index + 1) * G;
+              });
+
+              setPoints(newPoints);
+            } : undefined}
+            onTouchStart={(e) => {
+              if (editMode) return;  // Disable touch dragging in edit mode
+              e.stopPropagation();
+              console.log('Starting drag on point:', i);
+              console.log('Current points state:', points);
+              
+              const allPoints = getAllPoints();
+              const point = allPoints[i];
+              setDraggedPoint({
+                i,
+                k: point.isGhost,
+                y: point.y,
+                z: point.y,
+                id: point.id
+              });
+              setDragging(true);
+            }}
+            onTouchMove={(e) => {
+              if (editMode) return;  // Disable touch dragging in edit mode
+              if (dragging && draggedPoint) {
+                e.stopPropagation();
+                const touch = e.touches[0];
+                const rect = drawingRef.current?.getBoundingClientRect();
+                if (!rect) return;
+                
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                const pos = {
+                  x: toPercent(x, rect.width),
+                  y: toPercent(y, rect.height)
+                };
+                
+                const newY = rotated ? 100-pos.x : pos.y;
+                setDraggedPoint(prev => ({...prev, z: newY}));
+              }
+            }}
+          >
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r={D}
+            fill="transparent"
+          />
+          <circle
+            cx={pos.x}
+            cy={pos.y}
+            r={P * (shouldEnlarge ? 2 : 1)}
+            fill={isBeingDragged ? "#FCD34D" : point.isGhost ? "gray" : "black"}
+            style={{
+              transition: 'r 0.2s ease, fill 0.2s ease'
+            }}
+          />
+          {/* Delete button that shows when edit mode is on */}
+            {editMode && (  // Removed hoveredId condition
+              <g 
+                transform={`translate(${pos.x}, ${pos.y - 20})`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newPoints = points.filter((_, index) => index !== i);
+                  newPoints.forEach((point, index) => {
+                    point.x = (index + 1) * G;
+                  });
+                  setPoints(newPoints);
+                }}
+              >
+                <circle r="8" fill="white" stroke="#ef4444" strokeWidth="1" />
+                <text 
+                  fill="#ef4444" 
+                  fontSize="12" 
+                  textAnchor="middle" 
+                  dy=".3em"
+                >×</text>
+              </g>
+            )}
+        </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+  // Update the return JSX to use our state
+  return (
+  <div style={{
+    width: '100vw',
+    height: '100dvh',
+    display: 'flex',
+    flexDirection: 'column',
+    // position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0
+  }}>
+
+  <style>{`
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 24px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .2s;
+    border-radius: 24px;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .2s;
+    border-radius: 50%;
+  }
+
+  input:checked + .toggle-slider {
+    background-color: #2196F3;
+  }
+
+  input:checked + .toggle-slider:before {
+    transform: translateX(16px);
+  }
+`}</style>
+
+    <style>{`
+      @keyframes m{0%{background-position:0 0}100%{background-position:20px 0}}
+      @keyframes v{0%{background-position:0 0}100%{background-position:0 20px}}
+      .r{writing-mode:vertical-rl;transform:rotate(180deg)}
+    `}</style>
+
+    {/* Outer white container */}
+    <div style={{
+      background: 'white',
+      borderBottom: '1px solid #e2e8f0',
+      display: 'flex',
+      justifyContent: 'center',
+      width: '100%'
+    }}>
+
+      {/* Main content container */}
+      <div style={{
+        padding: '1rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        maxWidth: '1100px'
+      }}>
+
+        {/* Single flex container for all items */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          width: '100%'
+        }}>
+
+          {/* Rotation buttons */}
+          <Button 
+            size="sm"
+            variant="outline"
+            style={{ width: '9.5rem' }}
+            onClick={() => setRotated(false)}
+            disabled={!rotated}
+          >
+            {isMobile ? 'Show Chart' : 'Rotate Left'}
+          </Button>
+
+          <Button 
+            size="sm" 
+            variant="outline" 
+            style={{ width: '9.5rem' }}
+            onClick={() => setRotated(true)}
+            disabled={rotated}
+          >
+            {isMobile ? 'Show Descriptions' : 'Rotate Right'}
+          </Button>         
+
+          {/* Document name input */}
+          <Input 
+            type="text"
+            value={filename}
+            onChange={(e) => setFilename(e.target.value)}
+            placeholder="Document Name"
+            style={{
+              minWidth: '200px',
+              maxWidth: '14rem',
+              width: '100%',
+              textAlign: 'center',
+              fontSize: '1rem',
+              fontWeight: 600,
+              height: '2.25rem',  // Added this line to reduce height
+              padding: '0.25rem'  // Reduced padding
+            }}
+          />
+
+          {/* Action buttons */}
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={handleExport} 
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <Save style={{ width: '1rem', height: '1rem' }}/>Export
+          </Button>
+          
+          <Button 
+            onClick={() => {
+              if (points.length < 1) return;
+              const lastPoint = points[points.length - 1];
+              setPoints(s => s.slice(0, -1));
+              setUndoStack(s => [...s, lastPoint]);
+            }}
+            disabled={points.length === 0}
+            size="sm" 
+            variant="outline" 
+            style={{ width: '6rem' }}
+          >
+            Undo Dot
+          </Button>
+          
+          <Button 
+            onClick={() => {
+              if (undoStack.length < 1) return;
+              const lastPoint = undoStack[undoStack.length - 1];
+              setUndoStack(s => s.slice(0, -1));
+              setPoints(s => [...s, lastPoint]);
+            }}
+            disabled={undoStack.length === 0}
+            size="sm" 
+            variant="outline" 
+            style={{ width: '6rem' }}
+          >
+            Redo Dot
+          </Button>
+
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem',
+            marginLeft: '0.5rem',
+            paddingTop: '' 
+          }}>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={editMode}
+                onChange={handleEditModeToggle}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+            <span style={{ fontSize: '14px' }}>Edit Points</span>
+          </div>
+
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            gap: '1rem',  // Increased gap between control groups
+            paddingTop: '0.2rem'
+          }}>
+
+            {/* Points Control */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'left',
+              borderRight: '',  // Subtle divider
+              paddingRight: '', // Subtle padding
+              paddingTop: '0.175rem' 
+            }}>
+              <label style={{
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem', 
+                fontSize: '14px'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={showPoints}
+                  onChange={(e) => setShowPoints(e.target.checked)}
+                />
+                Show Points
+              </label>
+            </div>
+
+            {/* Cumulative Control */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              paddingTop: '0.2rem' 
+            }}>
+              <label style={{fontSize: '14px'}}>
+                Cumulative View:
+                <select 
+                  value={cumulativeType} 
+                  onChange={(e) => setCumulativeType(e.target.value)}
+                  style={{
+                    marginLeft: '0.5rem',
+                    padding: '0.25rem',
+                    borderRadius: '0.25rem',
+                    border: '1px solid #e2e8f0'
+                  }}
+                >
+                  <option value="none">None</option>
+                  <option value="bars">Bar Chart</option>
+                  <option value="line">Line Graph</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+
+
+          {/* Dot count */}
+          <span style={{ marginLeft: '0.5rem', fontSize: '14px', paddingTop: '.2rem' }}>
+            {rotated ? (
+              `${points.length} descriptions on screen`
+            ) : (
+              `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} on screen${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+            )}
+          </span>
+        </div>
+      </div>
+    </div>
+      {rotated ? (
+        <div 
+          ref={scrollRef}
+          style={{
+            position: 'relative',
+            flex: 1,
+            overflowY: 'auto',
+            background: '#f9fafb',
+            cursor: dragging ? 'ew-resize' : hoveredId ? 'ew-resize' : 'crosshair',
+            height: 'calc(100dvh - 80px)'
+          }}
+        >
+          <div 
+            ref={containerRef}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              minHeight: '100%',
+              display: 'flex',
+              height: `${(points.length + ghostPoints.length + 4) * G}px`
+
+            }}
+          >
+            <div style={{
+              position: 'relative',
+              background: 'white',
+              borderRight: '1px solid #e2e8f0',
+              flexShrink: 0,
+              width: `calc(100% - ${H})`,
+              width: isMobile ? '100%' : `calc(100% - ${H})`  // Full width on mobile
+            }}>
+            <div style={{
+              position: 'absolute',
+              top: `${getNextX()}px`,
+              left: '50%',
+              transform: 'translate(-50%,-50%) rotate(90deg)',
+              width: '2.5rem',
+              height: T,
+              border: '1px solid #e2e8f0',
+              borderRadius: '0.375rem'
+            }}>
+              <Button  
+                  size="sm"
+                  variant="ghost"
+                  onClick={addGhostPoint}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: 0,
+                    transition: 'background-color 0.2s'
+                  }}
+                  className="hover:bg-gray-100"
+                >
+                <Plus className="w-4 h-4"/>
+              </Button>
+            </div>
+{getAllPoints().map((point, i) => (
+  <React.Fragment key={`group-${point.id}`}>
+      {/* Insert hover zone before each point (except the first one) */}
+      {i > 0 && !isMobile && (
+        <div
+          style={{
+            position: 'absolute',
+            left: rotated ? '50%' : `${point.x - G/2}px`,
+            top: rotated ? `${point.x - G/2}px` : '50%',
+            transform: 'translate(-50%, -50%)',
+            width: rotated ? '100%' : '40px',
+            height: rotated ? '40px' : '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: hoverInsertIndex === i ? 1 : 0,
+            transition: 'opacity 0.2s',
+            cursor: 'pointer',
+            pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
+          }}
+          onMouseEnter={() => setHoverInsertIndex(i)}
+          onMouseLeave={() => setHoverInsertIndex(null)}
+          onClick={() => handleInsertAt(i)}
+        >
+          <div
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              backgroundColor: '#fff',
+              border: '2px solid #9ca3af',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            <Plus size={16} />
+          </div>
+        </div>
+      )}
+
+    <div
+      key={point.id}
+      data-description-index={i}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
+        const currentTime = Date.now();
+        
+        if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+          if (originalIndex !== null) {  // Remove the originalIndex !== i check
+            // Only update if we've moved to a new valid position
+            if (i !== draggedOverIndex) {
+              console.log('🟨 Drag Over:', { 
+                fromIndex: originalIndex,
+                toIndex: i,
+              });
+              
+              // Create preview based on original points
+              const previewPoints = [...originalPoints];
+              const [movedPoint] = previewPoints.splice(originalIndex, 1);
+              previewPoints.splice(i, 0, movedPoint);
+              
+              // Update x positions
+              previewPoints.forEach((point, index) => {
+                point.x = (index + 1) * G;
+              });
+              
+              setLastUpdateTime(currentTime);
+              setDraggedOverIndex(i);
+              setPreviewPositions(previewPoints);
+            }
+          }
+        }
+      }}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        if (draggedDescriptionIndex !== i) {
+          setDraggedOverIndex(i);
+        }
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        if (draggedOverIndex === i) {
+          setDraggedOverIndex(null);
+        }
+      }}
+
+      style={{
+        position: 'absolute',
+        left: '50%',
+        top: `${point.x}px`,
+        transform: 'translate(-50%,-50%)',
+        opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
+        marginBottom: '25px',
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: '0.5rem',
+        background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
+        padding: '0.5rem',
+        borderRadius: '0.375rem',
+        transition: 'all 0.2s ease',
+        border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
+      }}
+    >
+      <div
+        draggable
+        onDragStart={(e) => {
+          const currentPoints = getAllPoints();
+          console.log('🟦 Drag Start:', { 
+            index: i, 
+            id: point.id,
+            text: point.text
+          });
+          e.dataTransfer.effectAllowed = 'move';
+          setDraggedDescriptionIndex(i);
+          setDraggedItemId(point.id);
+          setOriginalPoints([...currentPoints]);  // Store initial state
+          setOriginalIndex(i);
+          document.body.classList.add('dragging');
+        }}
+        onDragEnd={() => {
+          console.log('🟥 Drag End:', {
+            fromIndex: originalIndex,
+            toIndex: draggedOverIndex,
+          });
+          
+          if (originalIndex !== null && draggedOverIndex !== null) {
+            handleReorder(originalIndex, draggedOverIndex);
+          }
+          
+          setDraggedDescriptionIndex(null);
+          setDraggedOverIndex(null);
+          setDraggedItemId(null);
+          setPreviewPositions([]);
+          setLastUpdateTime(0);
+          setOriginalPoints(null);
+          setOriginalIndex(null);
+          document.body.classList.remove('dragging');
+        }}
+        onTouchStart={(e) => {
+          e.stopPropagation();
+          handleTouchStart(i, e);
+        }}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          cursor: 'grab',
+          padding: '0.25rem',
+          color: '#666',
+          transition: 'transform 0.2s',
+          transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
+          backgroundColor: draggedDescriptionIndex === i ? '#e5e7eb' : 'transparent',
+          borderRadius: '0.25rem'
+        }}
+        >
+      <GripVertical size={16} />
+    </div>
+      
+      <Input
+        type="text"
+        value={point.text}
+        readOnly
+        onClick={() => handleInputClick(point, i)}
+        onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
+        placeholder={`Description ${i + 1}`}
+        style={{
+          width: T,
+          height: '2.5rem',
+          border: '1px solid #e2e8f0',
+          borderRadius: '0.375rem'
+        }}
+      />
+    </div>
+  </React.Fragment>
+))}
+            </div>
+            <div 
+              ref={drawingRef}
+              style={{
+                position: 'relative',
+                overflow: 'hidden',
+                flex: 1,
+                display: isMobile ? 'none' : 'block'  // Hide on mobile
+              }}
+              className="drawing-area"
+              onMouseMove={handleMouseMove}
+              onClick={handleClick}
+            >
+              {renderSVG(true)}
+              {!hoveredId && !dragging && !isMobile && <div style={{
+                position: 'absolute',
+                pointerEvents: 'none',
+                left: `${cursor.x}%`,
+                top: 0,
+                width: '2px',
+                height: '100%',
+                backgroundImage: 'linear-gradient(to bottom, black 50%, transparent 50%)',
+                backgroundSize: '2px 20px',
+                backgroundRepeat: 'repeat-y',
+                animation: 'v 1s linear infinite'
+              }}/>}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div 
+          ref={scrollRef}
+          style={{
+            position: 'relative',
+            ...(isMobile ? {} : { flex: 1 }),  // Only apply flex on desktop, omit it entirely for mobile
+            overflowX: 'auto',
+            background: '#f9fafb',
+            cursor: dragging ? 'ns-resize' : hoveredId ? 'ns-resize' : 'crosshair',
+            height: 'calc(100dvh - 80px)',  // Just one value since it's the same either way
+          }}
+        >
+          <div 
+            ref={containerRef}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              height: '100%',
+              minWidth: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              width: `${(points.length + ghostPoints.length + 4) * G}px`,
+              minHeight: isMobile ? 'initial' : undefined  // Add this too
+
+
+            }}
+          >
+            <div 
+              ref={drawingRef}
+              style={{
+                position: 'relative',
+                overflow: 'hidden',
+                height: isMobile ? '100%' : H,  // Use full height on mobile
+                minHeight: isMobile ? 'initial' : undefined  // Add this to override any min-height
+
+              }}
+              className="drawing-area"
+              onMouseMove={handleMouseMove}
+              onClick={handleClick}
+            >
+              {renderSVG(false)}
+              {!hoveredId && !dragging && !isMobile && <div style={{
+                position: 'absolute',
+                pointerEvents: 'none',
+                top: `${cursor.y}%`,
+                left: 0,
+                width: '100%',
+                height: '1px',
+                backgroundImage: 'linear-gradient(to right, black 50%, transparent 50%)',
+                backgroundSize: '20px 1px',
+                backgroundRepeat: 'repeat-x',
+                animation: 'm 1s linear infinite'
+              }}/>}
+            </div>
+            <div style={{
+              position: 'relative',
+              background: 'white',
+              borderTop: '1px solid #e2e8f0',
+              flexShrink: 0,
+              height: `calc(100% - ${H})`,
+              display: isMobile ? 'none' : 'block'  // Hide on mobile
+            }}>
+              <div style={{
+                position: 'absolute',
+                left: `${getNextX()}px`,
+                top: '50%',
+                transform: 'translate(-50%,-50%) rotate(-90deg)',
+                width: T,
+                height: '2.5rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '0.375rem'
+              }}>
+                <Button  
+                  size="sm"
+                  variant="ghost"
+                  onClick={addGhostPoint}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: 0,
+                    transition: 'background-color 0.2s'
+                  }}
+                  className="hover:bg-gray-100"
+                >
+                  <Plus className="w-4 h-4"/>
+                </Button>
+              </div>
+{getAllPoints().map((point, i) => (
+  <React.Fragment key={`group-${point.id}`}>
+    {/* Insert hover zone before each point (except the first one) */}
+    {i > 0 && !isMobile && (
+      <div
+        style={{
+          position: 'absolute',
+          left: rotated ? '50%' : `${point.x - G/2}px`,
+          top: rotated ? `${point.x - G/2}px` : '50%',
+          transform: 'translate(-50%, -50%)',
+          width: rotated ? '100%' : '40px',
+          height: rotated ? '40px' : '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: hoverInsertIndex === i ? 1 : 0,
+          transition: 'opacity 0.2s',
+          cursor: 'pointer',
+          pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
+        }}
+        onMouseEnter={() => setHoverInsertIndex(i)}
+        onMouseLeave={() => setHoverInsertIndex(null)}
+        onClick={() => handleInsertAt(i)}
+      >
+        <div
+          style={{
+            width: '24px',
+            height: '24px',
+            borderRadius: '50%',
+            backgroundColor: '#fff',
+            border: '2px solid #9ca3af',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}
+        >
+          <Plus size={16} />
+        </div>
+      </div>
+    )}
+
+  <div
+    key={point.id}
+    data-description-index={i}
+    onDragOver={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
+      const currentTime = Date.now();
+      
+      if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+        if (originalIndex !== null) {  // Remove the originalIndex !== i check
+          // Only update if we've moved to a new valid position
+          if (i !== draggedOverIndex) {
+            console.log('🟨 Drag Over:', { 
+              fromIndex: originalIndex,
+              toIndex: i,
+            });
+            
+            // Create preview based on original points
+            const previewPoints = [...originalPoints];
+            const [movedPoint] = previewPoints.splice(originalIndex, 1);
+            previewPoints.splice(i, 0, movedPoint);
+            
+            // Update x positions
+            previewPoints.forEach((point, index) => {
+              point.x = (index + 1) * G;
+            });
+            
+            setLastUpdateTime(currentTime);
+            setDraggedOverIndex(i);
+            setPreviewPositions(previewPoints);
+          }
+        }
+      }
+    }}
+    onDragEnter={(e) => {
+      e.preventDefault();
+      if (draggedDescriptionIndex !== i) {
+        setDraggedOverIndex(i);
+      }
+    }}
+    onDragLeave={(e) => {
+      e.preventDefault();
+      if (draggedOverIndex === i) {
+        setDraggedOverIndex(null);
+      }
+    }}
+
+    style={{
+      position: 'absolute',
+      left: `${point.x}px`,
+      top: '50%',
+      transform: 'translate(-50%,-50%)',
+      opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
+      marginBottom: '25px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '0.5rem',
+      background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
+      padding: '0.5rem',
+      borderRadius: '0.375rem',
+      transition: 'all 0.2s ease',
+      border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
+    }}
+  >
+      <div
+        draggable
+          onDragStart={(e) => {
+            const currentPoints = getAllPoints();
+            console.log('🟦 Drag Start:', { 
+              index: i, 
+              id: point.id,
+              text: point.text
+            });
+            e.dataTransfer.effectAllowed = 'move';
+            setDraggedDescriptionIndex(i);
+            setDraggedItemId(point.id);
+            setOriginalPoints([...currentPoints]);  // Store initial state
+            setOriginalIndex(i);
+            document.body.classList.add('dragging');
+          }}
+          
+          onDragEnd={() => {
+            console.log('🟥 Drag End:', {
+              fromIndex: originalIndex,
+              toIndex: draggedOverIndex,
+            });
+            
+            if (originalIndex !== null && draggedOverIndex !== null) {
+              handleReorder(originalIndex, draggedOverIndex);
+            }
+            
+            setDraggedDescriptionIndex(null);
+            setDraggedOverIndex(null);
+            setDraggedItemId(null);
+            setPreviewPositions([]);
+            setLastUpdateTime(0);
+            setOriginalPoints(null);
+            setOriginalIndex(null);
+            document.body.classList.remove('dragging');
+          }}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+            handleTouchStart(i, e);
+          }}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            cursor: 'grab',
+            padding: '0.25rem',
+            color: '#666',
+            transition: 'transform 0.2s',
+            transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
+            backgroundColor: draggedDescriptionIndex === i ? '#e5e7eb' : 'transparent',
+            borderRadius: '0.25rem'
+          }}
+        >
+      <GripVertical size={16} />
+    </div>
+
+    <Input
+      type="text"
+      value={point.text}
+      readOnly
+      onClick={() => handleInputClick(point, i)}
+      onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
+      placeholder={`Description ${i + 1}`}
+      className="r text-center"
+      style={{ 
+        height: T,
+        width: '2.5rem',
+        border: '1px solid #e2e8f0',
+        borderRadius: '0.375rem'
+      }}
+    />
+  </div>
+</React.Fragment>
+
+))}
+            </div>
+          </div>
+        </div>
+      )}
+
+    {modalOpen && (
+  <div 
+    style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',  // Use vh instead of percentage or dvh
+      maxHeight: 'none',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      overflow: 'hidden'  // Prevent any scrolling
+    }}
+    onKeyDown={(e) => {
+      if (e.key === 'Escape') {
+        setModalOpen(false);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
+        setModalOpen(false);
+      }
+    }}
+  >
+    <div style={{
+      backgroundColor: 'white',
+      padding: '2rem',
+      borderRadius: '0.5rem',
+      width: '90%',
+      maxWidth: '500px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1rem'
+    }}>
+      <h2 style={{ margin: 0 }}>Edit Description</h2>
+      <textarea
+        ref={textareaRef}
+        value={editText}
+        onChange={(e) => setEditText(e.target.value)}
+        style={{
+          width: '100%',
+          height: '150px',
+          padding: '0.5rem',
+          borderRadius: '0.25rem',
+          border: '1px solid #e2e8f0'
+        }}
+      />
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem',
+        justifyContent: 'flex-end'
+      }}>
+        <Button 
+          size="sm"
+          variant="outline" 
+          onClick={() => setModalOpen(false)}
+        >
+          Cancel (Esc)
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
+            setModalOpen(false);
+          }}
+        >
+          Save (⌘ + Enter)
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+    </div>
+  );
+};
+
+export default InteractiveDrawing;
