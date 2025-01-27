@@ -7,4 +7,5 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   }
+  base: '/Sumpoints/', // Replace with your repo name
 })
