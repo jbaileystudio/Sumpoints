@@ -1411,7 +1411,6 @@ const renderSVG = (isVertical) => {
               background: 'white',
               borderRight: '1px solid #e2e8f0',
               flexShrink: 0,
-              width: `calc(100% - ${H})`,
               width: isMobile ? '100%' : `calc(100% - ${H})`  // Full width on mobile
             }}>
             <div style={{
