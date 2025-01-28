@@ -55,7 +55,17 @@ const InteractiveDrawing = () => {
   const [showBars, setShowBars] = useState(false);
   const [cumulativeType, setCumulativeType] = useState('none');
   const [editMode, setEditMode] = useState(false);
+  const [selectedPoint, setSelectedPoint] = useState(null);
+  const [touchedPointId, setTouchedPointId] = useState(null);
+  const [tappedPoint, setTappedPoint] = useState(null);
+  const [touchStartTime, setTouchStartTime] = useState(null);
+  const [touchMoved, setTouchMoved] = useState(false);
 
+  console.log('Mobile check:', { 
+    isMobile, 
+    windowWidth: window.innerWidth, 
+    MOBILE_BREAKPOINT 
+  });
 
   // Add this with your other functions near the top of your component
   const handleEditModeToggle = () => {
@@ -854,169 +864,180 @@ const renderSVG = (isVertical) => {
           />
         )}
 
-{/* Cumulative Line */}
-{cumulativeType === 'line' && allPoints.length > 0 && (() => {
-  const scores = calculateScores(allPoints);
-  
-  let segments = [];
-  let currentSegment = { points: [], isPositive: scores.cumulative[0] >= 0 };
-  
-  scores.cumulative.forEach((score, i) => {
-    // NEW: Calculate position based on orientation
-    let x, y;
-    if (isVertical) {
-      // Vertical view: x is score-based, y is grid-based
-      x = fromPercent(50, rect.width) + (score * 5);
-      y = (i + 1) * G;
-    } else {
-      // Horizontal view: original calculation
-      x = (i + 1) * G;
-      y = fromPercent(50, rect.height) - (score * 5);
-    }
-    
-    if (i > 0 && (score >= 0) !== currentSegment.isPositive) {
-      const prevScore = scores.cumulative[i - 1];
-      
-      // NEW: Calculate previous point based on orientation
-      let prevX, prevY;
-      if (isVertical) {
-        prevX = fromPercent(50, rect.width) + (prevScore * 5);
-        prevY = i * G;
-      } else {
-        prevX = i * G;
-        prevY = fromPercent(50, rect.height) - (prevScore * 5);
-      }
-      
-      const ratio = Math.abs(prevScore) / (Math.abs(prevScore) + Math.abs(score));
-      
-      // NEW: Calculate crossing point based on orientation
-      let crossingX, crossingY;
-      if (isVertical) {
-        crossingX = fromPercent(50, rect.width);
-        crossingY = prevY + (y - prevY) * ratio;
-      } else {
-        crossingX = prevX + (x - prevX) * ratio;
-        crossingY = fromPercent(50, rect.height);
-      }
-      
-      currentSegment.points.push({ x: crossingX, y: crossingY });
-      segments.push(currentSegment);
-      
-      currentSegment = {
-        points: [{ x: crossingX, y: crossingY }, { x, y }],
-        isPositive: score >= 0
-      };
-    } else {
-      currentSegment.points.push({ x, y });
-    }
-  });
-  segments.push(currentSegment);
-
-  // The rest of your code remains exactly the same
-  return (
-    <>
-      {segments.map((segment, i) => {
-        const points = segment.points;
-        let d = `M ${points[0].x} ${points[0].y}`;
+      {/* Cumulative Line */}
+      {cumulativeType === 'line' && allPoints.length > 0 && (() => {
+        const scores = calculateScores(allPoints);
         
-        for (let i = 1; i < points.length; i++) {
-          d += ` S ${points[i].x} ${points[i].y} ${points[i].x} ${points[i].y}`;
-        }
+        let segments = [];
+        let currentSegment = { points: [], isPositive: scores.cumulative[0] >= 0 };
+        
+        scores.cumulative.forEach((score, i) => {
+          // NEW: Calculate position based on orientation
+          let x, y;
+          if (isVertical) {
+            // Vertical view: x is score-based, y is grid-based
+            x = fromPercent(50, rect.width) + (score * 5);
+            y = (i + 1) * G;
+          } else {
+            // Horizontal view: original calculation
+            x = (i + 1) * G;
+            y = fromPercent(50, rect.height) - (score * 5);
+          }
+          
+          if (i > 0 && (score >= 0) !== currentSegment.isPositive) {
+            const prevScore = scores.cumulative[i - 1];
+            
+            // NEW: Calculate previous point based on orientation
+            let prevX, prevY;
+            if (isVertical) {
+              prevX = fromPercent(50, rect.width) + (prevScore * 5);
+              prevY = i * G;
+            } else {
+              prevX = i * G;
+              prevY = fromPercent(50, rect.height) - (prevScore * 5);
+            }
+            
+            const ratio = Math.abs(prevScore) / (Math.abs(prevScore) + Math.abs(score));
+            
+            // NEW: Calculate crossing point based on orientation
+            let crossingX, crossingY;
+            if (isVertical) {
+              crossingX = fromPercent(50, rect.width);
+              crossingY = prevY + (y - prevY) * ratio;
+            } else {
+              crossingX = prevX + (x - prevX) * ratio;
+              crossingY = fromPercent(50, rect.height);
+            }
+            
+            currentSegment.points.push({ x: crossingX, y: crossingY });
+            segments.push(currentSegment);
+            
+            currentSegment = {
+              points: [{ x: crossingX, y: crossingY }, { x, y }],
+              isPositive: score >= 0
+            };
+          } else {
+            currentSegment.points.push({ x, y });
+          }
+        });
+        segments.push(currentSegment);
 
+        // The rest of your code remains exactly the same
         return (
-          <path
-            key={`segment-${i}`}
-            d={d}
-            stroke={editMode ? 
-              (segment.isPositive ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") : // Faded in edit mode
-              (segment.isPositive ? "rgba(52, 211, 153, 1)" : "rgba(248, 113, 113, 1)")}      // Normal colors
-            strokeWidth="2"
-            fill="none"
+          <>
+            {segments.map((segment, i) => {
+              const points = segment.points;
+              let d = `M ${points[0].x} ${points[0].y}`;
+              
+              for (let i = 1; i < points.length; i++) {
+                d += ` S ${points[i].x} ${points[i].y} ${points[i].x} ${points[i].y}`;
+              }
+
+              return (
+                <path
+                  key={`segment-${i}`}
+                  d={d}
+                  stroke={editMode ? 
+                    (segment.isPositive ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") : // Faded in edit mode
+                    (segment.isPositive ? "rgba(52, 211, 153, 1)" : "rgba(248, 113, 113, 1)")}      // Normal colors
+                  strokeWidth="2"
+                  fill="none"
+                  style={{
+                    transition: 'stroke 0.2s ease'
+                  }}
+                />
+              );
+            })}
+          </>
+        );
+      })()}
+
+      {/* Score Bars */}
+      {cumulativeType === 'bars' && allPoints.length > 0 && (() => {
+        const scores = calculateScores(allPoints);
+        return scores.cumulative.map((score, i) => {
+          const barHeight = Math.abs(score * 5);
+          
+          if (isVertical) {
+        const x = score >= 0 ? 
+          fromPercent(50, rect.width) : 
+          fromPercent(50, rect.width) - barHeight;
+        return (
+          <rect
+            key={`bar-${i}`}
+            x={x}
+            y={(i + 1) * G - (G * 0.4)}
+            height={G * 0.8}
+            width={barHeight}
+            fill={editMode ?
+              (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
+              (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
+            rx={2}
             style={{
-              transition: 'stroke 0.2s ease'
+              transition: 'fill 0.2s ease'
             }}
           />
         );
-      })}
-    </>
-  );
-})()}
+      } else {
+        const y = score >= 0 ? 
+          fromPercent(50, rect.height) - barHeight : 
+          fromPercent(50, rect.height);
+        return (
+          <rect
+            key={`bar-${i}`}
+            x={(i + 1) * G - (G * 0.4)}
+            y={y}
+            width={G * 0.8}
+            height={barHeight}
+            fill={editMode ?
+              (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
+              (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
+            rx={2}
+            style={{
+              transition: 'fill 0.2s ease'
+            }}
+          />
+        );
+      }
+          });
+      })()}
 
-{/* Score Bars */}
-{cumulativeType === 'bars' && allPoints.length > 0 && (() => {
-  const scores = calculateScores(allPoints);
-  return scores.cumulative.map((score, i) => {
-    const barHeight = Math.abs(score * 5);
-    
-    if (isVertical) {
-  const x = score >= 0 ? 
-    fromPercent(50, rect.width) : 
-    fromPercent(50, rect.width) - barHeight;
-  return (
-    <rect
-      key={`bar-${i}`}
-      x={x}
-      y={(i + 1) * G - (G * 0.4)}
-      height={G * 0.8}
-      width={barHeight}
-      fill={editMode ?
-        (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
-        (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
-      rx={2}
-      style={{
-        transition: 'fill 0.2s ease'
-      }}
-    />
-  );
-} else {
-  const y = score >= 0 ? 
-    fromPercent(50, rect.height) - barHeight : 
-    fromPercent(50, rect.height);
-  return (
-    <rect
-      key={`bar-${i}`}
-      x={(i + 1) * G - (G * 0.4)}
-      y={y}
-      width={G * 0.8}
-      height={barHeight}
-      fill={editMode ?
-        (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
-        (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
-      rx={2}
-      style={{
-        transition: 'fill 0.2s ease'
-      }}
-    />
-  );
-}
-  });
-})()}
-
-        {/* Connecting lines */}
-        {showPoints && allPoints.map((point, i) => 
-          i > 0 && (
-            <line
-              key={`l${i}`}
-              x1={getPos(allPoints[i-1], i-1).x}
-              y1={getPos(allPoints[i-1], i-1).y}
-              x2={getPos(point, i).x}
-              y2={getPos(point, i).y}
-              stroke="black"
-              strokeWidth="2"
-              style={{
-                transition: previewPositions.length > 0 ? 'all 0.2s ease' : 'none'
-              }}
-            />
-          )
-        )}  
+      {/* Connecting lines */}
+      {showPoints && allPoints.map((point, i) => 
+        i > 0 && (
+          <line
+            key={`l${i}`}
+            x1={getPos(allPoints[i-1], i-1).x}
+            y1={getPos(allPoints[i-1], i-1).y}
+            x2={getPos(point, i).x}
+            y2={getPos(point, i).y}
+            stroke="black"
+            strokeWidth="2"
+            style={{
+              transition: previewPositions.length > 0 ? 'all 0.2s ease' : 'none'
+            }}
+          />
+        )
+      )}  
 
       {/* Points */}
       {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
         const pos = getPos(point, i);
         const isHovered = hoveredId === point.id;
-        const isBeingDragged = point.id === draggedItemId;  // Compare by ID instead of index
-        const shouldEnlarge = isHovered || isBeingDragged;
-        
+        const isBeingDragged = point.id === draggedItemId;
+        // Only enlarge the specific point being touched
+          const shouldEnlarge = (isMobile ? 
+            (point.id === touchedPointId || tappedPoint?.point.id === point.id) : 
+            (isHovered || isBeingDragged || point.id === touchedPointId || selectedPoint?.point.id === point.id)
+          );        
+          console.log('Enlarge conditions:', {
+          isHovered,
+          isBeingDragged,
+          touchedPointId,
+          selectedPointId: selectedPoint?.point.id,
+          pointId: point.id
+        });
+
         return (
           <g
             key={point.id}
@@ -1025,38 +1046,44 @@ const renderSVG = (isVertical) => {
               cursor: editMode ? 'pointer' : dragging ? 'grabbing' : 'grab',
               transition: previewPositions.length > 0 ? 'transform 0.2s ease' : 'none'
             }}
-            onMouseEnter={() => setHoveredId(point.id)}
-            onMouseLeave={() => setHoveredId(null)}
+            onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+            onMouseLeave={() => !isMobile && setHoveredId(null)}
             onMouseDown={editMode ? undefined : handlePointDrag(i, point.isGhost)}
             onDoubleClick={editMode ? () => {
               const newPoints = points.filter((_, index) => index !== i);
-
-              // Update x positions of remaining points
               newPoints.forEach((point, index) => {
                 point.x = (index + 1) * G;
               });
-
               setPoints(newPoints);
             } : undefined}
             onTouchStart={(e) => {
-              if (editMode) return;  // Disable touch dragging in edit mode
+              if (editMode) return;
               e.stopPropagation();
-              console.log('Starting drag on point:', i);
-              console.log('Current points state:', points);
               
-              const allPoints = getAllPoints();
-              const point = allPoints[i];
-              setDraggedPoint({
-                i,
-                k: point.isGhost,
-                y: point.y,
-                z: point.y,
-                id: point.id
+              // Record when the touch started
+              setTouchStartTime(Date.now());
+              setTouchMoved(false);  // Reset touch movement state
+              
+              // Set visual feedback states
+              setTouchedPointId(point.id);
+              setSelectedPoint({
+                index: i + 1,
+                point: point
               });
-              setDragging(true);
+              
+              // Don't start drag handling immediately
+              // handlePointDrag(i, point.isGhost)(e);  // Remove this
             }}
+
             onTouchMove={(e) => {
-              if (editMode) return;  // Disable touch dragging in edit mode
+              if (editMode) return;
+              setTouchMoved(true);
+              
+              // Only start dragging if we've moved
+              if (!dragging) {
+                handlePointDrag(i, point.isGhost)(e);
+              }
+              
               if (dragging && draggedPoint) {
                 e.stopPropagation();
                 const touch = e.touches[0];
@@ -1074,6 +1101,56 @@ const renderSVG = (isVertical) => {
                 setDraggedPoint(prev => ({...prev, z: newY}));
               }
             }}
+
+            onTouchEnd={(e) => {
+              // Check if this was a quick tap (less than 200ms)
+              const touchDuration = Date.now() - touchStartTime;
+              console.log('Touch end:', {
+                duration: touchDuration,
+                moved: touchMoved,
+                dragging,
+                point: point
+              });
+              
+              if (touchDuration < 200 && !touchMoved) {
+                console.log('Toggle tapped point');
+                setTappedPoint(current => 
+                  // If tapping the same point, clear it. Otherwise, set new point
+                  current?.point?.id === point.id ? null : {
+                    index: i + 1,
+                    point: point
+                  }
+                );
+              } else {
+                setTappedPoint(null);
+              }
+
+              // Always clear states
+              setTouchedPointId(null);
+              setSelectedPoint(null);
+              setTouchStartTime(null);
+              setTouchMoved(false);
+              
+              // Handle drag end logic
+              if (dragging && draggedPoint) {
+                const finalY = findClosestPoint(draggedPoint.z);
+                
+                if (point.isGhost) {
+                  setPoints(s => [...s, {...point, y: finalY, isAbove: finalY < 50, isGhost: false, id: point.id}]);
+                  setGhostPoints(s => s.filter(p => p.id !== point.id));
+                  setUndoStack([]);
+                } else {
+                  setPoints(s => s.map(p => 
+                    p.id === point.id ? {...p, y: finalY, isAbove: finalY < 50} : p
+                  ));
+                }
+                
+                setJustDropped(true);
+                setTimeout(() => setJustDropped(false), 100);
+              }
+              setDragging(false);
+              setDraggedPoint(null);
+            }}
           >
           <circle
             cx={pos.x}
@@ -1090,8 +1167,16 @@ const renderSVG = (isVertical) => {
               transition: 'r 0.2s ease, fill 0.2s ease'
             }}
           />
-          {/* Delete button that shows when edit mode is on */}
-            {editMode && (  // Removed hoveredId condition
+            {/* Added info popup for mobile */}
+            {console.log('Popup render check:', {
+              isMobile,
+              tappedPoint,
+              pointId: point.id,
+              tappedPointId: tappedPoint?.point?.id
+            })}
+            
+            {/* Your existing edit mode delete button */}
+            {editMode && (
               <g 
                 transform={`translate(${pos.x}, ${pos.y - 20})`}
                 onClick={(e) => {
@@ -1113,6 +1198,43 @@ const renderSVG = (isVertical) => {
               </g>
             )}
         </g>
+        );
+      })}
+
+      {/* Popup - moved outside and after points */}
+      {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
+        const pos = getPos(point, i);
+        return isMobile && tappedPoint && (point.id === tappedPoint.point.id) && (
+          <g style={{ pointerEvents: 'none' }}>
+            <rect
+              x={pos.x + 20}
+              y={pos.y - 40}
+              width="120"
+              height="60"
+              rx="4"
+              fill="white"
+              stroke="#ddd"
+              filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.1))"
+            />
+            <text
+              x={pos.x + 30}
+              y={pos.y - 20}
+              fontSize="12"
+              fill="black"
+            >
+              Point {i + 1}
+            </text>
+            <text
+              x={pos.x + 30}
+              y={pos.y}
+              fontSize="12"
+              fill="gray"
+            >
+              {(point.text || 'No description').length > 18 
+                ? `${(point.text || 'No description').substring(0, 18)}...`
+                : (point.text || 'No description')}
+            </text>
+          </g>
         );
       })}
     </svg>
@@ -1458,8 +1580,8 @@ const renderSVG = (isVertical) => {
             cursor: 'pointer',
             pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
           }}
-          onMouseEnter={() => setHoverInsertIndex(i)}
-          onMouseLeave={() => setHoverInsertIndex(null)}
+onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+onMouseLeave={() => !isMobile && setHoveredId(null)}
           onClick={() => handleInsertAt(i)}
         >
           <div
@@ -1754,8 +1876,8 @@ const renderSVG = (isVertical) => {
           cursor: 'pointer',
           pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
         }}
-        onMouseEnter={() => setHoverInsertIndex(i)}
-        onMouseLeave={() => setHoverInsertIndex(null)}
+onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+onMouseLeave={() => !isMobile && setHoveredId(null)}
         onClick={() => handleInsertAt(i)}
       >
         <div
