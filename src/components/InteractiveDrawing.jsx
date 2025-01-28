@@ -844,7 +844,7 @@ const renderSVG = (isVertical) => {
         >
           ☹️
         </text>
-        {!dragging && !hoveredId && isNearNextLine && (
+        {!dragging && !hoveredId && isNearNextLine && !isMobile && (
           <circle
             cx={previewPos.x}
             cy={previewPos.y}
