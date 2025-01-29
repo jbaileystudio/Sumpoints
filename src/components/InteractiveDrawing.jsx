@@ -1085,7 +1085,10 @@ const renderSVG = (isVertical) => {
               }
               
               if (dragging && draggedPoint) {
+                // Add preventDefault to stop scrolling
+                e.preventDefault();
                 e.stopPropagation();
+
                 const touch = e.touches[0];
                 const rect = drawingRef.current?.getBoundingClientRect();
                 if (!rect) return;
@@ -1802,8 +1805,8 @@ onMouseLeave={() => !isMobile && setHoveredId(null)}
                 position: 'relative',
                 overflow: 'hidden',
                 height: isMobile ? '100%' : H,  // Use full height on mobile
-                minHeight: isMobile ? 'initial' : undefined  // Add this to override any min-height
-
+                minHeight: isMobile ? 'initial' : undefined,  // Add this to override any min-height
+                touchAction: dragging ? 'none' : 'pan-x'  // Allow horizontal scroll unless dragging
               }}
               className="drawing-area"
               onMouseMove={handleMouseMove}
