@@ -320,6 +320,8 @@ const svgContent = `
     height="${600 * scale}px" 
     viewBox="0 0 ${totalWidth} 600"
     style="background-color: white;"
+    preserveAspectRatio="xMidYMid meet"
+    shape-rendering="geometricPrecision"
   >
     <!-- Grid Pattern -->
     <defs>
@@ -438,49 +440,59 @@ const descriptionsContent = `
       <head>
         <title>${filename}</title>
         <style>
-          @page {
-            size: landscape letter;
-            margin: 0.25in;
-            marks: none;
-          }
           @media print {
             @page {
+              size: landscape letter;
               margin: 0.5in;
             }
-            body {
-              width: 11in;
-              height: 8.5in;
-              margin: 0;
-              padding: 0;
-              font-family: Arial, sans-serif;
-              -webkit-print-color-adjust: exact;
+            
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
-            html {
-              width: 11in;
-              height: 8.5in;
+            
+            html, body {
+              width: 11in !important;
+              height: 8.5in !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: hidden !important;
             }
-            @page { margin: 0.5in }
-            @page :first { margin-top: 0.5in }
-            @page :left { margin-left: 0.5in }
-            @page :right { margin-right: 0.5in }
+            
+            div {
+              page-break-inside: avoid;
+            }
+          }
+          
+          @media screen and (max-width: 425px) {
+            @page {
+              margin: 0.5in !important;
+              size: landscape letter !important;
+            }
           }
         </style>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="chrome" content="noPrintingHeaderFooter">
         <meta name="PrintCSS" content="landscape">
         <meta name="apple-mobile-web-app-capable" content="yes">
       </head>
       <body>
-        <div style="
-          max-width: 11in;
-          margin: 0 auto;
-          height: 8.5in;
-          display: flex;
-          flex-direction: column;
-          overflow: visible;
-          position: relative;
-          align-items: center;  // Add this
-        ">
+<div style="
+  max-width: 11in;
+  margin: 0 auto;
+  height: 8.5in;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: center;
+  transform-origin: top center;
+  @media print {
+    transform: none !important;
+    zoom: ${scale} !important;
+  }
+">
           <h1 style="text-align: center; margin: 0.25in 0 0.2in 0; font-family: Arial, sans-serif;">
             ${filename}
           </h1>
@@ -2114,7 +2126,7 @@ onMouseLeave={() => !isMobile && setHoveredId(null)}
           variant="outline" 
           onClick={() => setModalOpen(false)}
         >
-          Cancel (Esc)
+          Cancel{!isMobile && " (Esc)"}
         </Button>
         <Button
           size="sm"
@@ -2124,7 +2136,7 @@ onMouseLeave={() => !isMobile && setHoveredId(null)}
             setModalOpen(false);
           }}
         >
-          Save (⌘ + Enter)
+          Save{!isMobile && " (⌘ + Enter)"}
         </Button>
       </div>
     </div>
