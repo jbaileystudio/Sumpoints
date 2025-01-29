@@ -540,10 +540,22 @@ const handlePointDrag = (i, isGhost) => e => {
 
   useEffect(() => {
   if (modalOpen && textareaRef.current) {
+    // Original focus and cursor position logic
     textareaRef.current.focus();
-    // Set cursor position to end of text
     textareaRef.current.selectionStart = textareaRef.current.value.length;
     textareaRef.current.selectionEnd = textareaRef.current.value.length;
+
+    // Fix the layout
+    document.body.style.height = '100vh';
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+  } else {
+    // Reset the body styles when modal closes
+    document.body.style.height = '';
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
   }
 }, [modalOpen]);
 
@@ -1795,8 +1807,6 @@ onMouseLeave={() => !isMobile && setHoveredId(null)}
               flexDirection: 'column',
               width: `${(points.length + ghostPoints.length + 4) * G}px`,
               minHeight: isMobile ? 'initial' : undefined  // Add this too
-
-
             }}
           >
             <div 
