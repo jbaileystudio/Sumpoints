@@ -387,16 +387,16 @@ const scrollToPoint = x => {
   
   const fromPercent = (pct, total) => total ? Math.max(0, Math.min(total, (pct/100) * total)) : 0;
 
-  const getMousePos = e => {
-    if (!drawingRef.current) return { x: 0, y: 50 };
-    const rect = drawingRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    return {
-      x: toPercent(x, rect.width),
-      y: toPercent(y, rect.height)
-    };
+const getMousePos = e => {
+  if (!drawingRef.current) return { x: 0, y: 50 };
+  const rect = drawingRef.current.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  return {
+    x: toPercent(x, rect.width),
+    y: toPercent(y, rect.height)  // Use actual height directly now
   };
+};
 
 
 // First, update the handleReorder function to handle both regular and ghost points
@@ -993,14 +993,14 @@ const renderSVG = (isVertical) => {
 
   const previewY = rotated ? 100-cursor.x : cursor.y;
   const snappedY = findClosestPoint(previewY);
-  const previewPos = {
-      x: isVertical 
-          ? fromPercent(isVertical ? 100-snappedY : snappedY, rect.width) 
-          : getNextX(),  // Use getNextX instead
-      y: isVertical 
-          ? getNextX()
-          : fromPercent(snappedY, rect.height)
-  };
+const previewPos = {
+  x: isVertical 
+      ? fromPercent(isVertical ? 100-snappedY : snappedY, rect.width) 
+      : getNextX(),
+  y: isVertical 
+      ? getNextX()
+      : fromPercent(snappedY, rect.height)  // Use actual height
+};
 
   const nextX = getNextX();
   const mouseX = fromPercent(cursor.x, rect.width);
@@ -1023,8 +1023,8 @@ const renderSVG = (isVertical) => {
           <svg 
             className="absolute top-0 left-0 w-full h-full" 
             style={{pointerEvents: 'none'}}
-            viewBox={`0 0 ${width} ${rotated ? height : (isMobile ? rect.height : 600)}`}
-            preserveAspectRatio="none"
+            viewBox={`0 0 ${width} ${rotated ? height : (isMobile ? rect.height : rect.height)}`}
+            preserveAspectRatio={isMobile ? "none" : "xMidYMid meet"}
           >
           <defs>
             <pattern 
