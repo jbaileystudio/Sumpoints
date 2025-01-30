@@ -3,6 +3,7 @@ import { Save, Plus } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { GripVertical } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 
 // Constants for our grid and layout
@@ -67,6 +68,238 @@ const InteractiveDrawing = () => {
     MOBILE_BREAKPOINT 
   });
 
+  const handlePdfExport = async () => {
+    console.log('Starting PDF export');
+    const allPoints = getAllPoints();
+    console.log('Points gathered:', allPoints);
+
+    // Calculate minimum width for 15 points
+    const minWidth = 16 * G;  // 15 points + 1 extra space
+    const totalWidth = Math.max(minWidth, (allPoints.length + 1) * G);
+
+    // Calculate scale to fit on letter paper (8.5 x 11 inches)
+    const pageWidth = 11; // landscape letter width in inches
+    const pageHeight = 8.5; // landscape letter height in inches
+    const margins = 0.5; // half-inch margins
+    const availableWidth = pageWidth - (margins * 2);
+    const availableHeight = pageHeight - (margins * 2);
+    
+    const scale = Math.min(
+      (availableWidth * 96) / totalWidth,
+      (availableHeight * 96) / 600,
+      1
+    );
+
+    console.log('Calculated dimensions:', { totalWidth, scale });
+
+
+    // Create SVG content similar to your current export
+    const svgContent = `
+      <svg 
+        width="${totalWidth * scale}px"
+        height="${600 * scale}px" 
+        viewBox="0 0 ${totalWidth} 600"
+        style="background-color: white;"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <!-- Your existing SVG content -->
+        <defs>
+          <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
+            ${HASH_POINTS.map((hp, i) => `
+              <line 
+                x1="-6" y1="${hp}%" 
+                x2="6" y2="${hp}%" 
+                stroke="grey"
+              />
+            `).join('')}
+            <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="grey"/>
+          </pattern>
+        </defs>
+        
+        <!-- Grid and points -->
+        <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
+        <line x1="0" y1="50%" x2="100%" y2="50%" stroke="grey"/>
+        
+        <!-- Points and lines -->
+        ${allPoints.map((point, i) => i > 0 ? `
+          <line 
+            x1="${allPoints[i-1].x}" 
+            y1="${allPoints[i-1].y}%" 
+            x2="${point.x}" 
+            y2="${point.y}%" 
+            stroke="black" 
+            stroke-width="2"
+          />
+        ` : '').join('')}
+        
+        ${allPoints.map(point => `
+          <circle 
+            cx="${point.x}" 
+            cy="${point.y}%" 
+            r="${P}" 
+            fill="black"
+          />
+        `).join('')}
+      </svg>
+    `;
+
+    // Inside your try block
+    try {
+  console.log('Creating PDF instance');
+  const pdf = new jsPDF({
+    orientation: 'landscape',
+    unit: 'in',
+    format: 'letter'
+  });
+
+  // Add title and count right after PDF creation
+  pdf.setFontSize(16);
+  pdf.text(filename, margins, margins);
+
+  // Add count below title
+  pdf.setFontSize(12);
+  pdf.text(`${allPoints.length} events`, margins, margins + 0.3);
+
+  const contentStart = margins + 0.5;
+
+  // Add aspect ratio calculations
+  const svgAspectRatio = 600 / totalWidth;
+  const pageAspectRatio = (pageHeight - margins * 3) / (pageWidth - margins * 2);
+
+  // Create a temporary canvas with higher resolution
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = totalWidth * scale * 2;
+  canvas.height = 600 * scale * 2;
+  ctx.scale(2, 2);
+  
+  // Create a temporary container and add SVG to DOM
+  const container = document.createElement('div');
+  container.innerHTML = svgContent;
+  document.body.appendChild(container);
+  
+  // Get the SVG element
+  const svgElement = container.querySelector('svg');
+  
+  // Convert SVG to data URL using canvas
+  const svgData = new XMLSerializer().serializeToString(svgElement);
+  const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  console.log('Created SVG data URL');
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = async () => {
+      console.log('Image loaded');
+      try {
+        // Draw image to canvas first
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        
+        // Convert canvas to PNG data URL
+        const pngDataUrl = canvas.toDataURL('image/png', 1.0);  // Added quality parameter
+        
+        pdf.addImage(
+          pngDataUrl,
+          'PNG',
+          margins,
+          contentStart,
+          pageWidth - margins * 2,
+          (pageWidth - margins * 2) * svgAspectRatio
+        );
+        console.log('Added image to PDF');
+
+// Add vertical descriptions
+pdf.setFontSize(10);
+const baseCharLimit = 24;
+
+allPoints.forEach((point, i) => {
+  const x = (point.x * scale / 96) + margins;
+  
+  // Calculate dynamic character limit with more aggressive scaling
+  let charLimit = baseCharLimit;
+  
+  if (allPoints.length > 15) {
+    const pointRatio = allPoints.length / 15;
+    const heightGain = (1 / scale);
+    const additionalChars = Math.floor(baseCharLimit * Math.sqrt(pointRatio) * heightGain * 0.8);
+    charLimit = baseCharLimit + additionalChars;
+    
+    if (i === 0) {
+      console.log('Detailed character calculation:', {
+        points: allPoints.length,
+        scale,
+        pointRatio,
+        heightGain,
+        additionalChars,
+        finalCharLimit: charLimit,
+        calculation: `${baseCharLimit} + (${baseCharLimit} * ${pointRatio} * ${heightGain} * 0.8)`
+      });
+    }
+  }
+
+  // Get text and add wrapping
+  let textToWrite = point.text || 'No description';
+  console.log('Before PDF text:', {
+    pointIndex: i,
+    text: textToWrite,
+    calculatedLimit: charLimit,
+    pdfOptions: {
+      maxWidth: 2,
+      align: 'left',
+      angle: 90
+    }
+  });
+
+  if (textToWrite.length > charLimit) {
+    const lines = textToWrite.match(new RegExp(`.{1,${charLimit}}`, 'g')) || [textToWrite];
+    console.log('After wrapping:', {
+      pointIndex: i,
+      originalText: textToWrite,
+      wrappedText: lines.join('\n'),
+      numberOfLines: lines.length,
+      lineCharLimits: lines.map(l => l.length)
+    });
+    textToWrite = lines.join('\n');
+  }
+
+  pdf.text(
+    textToWrite,
+    x,
+    pageHeight - margins - 0.2,
+    {
+      maxWidth: charLimit / 24, // Scale the maxWidth based on our character limit
+      align: 'left',
+      angle: 90
+    }
+  );
+});
+
+        console.log('Saving PDF...');
+        pdf.save(`${filename}.pdf`);
+        console.log('PDF saved!');
+
+        document.body.removeChild(container);
+        canvas.remove();
+        resolve();
+      } catch (error) {
+        console.error('Error in image processing:', error);
+        document.body.removeChild(container);
+        canvas.remove();
+      }
+    };
+    img.onerror = (error) => {
+      console.error('Error loading image:', error);
+      document.body.removeChild(container);
+      canvas.remove();
+    };
+    img.src = svgDataUrl;
+  });
+} catch (error) {
+  console.error('Error in PDF creation:', error);
+}
+};
+
   // Add this with your other functions near the top of your component
   const handleEditModeToggle = () => {
     setEditMode(!editMode);
@@ -91,37 +324,25 @@ const InteractiveDrawing = () => {
 
   // Add a function to handle inserting at an index
   const handleInsertAt = (index) => {
-    const allPoints = getAllPoints();
-    const newX = (allPoints[index].x + (index > 0 ? allPoints[index - 1].x : 0)) / 2;
-    
-    const newPoint = {
-      x: newX,
-      y: 50,
-      text: '',
-      isGhost: !isMobile, // Create as real point on mobile
-      id: Date.now()
-    };
-    
-    // Insert the new point
-    if (isMobile || !newPoint.isGhost) {
-      const newPoints = [...points];
-      newPoints.splice(index, 0, newPoint);
-      // Update x positions
-      newPoints.forEach((point, i) => {
-        point.x = (i + 1) * G;
-      });
-      setPoints(newPoints);
-    } else {
-      const newGhostPoints = [...ghostPoints, newPoint];
-      // Update x positions for all points
-      const allNewPoints = [...points, ...newGhostPoints].sort((a, b) => a.x - b.x);
-      allNewPoints.forEach((point, i) => {
-        point.x = (i + 1) * G;
-      });
-      setGhostPoints(newGhostPoints.filter(p => p.isGhost));
-      setPoints(allNewPoints.filter(p => !p.isGhost));
-    }
+  const allPoints = getAllPoints();
+  const newX = (allPoints[index].x + (index > 0 ? allPoints[index - 1].x : 0)) / 2;
+  
+  const newPoint = {
+    x: newX,
+    y: 50,
+    text: '',
+    id: Date.now()
   };
+  
+  // Insert the new point
+  const newPoints = [...points];
+  newPoints.splice(index, 0, newPoint);
+  // Update x positions
+  newPoints.forEach((point, i) => {
+    point.x = (i + 1) * G;
+  });
+  setPoints(newPoints);
+};
 
 
   // Refs for DOM elements
@@ -130,8 +351,7 @@ const InteractiveDrawing = () => {
   const drawingRef = useRef(null);
 
   const getAllPoints = () => {
-    const allPoints = [...points, ...ghostPoints].sort((a, b) => a.x - b.x);
-    return allPoints;
+    return points;
   };
 
 const getNextX = () => {
@@ -619,28 +839,17 @@ useEffect(() => {
   };
 }, []);
 
-  const addGhostPoint = () => {
+const addGhostPoint = () => {
   const x = getNextX();
   
-  if (isMobile) {
-    // On mobile, directly create a real point at the center line
-    setPoints(s => [...s, {
-      x,
-      y: 50, // Center line
-      text: '',
-      isAbove: false,
-      id: Date.now()
-    }]);
-  } else {
-    // On desktop, keep the existing ghost point behavior
-    setGhostPoints(s => [...s, {
-      x,
-      y: 50,
-      text: '',
-      isGhost: true,
-      id: Date.now()
-    }]);
-  }
+  // Create a real point (like mobile does)
+  setPoints(s => [...s, {
+    x,
+    y: 50,
+    text: '',
+    id: Date.now()
+  }]);
+
   scrollToPoint(x);
 };
 
@@ -1407,10 +1616,13 @@ const renderSVG = (isVertical) => {
           <Button 
             size="sm" 
             variant="outline" 
-            onClick={handleExport} 
+            onClick={() => {
+              console.log('Export button clicked');
+              handlePdfExport();
+            }}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            <Save style={{ width: '1rem', height: '1rem' }}/>Export
+            <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
           </Button>
           
           <Button 
@@ -1602,13 +1814,13 @@ const renderSVG = (isVertical) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            opacity: hoverInsertIndex === i ? 1 : 0,
+      opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
             transition: 'opacity 0.2s',
             cursor: 'pointer',
             pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
           }}
-onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-onMouseLeave={() => !isMobile && setHoveredId(null)}
+          onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+          onMouseLeave={() => !isMobile && setHoveredId(null)}
           onClick={() => handleInsertAt(i)}
         >
           <div
@@ -1896,13 +2108,13 @@ onMouseLeave={() => !isMobile && setHoveredId(null)}
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: hoverInsertIndex === i ? 1 : 0,
+      opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
           transition: 'opacity 0.2s',
           cursor: 'pointer',
           pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
         }}
-onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-onMouseLeave={() => !isMobile && setHoveredId(null)}
+        onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+        onMouseLeave={() => !isMobile && setHoveredId(null)}
         onClick={() => handleInsertAt(i)}
       >
         <div
