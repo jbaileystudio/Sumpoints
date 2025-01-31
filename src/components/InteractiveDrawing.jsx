@@ -210,8 +210,8 @@ const InteractiveDrawing = () => {
         console.log('Added image to PDF');
 
 // Add vertical descriptions
-pdf.setFontSize(10);
-const baseCharLimit = 24;
+pdf.setFontSize(9);
+const baseCharLimit = 26;
 
 allPoints.forEach((point, i) => {
   const x = (point.x * scale / 96) + margins;
@@ -224,6 +224,18 @@ allPoints.forEach((point, i) => {
     const additionalChars = Math.floor(baseCharLimit * Math.sqrt(pointRatio) * heightGain * 0.8);
     charLimit = baseCharLimit + additionalChars;
   }
+
+  //The key factors for adjusting how aggressively the character count increases beyond 15 points are:
+  //The 0.8 multiplier at the end - decreasing this will make the character count increase less aggressively, increasing it will allow more characters
+  //The Math.sqrt(pointRatio) - using square root makes the increase more gradual. You could change this to just pointRatio for a more linear increase
+  //The heightGain factor - this accounts for how much the scale shrinks as more points are added
+
+  //For example:
+
+  //More aggressive: Change 0.8 to 1.2
+  //Less aggressive: Change 0.8 to 0.5
+  //Much more aggressive: Remove Math.sqrt and just use pointRatio
+  //Much less aggressive: Use Math.cbrt(pointRatio) (cube root) instead of square root
 
   let textToWrite = point.text || 'No description';
   
