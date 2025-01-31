@@ -216,59 +216,43 @@ const baseCharLimit = 24;
 allPoints.forEach((point, i) => {
   const x = (point.x * scale / 96) + margins;
   
-  // Calculate dynamic character limit with more aggressive scaling
+  // For 15 or fewer points, always use baseCharLimit
   let charLimit = baseCharLimit;
-  
   if (allPoints.length > 15) {
     const pointRatio = allPoints.length / 15;
     const heightGain = (1 / scale);
     const additionalChars = Math.floor(baseCharLimit * Math.sqrt(pointRatio) * heightGain * 0.8);
     charLimit = baseCharLimit + additionalChars;
-    
-    if (i === 0) {
-      console.log('Detailed character calculation:', {
-        points: allPoints.length,
-        scale,
-        pointRatio,
-        heightGain,
-        additionalChars,
-        finalCharLimit: charLimit,
-        calculation: `${baseCharLimit} + (${baseCharLimit} * ${pointRatio} * ${heightGain} * 0.8)`
-      });
-    }
   }
 
-  // Get text and add wrapping
   let textToWrite = point.text || 'No description';
-  console.log('Before PDF text:', {
-    pointIndex: i,
-    text: textToWrite,
-    calculatedLimit: charLimit,
-    pdfOptions: {
-      maxWidth: 2,
-      align: 'left',
-      angle: 90
-    }
+  
+  console.log('Processing text:', {
+    originalText: textToWrite,
+    length: textToWrite.length,
+    charLimit
   });
 
   if (textToWrite.length > charLimit) {
-    const lines = textToWrite.match(new RegExp(`.{1,${charLimit}}`, 'g')) || [textToWrite];
-    console.log('After wrapping:', {
-      pointIndex: i,
-      originalText: textToWrite,
-      wrappedText: lines.join('\n'),
-      numberOfLines: lines.length,
-      lineCharLimits: lines.map(l => l.length)
+    const chunks = [];
+    for (let i = 0; i < textToWrite.length; i += charLimit) {
+      chunks.push(textToWrite.slice(i, i + charLimit));
+    }
+    textToWrite = chunks.join('\n');
+    
+    console.log('After chunking:', {
+      chunks,
+      chunkLengths: chunks.map(c => c.length),
+      finalText: textToWrite
     });
-    textToWrite = lines.join('\n');
   }
 
+  // Remove maxWidth to prevent PDF.js from doing its own text wrapping
   pdf.text(
     textToWrite,
     x,
     pageHeight - margins - 0.2,
     {
-      maxWidth: charLimit / 24, // Scale the maxWidth based on our character limit
       align: 'left',
       angle: 90
     }
@@ -401,45 +385,22 @@ const getMousePos = e => {
 
 // First, update the handleReorder function to handle both regular and ghost points
 const handleReorder = (from, to) => {
-  const allPoints = getAllPoints();
-  console.log('🔄 Starting Reorder:', {
-    from,
-    to,
-    initialOrder: allPoints.map(p => p.text)
-  });
-  
-  // Find the point we want to move by its ID
-  const pointToMove = allPoints.find(p => p.id === draggedItemId);
-  const currentIndex = allPoints.findIndex(p => p.id === draggedItemId);
-  
-  console.log('📍 Moving point:', {
-    text: pointToMove.text,
-    from: currentIndex,
-    to
-  });
-  
-  const orderedPoints = [...allPoints];
-  
-  // Remove the point by its current index
-  orderedPoints.splice(currentIndex, 1);
-  console.log('🔹 After removal:', orderedPoints.map(p => p.text));
-  
-  // Insert at the target position
-  orderedPoints.splice(to, 0, pointToMove);
-  console.log('🔸 After insertion:', orderedPoints.map(p => p.text));
-  
-  // Update x positions
-  orderedPoints.forEach((point, index) => {
-    point.x = (index + 1) * G;
-  });
-  
-  const newPoints = orderedPoints.filter(p => !p.isGhost);
-  const newGhostPoints = orderedPoints.filter(p => p.isGhost);
-  
-  console.log('✅ Final order:', orderedPoints.map(p => p.text));
-  
+  if (from === to) return;
+
+  let newPoints = [...points];
+  // Remove the dragged point and insert it at the new position
+  const [movedPoint] = newPoints.splice(from, 1);
+  newPoints.splice(to, 0, movedPoint);
+
+  // Recalculate x positions and ensure points are connected in sequential order
+  newPoints = newPoints.map((point, index) => ({
+    ...point,
+    x: (index + 1) * G,  // Keep the x-coordinates in order
+    // Each point should connect to the previous point
+    connectsTo: index > 0 ? newPoints[index - 1].id : undefined
+  }));
+
   setPoints(newPoints);
-  setGhostPoints(newGhostPoints);
   setPreviewPositions([]);
 };
 
@@ -750,12 +711,17 @@ const descriptionsContent = `
 
 const handlePointDrag = (i, isGhost) => e => {
   e.stopPropagation();
-  const allPoints = getAllPoints();  // Get combined points
-  const point = allPoints[i];        // Get correct point by combined index
+  const allPoints = getAllPoints();
+  const point = allPoints[i];
+  
+  // Don't prevent default on mobile to allow scrolling
+  if (!isMobile) {
+    e.preventDefault();
+  }
   
   setDraggedPoint({
     i,
-    k: point.isGhost,  // Use point's own isGhost property
+    k: point.isGhost,
     y: point.y,
     z: point.y,
     id: point.id
@@ -894,35 +860,18 @@ const addGhostPoint = () => {
 
 
 const handleTouchMove = (e) => {
-  if (draggedDescriptionIndex === null) return;
+  if (editMode) return;
+  setTouchMoved(true);
   
-  const touch = e.touches[0];
-  const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
-  const descriptionElement = elements.find(el => el.getAttribute('data-description-index'));
-  
-  if (descriptionElement) {
-    const index = parseInt(descriptionElement.getAttribute('data-description-index'));
-    const currentTime = Date.now();
+  if (dragging && draggedPoint) {
+    e.preventDefault();
+    e.stopPropagation();
     
-    if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
-      if (originalIndex !== null) {  // Removed check for originalIndex !== index
-        console.log('📱 Touch Move:', { toIndex: index });
-        
-        // Create preview based on original points
-        const previewPoints = [...originalPoints];
-        const [movedPoint] = previewPoints.splice(originalIndex, 1);
-        previewPoints.splice(index, 0, movedPoint);
-        
-        // Update x positions
-        previewPoints.forEach((point, idx) => {
-          point.x = (idx + 1) * G;
-        });
-        
-        setLastUpdateTime(currentTime);
-        setDraggedOverIndex(index);
-        setPreviewPositions(previewPoints);
-      }
-    }
+    const touch = e.touches[0];
+    const rect = drawingRef.current.getBoundingClientRect();
+    const y = ((touch.clientY - rect.top) / rect.height) * 100;
+    
+    setDraggedPoint(prev => ({...prev, z: y}));
   }
 };
 
@@ -1235,23 +1184,39 @@ const previewPos = {
           });
       })()}
 
-      {/* Connecting lines */}
-      {showPoints && allPoints.map((point, i) => 
-        i > 0 && (
-          <line
-            key={`l${i}`}
-            x1={getPos(allPoints[i-1], i-1).x}
-            y1={getPos(allPoints[i-1], i-1).y}
-            x2={getPos(point, i).x}
-            y2={getPos(point, i).y}
-            stroke="black"
-            strokeWidth="2"
-            style={{
-              transition: previewPositions.length > 0 ? 'all 0.2s ease' : 'none'
-            }}
-          />
-        )
-      )}  
+{/* Connecting lines */}
+{showPoints && (() => {
+  // Use preview positions during drag, otherwise use regular points
+  const pointsToRender = previewPositions.length > 0 ? previewPositions : points;
+  
+  console.log('🔗 Drawing Lines for Points (Final Order):', pointsToRender.map(p => ({
+    id: p.id,
+    x: p.x,
+    y: p.y,
+    connectsTo: p.connectsTo
+  })));
+
+  return pointsToRender.map((point, i) => {
+    if (i === 0) return null; // Skip first point since it has no previous connection
+
+    const prevPoint = pointsToRender[i - 1]; // Get previous point from the same array we're rendering
+
+    return (
+      <line
+        key={`l${point.id}`}
+        x1={getPos(prevPoint, i - 1).x}
+        y1={getPos(prevPoint, i - 1).y}
+        x2={getPos(point, i).x}
+        y2={getPos(point, i).y}
+        stroke="black"
+        strokeWidth="2"
+        style={{
+          transition: previewPositions.length > 0 ? 'all 0.2s ease' : 'none'
+        }}
+      />
+    );
+  });
+})()}
 
       {/* Points */}
       {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
@@ -1289,54 +1254,34 @@ const previewPos = {
               });
               setPoints(newPoints);
             } : undefined}
-            onTouchStart={(e) => {
-              if (editMode) return;
-              e.stopPropagation();
-              
-              // Record when the touch started
-              setTouchStartTime(Date.now());
-              setTouchMoved(false);  // Reset touch movement state
-              
-              // Set visual feedback states
-              setTouchedPointId(point.id);
-              setSelectedPoint({
-                index: i + 1,
-                point: point
-              });
-              
-              // Don't start drag handling immediately
-              // handlePointDrag(i, point.isGhost)(e);  // Remove this
-            }}
+onTouchStart={(e) => {
+  if (editMode) return;
+  e.stopPropagation();
+  
+  setTouchStartTime(Date.now());
+  setTouchMoved(false);
+  
+  // Immediately initiate drag on touch start for mobile
+  if (isMobile) {
+    handlePointDrag(i, point.isGhost)(e);
+  }
+  
+  setTouchedPointId(point.id);
+}}
 
-            onTouchMove={(e) => {
-              if (editMode) return;
-              setTouchMoved(true);
-              
-              // Only start dragging if we've moved
-              if (!dragging) {
-                handlePointDrag(i, point.isGhost)(e);
-              }
-              
-              if (dragging && draggedPoint) {
-                // Add preventDefault to stop scrolling
-                e.preventDefault();
-                e.stopPropagation();
-
-                const touch = e.touches[0];
-                const rect = drawingRef.current?.getBoundingClientRect();
-                if (!rect) return;
-                
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                const pos = {
-                  x: toPercent(x, rect.width),
-                  y: toPercent(y, rect.height)
-                };
-                
-                const newY = rotated ? 100-pos.x : pos.y;
-                setDraggedPoint(prev => ({...prev, z: newY}));
-              }
-            }}
+onTouchMove={(e) => {
+  if (editMode || !dragging) return;
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const touch = e.touches[0];
+  const rect = drawingRef.current.getBoundingClientRect();
+  const y = ((touch.clientY - rect.top) / rect.height) * 100;
+  
+  // Update the draggedPoint position
+  setDraggedPoint(prev => prev ? {...prev, z: y} : null);
+  setTouchMoved(true);
+}}
 
             onTouchEnd={(e) => {
               // Check if this was a quick tap (less than 200ms)
@@ -1398,7 +1343,7 @@ const previewPos = {
             cx={pos.x}
             cy={pos.y}
             r={P * (shouldEnlarge ? 2 : 1)}
-            fill={isBeingDragged ? "#FCD34D" : point.isGhost ? "gray" : "black"}
+            fill={isMobile ? "black" : (isBeingDragged ? "#FCD34D" : point.isGhost ? "gray" : "black")}
             style={{
               transition: 'r 0.2s ease, fill 0.2s ease'
             }}
@@ -1844,38 +1789,37 @@ const previewPos = {
     <div
       key={point.id}
       data-description-index={i}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
-        const currentTime = Date.now();
-        
-        if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
-          if (originalIndex !== null) {  // Remove the originalIndex !== i check
-            // Only update if we've moved to a new valid position
-            if (i !== draggedOverIndex) {
-              console.log('🟨 Drag Over:', { 
-                fromIndex: originalIndex,
-                toIndex: i,
-              });
-              
-              // Create preview based on original points
-              const previewPoints = [...originalPoints];
-              const [movedPoint] = previewPoints.splice(originalIndex, 1);
-              previewPoints.splice(i, 0, movedPoint);
-              
-              // Update x positions
-              previewPoints.forEach((point, index) => {
-                point.x = (index + 1) * G;
-              });
-              
-              setLastUpdateTime(currentTime);
-              setDraggedOverIndex(i);
-              setPreviewPositions(previewPoints);
-            }
-          }
-        }
-      }}
+onDragOver={(e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
+  const currentTime = Date.now();
+  
+  if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+    if (originalIndex !== null && i !== draggedOverIndex) {
+      console.log('🟨 Drag Over:', { 
+        draggedItemId,
+        fromIndex: originalIndex,
+        toIndex: i,
+      });
+
+      let previewPoints = [...originalPoints];
+      const [movedPoint] = previewPoints.splice(originalIndex, 1);
+      previewPoints.splice(i, 0, movedPoint);
+
+      // Update x positions and connections in preview
+      previewPoints = previewPoints.map((point, index) => ({
+        ...point,
+        x: (index + 1) * G,
+        connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
+      }));
+
+      setLastUpdateTime(currentTime);
+      setDraggedOverIndex(i);
+      setPreviewPositions(previewPoints);
+    }
+  }
+}}
       onDragEnter={(e) => {
         e.preventDefault();
         if (draggedDescriptionIndex !== i) {
@@ -1907,59 +1851,86 @@ const previewPos = {
         border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
       }}
     >
-      <div
-        draggable
-        onDragStart={(e) => {
-          const currentPoints = getAllPoints();
-          console.log('🟦 Drag Start:', { 
-            index: i, 
-            id: point.id,
-            text: point.text
-          });
-          e.dataTransfer.effectAllowed = 'move';
-          setDraggedDescriptionIndex(i);
-          setDraggedItemId(point.id);
-          setOriginalPoints([...currentPoints]);  // Store initial state
-          setOriginalIndex(i);
-          document.body.classList.add('dragging');
-        }}
-        onDragEnd={() => {
-          console.log('🟥 Drag End:', {
-            fromIndex: originalIndex,
-            toIndex: draggedOverIndex,
-          });
-          
-          if (originalIndex !== null && draggedOverIndex !== null) {
-            handleReorder(originalIndex, draggedOverIndex);
-          }
-          
-          setDraggedDescriptionIndex(null);
-          setDraggedOverIndex(null);
-          setDraggedItemId(null);
-          setPreviewPositions([]);
-          setLastUpdateTime(0);
-          setOriginalPoints(null);
-          setOriginalIndex(null);
-          document.body.classList.remove('dragging');
-        }}
-        onTouchStart={(e) => {
-          e.stopPropagation();
-          handleTouchStart(i, e);
-        }}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{
-          cursor: 'grab',
-          padding: '0.25rem',
-          color: '#666',
-          transition: 'transform 0.2s',
-          transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
-          backgroundColor: draggedDescriptionIndex === i ? '#e5e7eb' : 'transparent',
-          borderRadius: '0.25rem'
-        }}
-        >
-      <GripVertical size={16} />
-    </div>
+<div
+  draggable
+  onTouchStart={(e) => {
+    e.stopPropagation();
+    console.log('📱 Touch Start on description:', { index: i, text: point.text });
+    
+    // Show visual feedback immediately
+    if (isMobile) {
+      setDraggedDescriptionIndex(i);
+      setDraggedItemId(point.id);
+      setOriginalPoints([...points]);
+      setOriginalIndex(i);
+      toggleScrollLock(true);  // Prevent scrolling while dragging
+    }
+  }}
+  onTouchMove={(e) => {
+    if (!isMobile || !draggedItemId) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const touch = e.touches[0];
+    const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+    const descriptionElement = elements.find(el => el.getAttribute('data-description-index'));
+    
+    if (descriptionElement) {
+      const index = parseInt(descriptionElement.getAttribute('data-description-index'));
+      const currentTime = Date.now();
+      
+      if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+        console.log('📱 Mobile drag:', { 
+          draggedItemId,
+          fromIndex: draggedDescriptionIndex, 
+          toIndex: index 
+        });
+        
+        // Create preview
+        const previewPoints = [...points];
+        const [movedPoint] = previewPoints.splice(draggedDescriptionIndex, 1);
+        previewPoints.splice(index, 0, movedPoint);
+        
+        setLastUpdateTime(currentTime);
+        setDraggedOverIndex(index);
+        setPreviewPositions(previewPoints);
+      }
+    }
+  }}
+  onTouchEnd={(e) => {
+    if (!isMobile) return;
+    
+    console.log('📱 Touch End:', {
+      fromIndex: originalIndex,
+      toIndex: draggedOverIndex
+    });
+    
+    if (originalIndex !== null && draggedOverIndex !== null) {
+      handleReorder(originalIndex, draggedOverIndex);
+    }
+    
+    // Clear all drag states
+    setDraggedDescriptionIndex(null);
+    setDraggedOverIndex(null);
+    setDraggedItemId(null);
+    setPreviewPositions([]);
+    setLastUpdateTime(0);
+    setOriginalPoints(null);
+    setOriginalIndex(null);
+    toggleScrollLock(false);
+  }}
+  style={{
+    cursor: 'grab',
+    padding: '0.25rem',
+    color: '#666',
+    transition: 'transform 0.2s, background-color 0.2s',
+    transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
+    backgroundColor: draggedDescriptionIndex === i ? '#FFF9C4' : draggedOverIndex === i ? '#f3f4f6' : 'transparent',
+    borderRadius: '0.25rem'
+  }}
+>
+  <GripVertical size={16} />
+</div>
       
       <Input
         type="text"
@@ -2138,38 +2109,38 @@ const previewPos = {
   <div
     key={point.id}
     data-description-index={i}
-    onDragOver={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
-      const currentTime = Date.now();
-      
-      if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
-        if (originalIndex !== null) {  // Remove the originalIndex !== i check
-          // Only update if we've moved to a new valid position
-          if (i !== draggedOverIndex) {
-            console.log('🟨 Drag Over:', { 
-              fromIndex: originalIndex,
-              toIndex: i,
-            });
-            
-            // Create preview based on original points
-            const previewPoints = [...originalPoints];
-            const [movedPoint] = previewPoints.splice(originalIndex, 1);
-            previewPoints.splice(i, 0, movedPoint);
-            
-            // Update x positions
-            previewPoints.forEach((point, index) => {
-              point.x = (index + 1) * G;
-            });
-            
-            setLastUpdateTime(currentTime);
-            setDraggedOverIndex(i);
-            setPreviewPositions(previewPoints);
-          }
-        }
-      }
-    }}
+onDragOver={(e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
+  const currentTime = Date.now();
+  
+  if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+    if (originalIndex !== null && i !== draggedOverIndex) {
+      console.log('🟨 Drag Over:', { 
+        draggedItemId,
+        fromIndex: originalIndex,
+        toIndex: i,
+      });
+
+      let previewPoints = [...originalPoints];
+      const [movedPoint] = previewPoints.splice(originalIndex, 1);
+      previewPoints.splice(i, 0, movedPoint);
+
+      // Update x positions and connections in preview
+      previewPoints = previewPoints.map((point, index) => ({
+        ...point,
+        x: (index + 1) * G,
+        connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
+      }));
+
+      setLastUpdateTime(currentTime);
+      setDraggedOverIndex(i);
+      setPreviewPositions(previewPoints);
+    }
+  }
+}}
+
     onDragEnter={(e) => {
       e.preventDefault();
       if (draggedDescriptionIndex !== i) {
@@ -2223,11 +2194,11 @@ const previewPos = {
               fromIndex: originalIndex,
               toIndex: draggedOverIndex,
             });
-            
+
             if (originalIndex !== null && draggedOverIndex !== null) {
               handleReorder(originalIndex, draggedOverIndex);
             }
-            
+
             setDraggedDescriptionIndex(null);
             setDraggedOverIndex(null);
             setDraggedItemId(null);
@@ -2237,6 +2208,7 @@ const previewPos = {
             setOriginalIndex(null);
             document.body.classList.remove('dragging');
           }}
+
           onTouchStart={(e) => {
             e.stopPropagation();
             handleTouchStart(i, e);
