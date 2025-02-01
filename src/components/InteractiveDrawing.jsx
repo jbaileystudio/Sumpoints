@@ -65,6 +65,7 @@ const InteractiveDrawing = () => {
   const [showDigitalCutout, setShowDigitalCutout] = useState(false);
   const [bluePoints, setBluePoints] = useState(new Set());
   const [showAnalyticsCutout, setShowAnalyticsCutout] = useState(false);
+  const [cutoutType, setCutoutType] = useState('none');
 
 
   console.log('Mobile check:', { 
@@ -167,7 +168,7 @@ const InteractiveDrawing = () => {
 
   // Add count below title
       pdf.setFontSize(12);
-      pdf.text(`${allPoints.length} Events | ${calculateScores(points).total} Cumulative Score`, margins, margins + 0.3);
+      pdf.text(`${allPoints.length} Events | Cumulative Score ${calculateScores(points).total}`, margins, margins + 0.3);
 
       const contentStart = margins + 0.5;
 
@@ -1688,37 +1689,46 @@ return (
             Redo Dot
             </Button>
 
-
+            {/* Edit Mode Toggle */}
             <label className="toggle-switch">
-            <input
-            type="checkbox"
-            checked={editMode}
-            onChange={handleEditModeToggle}
-            />
-            <span className="toggle-slider"></span>
+              <input
+                type="checkbox"
+                checked={editMode}
+                onChange={handleEditModeToggle}
+              />
+              <span className="toggle-slider"></span>
             </label>
             <span style={{ fontSize: '14px' }}>Edit Points</span>
 
-            {/* Cutout Control */}
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={showDigitalCutout}
-                onChange={(e) => setShowDigitalCutout(e.target.checked)}
-              />
-              <span className="toggle-slider"></span>
+            {/* Cutout Dropdown */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginLeft: '0rem'
+            }}>
+            <label style={{fontSize: '14px'}}>
+              Color Cutout:
+              <select 
+                value={cutoutType}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCutoutType(value);
+                  setShowDigitalCutout(value === 'yellow');
+                  setShowAnalyticsCutout(value === 'blue');
+                }}
+                style={{
+                  marginLeft: '0.5rem',
+                  padding: '0.25rem',
+                  borderRadius: '0.25rem',
+                  border: '1px solid #e2e8f0'
+                }}
+              >
+                <option value="none">None</option>
+                <option value="yellow">Yellow</option>
+                <option value="blue">Blue</option>
+              </select>
             </label>
-            <span style={{ fontSize: '14px' }}>Digital Interactions</span>
-
-            <label className="toggle-switch" style={{ marginLeft: '0rem' }}>
-              <input
-                type="checkbox"
-                checked={showAnalyticsCutout}
-                onChange={(e) => setShowAnalyticsCutout(e.target.checked)}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-            <span style={{ fontSize: '14px' }}>Seen by Analytics</span>
+          </div>
 
 
             {/* Points Control */}
@@ -1749,7 +1759,7 @@ return (
               alignItems: 'center',
               }}>
               <label style={{fontSize: '14px'}}>
-              Cumulative View:
+              Cumulative:
               <select 
               value={cumulativeType} 
               onChange={(e) => setCumulativeType(e.target.value)}
@@ -2452,8 +2462,8 @@ return (
         width: '16px',
         height: '16px',
         borderRadius: '50%',
-        border: '2px solid #666',
-        backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
+        border: '1px solid #666',
+        backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent', //Yellow
         cursor: 'pointer',
         transition: 'background-color 0.2s'
       }}
@@ -2474,8 +2484,8 @@ return (
         width: '16px',
         height: '16px',
         borderRadius: '50%',
-        border: '2px solid #666',
-        backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
+        border: '1px solid #666',
+        backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent', //Blue
         cursor: 'pointer',
         transition: 'background-color 0.2s'
       }}
