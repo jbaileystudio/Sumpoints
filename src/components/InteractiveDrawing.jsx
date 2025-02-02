@@ -1442,14 +1442,18 @@ const isNearGridLine = rotated
         })}
 
         {/* Digital cutout mask */}
-{(showDigitalCutout || showAnalyticsCutout) && (
+{(showDigitalCutout || showAnalyticsCutout || cutoutType === 'both') && (
   <g>
     <defs>
       <mask id="cutoutMask">
         <rect x="0" y="0" width="100%" height="100%" fill="white" />
         {allPoints.map((point, i) => {
-          // Check which points to use based on which toggle is on
-          if (!(showDigitalCutout ? digitalPoints.has(point.id) : bluePoints.has(point.id))) return null;
+          // Skip if no relevant points
+          if (
+            cutoutType === 'yellow' && !digitalPoints.has(point.id) ||
+            cutoutType === 'blue' && !bluePoints.has(point.id) ||
+            cutoutType === 'both' && !(digitalPoints.has(point.id) && bluePoints.has(point.id))
+          ) return null;
           
           const pos = getPos(point, i);
           return (
@@ -1499,7 +1503,9 @@ const isNearGridLine = rotated
       y="0"
       width="100%"
       height="100%"
-      fill={showDigitalCutout ? "#FCD34D" : "#3B82F6"}
+      fill={cutoutType === 'yellow' ? '#FCD34D' : 
+            cutoutType === 'blue' ? '#3B82F6' : 
+            cutoutType === 'both' ? '#22C55E' : 'transparent'}
       mask="url(#cutoutMask)"
     />
   </g>
@@ -1715,6 +1721,7 @@ return (
                   setCutoutType(value);
                   setShowDigitalCutout(value === 'yellow');
                   setShowAnalyticsCutout(value === 'blue');
+                  // Add logic for the 'both' case
                 }}
                 style={{
                   marginLeft: '0.5rem',
@@ -1726,6 +1733,7 @@ return (
                 <option value="none">None</option>
                 <option value="yellow">Yellow</option>
                 <option value="blue">Blue</option>
+                <option value="both">Both</option>
               </select>
             </label>
           </div>
