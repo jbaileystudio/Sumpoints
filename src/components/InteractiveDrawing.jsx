@@ -1826,10 +1826,10 @@ return (
             <div style={{
               position: 'absolute',
               top: `${getNextX()}px`,
-              left: '50%',
+              left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 70% otherwise on vertical
               transform: 'translate(-50%,-50%) rotate(90deg)',
               width: '2.5rem',
-              height: T,
+              height: '5rem', // Vertical Plus Button Width
               border: '1px solid #e2e8f0',
               borderRadius: '0.375rem'
             }}>
@@ -1932,7 +1932,7 @@ return (
      }}
      style={{
        position: 'absolute',
-       left: '50%',
+       left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 60% otherwise on vertical
        top: `${point.x}px`,
        transform: 'translate(-50%,-50%)',
        opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
@@ -1976,7 +1976,7 @@ return (
              width: '16px',
              height: '16px',
              borderRadius: '50%',
-             border: '2px solid #666',
+             border: '1px solid #666',
              backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
              cursor: 'pointer',
              transition: 'background-color 0.2s'
@@ -1998,7 +1998,7 @@ return (
              width: '16px',
              height: '16px',
              borderRadius: '50%',
-             border: '2px solid #666',
+             border: '1px solid #666',
              backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
              cursor: 'pointer',
              transition: 'background-color 0.2s'
@@ -2015,7 +2015,7 @@ return (
          onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
          placeholder={`Description ${i + 1}`}
          style={{
-           width: T,
+           width: '200px',
            height: '2.5rem',
            border: '1px solid #e2e8f0',
            borderRadius: '0.375rem'
@@ -2237,7 +2237,7 @@ return (
       left: `${getNextX()}px`,
       top: '50%',
       transform: 'translate(-50%,-50%) rotate(-90deg)',
-      width: T,
+      width: '5rem', // Horizontal Plus Button Height
       height: '2.5rem',
       border: '1px solid #e2e8f0',
       borderRadius: '0.375rem'
@@ -2440,7 +2440,7 @@ return (
       placeholder={`Description ${i + 1}`}
       className="r text-center"
       style={{ 
-        height: T,
+        height: '175px',
         width: '2.5rem',
         border: '1px solid #e2e8f0',
         borderRadius: '0.375rem'
