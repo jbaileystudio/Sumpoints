@@ -1780,7 +1780,7 @@ return (
             {/* Dot count */}
             <span style={{ marginLeft: '0.5rem', fontSize: '14px', paddingTop: '' }}>
             {rotated ? (
-            `${points.length} descriptions`
+            `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
               ) : (
             `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
             )}
