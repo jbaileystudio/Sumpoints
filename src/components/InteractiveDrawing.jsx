@@ -1689,7 +1689,7 @@ return (
             Redo Dot
             </Button>
 
-            {/* Edit Mode Toggle */}
+            {/* Delete Mode Toggle */}
             <label className="toggle-switch">
               <input
                 type="checkbox"
@@ -1698,7 +1698,7 @@ return (
               />
               <span className="toggle-slider"></span>
             </label>
-            <span style={{ fontSize: '14px' }}>Edit Points</span>
+            <span style={{ fontSize: '14px' }}>Delete Points</span>
 
             {/* Cutout Dropdown */}
             <div style={{
