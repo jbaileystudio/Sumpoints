@@ -2614,7 +2614,7 @@ const BottomTray = ({ rotated, setRotated, isMobile }) => (
     background: 'white',
     borderTop: '1px solid #e2e8f0',
     padding: '0.5rem',
-    paddingBottom: '0.5rem',  // Adjust bottom padding 'env(safe-area-inset-bottom'??
+    paddingBottom: '2.5rem',  // Adjust bottom padding 'env(safe-area-inset-bottom'??
     display: 'flex',
     justifyContent: 'center',  // Changed from space-around to center
     gap: '0.75rem',  // Controls space between buttons
