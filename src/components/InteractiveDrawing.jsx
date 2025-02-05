@@ -990,1605 +990,1662 @@ const isNearGridLine = rotated
         });
       }
 
-      return (
-        <svg 
-        className="absolute top-0 left-0 w-full h-full" 
-        style={{pointerEvents: 'none'}}
-        viewBox={`0 0 ${width} ${rotated ? height : (isMobile ? rect.height : rect.height)}`}
-        preserveAspectRatio={isMobile ? "none" : "xMidYMid meet"}
-        >
-        <defs>
-        <pattern 
-        id={isVertical ? "gv" : "g"}
-        width={isVertical ? "100%" : G}
-        height={isVertical ? G : "100%"}
-        patternUnits="userSpaceOnUse"
-        >
-        {HASH_POINTS.map((hp, i) => 
-          isVertical ? (
-            <line 
-            key={i}
-            x1={`${hp}%`} y1="-6"
-            x2={`${hp}%`} y2="6"
-            stroke="#ddd"
-            strokeWidth="1"
-            />
-            ) : (
-            <line
-            key={i}
-            x1="-6" y1={`${hp}%`}
-            x2="6" y2={`${hp}%`}
-            stroke="#ddd"
-            strokeWidth="1"
-            />
-            )
-            )}
+  return (
+    <svg 
+    className="absolute top-0 left-0 w-full h-full" 
+    style={{pointerEvents: 'none'}}
+    viewBox={`0 0 ${width} ${rotated ? height : (isMobile ? rect.height : rect.height)}`}
+    preserveAspectRatio={isMobile ? "none" : "xMidYMid meet"}
+    >
+    <defs>
+    <pattern 
+    id={isVertical ? "gv" : "g"}
+    width={isVertical ? "100%" : G}
+    height={isVertical ? G : "100%"}
+    patternUnits="userSpaceOnUse"
+    >
+    {HASH_POINTS.map((hp, i) => 
+      isVertical ? (
         <line 
-        x1={isVertical ? "0" : G}
-        y1={isVertical ? G : "0"}
-        x2={isVertical ? "100%" : G}
-        y2={isVertical ? G : "100%"}
+        key={i}
+        x1={`${hp}%`} y1="-6"
+        x2={`${hp}%`} y2="6"
         stroke="#ddd"
+        strokeWidth="1"
         />
-        </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill={`url(#${isVertical ? 'gv' : 'g'})`}/>
+        ) : (
         <line
-        x1={isVertical ? "50%" : "0"}
-        y1={isVertical ? "0" : "50%"}
-        x2={isVertical ? "50%" : "100%"}
-        y2={isVertical ? "100%" : "50%"}
-        stroke="black"
+        key={i}
+        x1="-6" y1={`${hp}%`}
+        x2="6" y2={`${hp}%`}
+        stroke="#ddd"
+        strokeWidth="1"
         />
-        <text 
-        x={isVertical ? "90%" : "32"} 
-        y={isVertical ? "32" : "10%"} 
-        textAnchor="middle" 
-        alignmentBaseline="middle" 
-        fontSize="32"
-        >
-        🙂
-        </text>
-        <text 
-        x={isVertical ? "10%" : "32"} 
-        y={isVertical ? "32" : "90%"} 
-        textAnchor="middle" 
-        alignmentBaseline="middle" 
-        fontSize="32"
-        >
-        ☹️
-        </text>
-        {!dragging && !hoveredId && isNearNextLine && !isMobile && (
-          <circle
-          cx={previewPos.x}
-          cy={previewPos.y}
-          r={P}
-          fill="gray"
-          opacity="0.5"
-          />
-          )}
+        )
+        )}
+    <line 
+    x1={isVertical ? "0" : G}
+    y1={isVertical ? G : "0"}
+    x2={isVertical ? "100%" : G}
+    y2={isVertical ? G : "100%"}
+    stroke="#ddd"
+    />
+    </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill={`url(#${isVertical ? 'gv' : 'g'})`}/>
+    <line
+    x1={isVertical ? "50%" : "0"}
+    y1={isVertical ? "0" : "50%"}
+    x2={isVertical ? "50%" : "100%"}
+    y2={isVertical ? "100%" : "50%"}
+    stroke="black"
+    />
+    <text 
+    x={isVertical ? "90%" : "32"} 
+    y={isVertical ? "32" : "10%"} 
+    textAnchor="middle" 
+    alignmentBaseline="middle" 
+    fontSize="32"
+    >
+    🙂
+    </text>
+    <text 
+    x={isVertical ? "10%" : "32"} 
+    y={isVertical ? "32" : "90%"} 
+    textAnchor="middle" 
+    alignmentBaseline="middle" 
+    fontSize="32"
+    >
+    ☹️
+    </text>
+    {!dragging && !hoveredId && isNearNextLine && !isMobile && (
+      <circle
+      cx={previewPos.x}
+      cy={previewPos.y}
+      r={P}
+      fill="gray"
+      opacity="0.5"
+      />
+      )}
 
-        {/* Cumulative Line */}
-        {cumulativeType === 'line' && allPoints.length > 0 && (() => {
-          const scores = calculateScores(allPoints);
+    {/* Cumulative Line */}
+    {cumulativeType === 'line' && allPoints.length > 0 && (() => {
+      const scores = calculateScores(allPoints);
 
-          let segments = [];
-          let currentSegment = { points: [], isPositive: scores.cumulative[0] >= 0 };
+      let segments = [];
+      let currentSegment = { points: [], isPositive: scores.cumulative[0] >= 0 };
 
-          scores.cumulative.forEach((score, i) => {
-          // NEW: Calculate position based on orientation
-            let x, y;
-            if (isVertical) {
-            // Vertical view: x is score-based, y is grid-based
-              x = fromPercent(50, rect.width) + (score * 5);
-              y = (i + 1) * G;
-            } else {
-            // Horizontal view: original calculation
-              x = (i + 1) * G;
-              y = fromPercent(50, rect.height) - (score * 5);
-            }
+      scores.cumulative.forEach((score, i) => {
+      // NEW: Calculate position based on orientation
+        let x, y;
+        if (isVertical) {
+        // Vertical view: x is score-based, y is grid-based
+          x = fromPercent(50, rect.width) + (score * 5);
+          y = (i + 1) * G;
+        } else {
+        // Horizontal view: original calculation
+          x = (i + 1) * G;
+          y = fromPercent(50, rect.height) - (score * 5);
+        }
 
-            if (i > 0 && (score >= 0) !== currentSegment.isPositive) {
-              const prevScore = scores.cumulative[i - 1];
+        if (i > 0 && (score >= 0) !== currentSegment.isPositive) {
+          const prevScore = scores.cumulative[i - 1];
 
-            // NEW: Calculate previous point based on orientation
-              let prevX, prevY;
-              if (isVertical) {
-                prevX = fromPercent(50, rect.width) + (prevScore * 5);
-                prevY = i * G;
-              } else {
-                prevX = i * G;
-                prevY = fromPercent(50, rect.height) - (prevScore * 5);
-              }
+        // NEW: Calculate previous point based on orientation
+          let prevX, prevY;
+          if (isVertical) {
+            prevX = fromPercent(50, rect.width) + (prevScore * 5);
+            prevY = i * G;
+          } else {
+            prevX = i * G;
+            prevY = fromPercent(50, rect.height) - (prevScore * 5);
+          }
 
-              const ratio = Math.abs(prevScore) / (Math.abs(prevScore) + Math.abs(score));
+          const ratio = Math.abs(prevScore) / (Math.abs(prevScore) + Math.abs(score));
 
-            // NEW: Calculate crossing point based on orientation
-              let crossingX, crossingY;
-              if (isVertical) {
-                crossingX = fromPercent(50, rect.width);
-                crossingY = prevY + (y - prevY) * ratio;
-              } else {
-                crossingX = prevX + (x - prevX) * ratio;
-                crossingY = fromPercent(50, rect.height);
-              }
+        // NEW: Calculate crossing point based on orientation
+          let crossingX, crossingY;
+          if (isVertical) {
+            crossingX = fromPercent(50, rect.width);
+            crossingY = prevY + (y - prevY) * ratio;
+          } else {
+            crossingX = prevX + (x - prevX) * ratio;
+            crossingY = fromPercent(50, rect.height);
+          }
 
-              currentSegment.points.push({ x: crossingX, y: crossingY });
-              segments.push(currentSegment);
-
-              currentSegment = {
-                points: [{ x: crossingX, y: crossingY }, { x, y }],
-                isPositive: score >= 0
-              };
-            } else {
-              currentSegment.points.push({ x, y });
-            }
-          });
+          currentSegment.points.push({ x: crossingX, y: crossingY });
           segments.push(currentSegment);
 
-        // The rest of your code remains exactly the same
+          currentSegment = {
+            points: [{ x: crossingX, y: crossingY }, { x, y }],
+            isPositive: score >= 0
+          };
+        } else {
+          currentSegment.points.push({ x, y });
+        }
+      });
+      segments.push(currentSegment);
+
+    // The rest of your code remains exactly the same
+      return (
+        <>
+        {segments.map((segment, i) => {
+          const points = segment.points;
+          let d = `M ${points[0].x} ${points[0].y}`;
+          
+          for (let i = 1; i < points.length; i++) {
+            d += ` S ${points[i].x} ${points[i].y} ${points[i].x} ${points[i].y}`;
+          }
+
           return (
-            <>
-            {segments.map((segment, i) => {
-              const points = segment.points;
-              let d = `M ${points[0].x} ${points[0].y}`;
-              
-              for (let i = 1; i < points.length; i++) {
-                d += ` S ${points[i].x} ${points[i].y} ${points[i].x} ${points[i].y}`;
-              }
-
-              return (
-                <path
-                key={`segment-${i}`}
-                d={d}
-                stroke={editMode ? 
-                    (segment.isPositive ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") : // Faded in edit mode
-                    (segment.isPositive ? "rgba(52, 211, 153, 1)" : "rgba(248, 113, 113, 1)")}      // Normal colors
-                    strokeWidth="2"
-                    fill="none"
-                    style={{
-                      transition: 'stroke 0.2s ease'
-                    }}
-                    />
-                    );
-            })}
-            </>
-            );
-        })()}
-
-        {/* Score Bars */}
-        {cumulativeType === 'bars' && allPoints.length > 0 && (() => {
-          const scores = calculateScores(allPoints);
-          return scores.cumulative.map((score, i) => {
-            const barHeight = Math.abs(score * 5);
-
-            if (isVertical) {
-              const x = score >= 0 ? 
-              fromPercent(50, rect.width) : 
-              fromPercent(50, rect.width) - barHeight;
-              return (
-                <rect
-                key={`bar-${i}`}
-                x={x}
-                y={(i + 1) * G - (G * 0.4)}
-                height={G * 0.8}
-                width={barHeight}
-                fill={editMode ?
-                (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
-                (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
-                rx={2}
+            <path
+            key={`segment-${i}`}
+            d={d}
+            stroke={editMode ? 
+                (segment.isPositive ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") : // Faded in edit mode
+                (segment.isPositive ? "rgba(52, 211, 153, 1)" : "rgba(248, 113, 113, 1)")}      // Normal colors
+                strokeWidth="2"
+                fill="none"
                 style={{
-                  transition: 'fill 0.2s ease'
+                  transition: 'stroke 0.2s ease'
                 }}
                 />
                 );
-            } else {
-              const y = score >= 0 ? 
-              fromPercent(50, rect.height) - barHeight : 
-              fromPercent(50, rect.height);
-              return (
-                <rect
-                key={`bar-${i}`}
-                x={(i + 1) * G - (G * 0.4)}
-                y={y}
-                width={G * 0.8}
-                height={barHeight}
-                fill={editMode ?
-                (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
-                (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
-                rx={2}
-                style={{
-                  transition: 'fill 0.2s ease'
-                }}
-                />
-                );
-            }
-          });
-        })()}
+        })}
+        </>
+        );
+    })()}
 
-        {/* Connecting lines */}
-        {showPoints && (() => {
-        // Use preview positions during drag, otherwise use regular points
-          const pointsToRender = previewPositions.length > 0 ? previewPositions : points;
+    {/* Score Bars */}
+    {cumulativeType === 'bars' && allPoints.length > 0 && (() => {
+      const scores = calculateScores(allPoints);
+      return scores.cumulative.map((score, i) => {
+        const barHeight = Math.abs(score * 5);
 
-          console.log('🔗 Drawing Lines for Points (Final Order):', pointsToRender.map(p => ({
-            id: p.id,
-            x: p.x,
-            y: p.y,
-            connectsTo: p.connectsTo
-          })));
-
-          return pointsToRender.map((point, i) => {
-            if (i === 0) return null; // Skip first point since it has no previous connection
-
-            const prevPoint = pointsToRender[i - 1]; // Get previous point from the same array we're rendering
-
-            return (
-              <line
-              key={`l${point.id}`}
-              x1={getPos(prevPoint, i - 1).x}
-              y1={getPos(prevPoint, i - 1).y}
-              x2={getPos(point, i).x}
-              y2={getPos(point, i).y}
-              stroke="black"
-              strokeWidth="2"
-              style={{
-                transition: previewPositions.length > 0 ? 'all 0.2s ease' : 'none'
-              }}
-              />
-              );
-          });
-        })()}
-
-      {/* Points */}
-        {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
-          const pos = getPos(point, i);
-          const isHovered = hoveredId === point.id;
-          const isBeingDragged = point.id === draggedItemId;
-        // Only enlarge the specific point being touched
-          const shouldEnlarge = (isMobile ? 
-            (point.id === touchedPointId || tappedPoint?.point.id === point.id) : 
-            (isHovered || isBeingDragged || point.id === touchedPointId || selectedPoint?.point.id === point.id)
-            );        
-          console.log('Enlarge conditions:', {
-            isHovered,
-            isBeingDragged,
-            touchedPointId,
-            selectedPointId: selectedPoint?.point.id,
-            pointId: point.id
-          });
-
+        if (isVertical) {
+          const x = score >= 0 ? 
+          fromPercent(50, rect.width) : 
+          fromPercent(50, rect.width) - barHeight;
           return (
-            <g
-            key={point.id}
+            <rect
+            key={`bar-${i}`}
+            x={x}
+            y={(i + 1) * G - (G * 0.4)}
+            height={G * 0.8}
+            width={barHeight}
+            fill={editMode ?
+            (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
+            (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
+            rx={2}
             style={{
-              pointerEvents: 'all',
-              cursor: editMode ? 'pointer' : dragging ? 'grabbing' : 'grab',
-              transition: previewPositions.length > 0 ? 'transform 0.2s ease' : 'none'
+              transition: 'fill 0.2s ease'
             }}
-            onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-            onMouseLeave={() => !isMobile && setHoveredId(null)}
-            onMouseDown={editMode ? undefined : handlePointDrag(i, point.isGhost)}
-            onDoubleClick={editMode ? () => {
+            />
+            );
+        } else {
+          const y = score >= 0 ? 
+          fromPercent(50, rect.height) - barHeight : 
+          fromPercent(50, rect.height);
+          return (
+            <rect
+            key={`bar-${i}`}
+            x={(i + 1) * G - (G * 0.4)}
+            y={y}
+            width={G * 0.8}
+            height={barHeight}
+            fill={editMode ?
+            (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
+            (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
+            rx={2}
+            style={{
+              transition: 'fill 0.2s ease'
+            }}
+            />
+            );
+        }
+      });
+    })()}
+
+    {/* Connecting lines */}
+    {showPoints && (() => {
+    // Use preview positions during drag, otherwise use regular points
+      const pointsToRender = previewPositions.length > 0 ? previewPositions : points;
+
+      console.log('🔗 Drawing Lines for Points (Final Order):', pointsToRender.map(p => ({
+        id: p.id,
+        x: p.x,
+        y: p.y,
+        connectsTo: p.connectsTo
+      })));
+
+      return pointsToRender.map((point, i) => {
+        if (i === 0) return null; // Skip first point since it has no previous connection
+
+        const prevPoint = pointsToRender[i - 1]; // Get previous point from the same array we're rendering
+
+        return (
+          <line
+          key={`l${point.id}`}
+          x1={getPos(prevPoint, i - 1).x}
+          y1={getPos(prevPoint, i - 1).y}
+          x2={getPos(point, i).x}
+          y2={getPos(point, i).y}
+          stroke="black"
+          strokeWidth="2"
+          style={{
+            transition: previewPositions.length > 0 ? 'all 0.2s ease' : 'none'
+          }}
+          />
+          );
+      });
+    })()}
+
+  {/* Points */}
+    {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
+      const pos = getPos(point, i);
+      const isHovered = hoveredId === point.id;
+      const isBeingDragged = point.id === draggedItemId;
+    // Only enlarge the specific point being touched
+      const shouldEnlarge = (isMobile ? 
+        (point.id === touchedPointId || tappedPoint?.point.id === point.id) : 
+        (isHovered || isBeingDragged || point.id === touchedPointId || selectedPoint?.point.id === point.id)
+        );        
+      console.log('Enlarge conditions:', {
+        isHovered,
+        isBeingDragged,
+        touchedPointId,
+        selectedPointId: selectedPoint?.point.id,
+        pointId: point.id
+      });
+
+      return (
+        <g
+        key={point.id}
+        style={{
+          pointerEvents: 'all',
+          cursor: editMode ? 'pointer' : dragging ? 'grabbing' : 'grab',
+          transition: previewPositions.length > 0 ? 'transform 0.2s ease' : 'none'
+        }}
+        onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+        onMouseLeave={() => !isMobile && setHoveredId(null)}
+        onMouseDown={editMode ? undefined : handlePointDrag(i, point.isGhost)}
+        onDoubleClick={editMode ? () => {
+          const newPoints = points.filter((_, index) => index !== i);
+          newPoints.forEach((point, index) => {
+            point.x = (index + 1) * G;
+          });
+          setPoints(newPoints);
+        } : undefined}
+        onTouchStart={(e) => {
+          if (editMode) return;
+          e.stopPropagation();
+
+          setTouchStartTime(Date.now());
+          setTouchMoved(false);
+
+          // Immediately initiate drag on touch start for mobile
+          if (isMobile) {
+            handlePointDrag(i, point.isGhost)(e);
+          }
+
+          setTouchedPointId(point.id);
+        }}
+
+        onTouchMove={(e) => {
+          if (editMode || !dragging) return;
+          e.preventDefault();
+          e.stopPropagation();
+
+          const touch = e.touches[0];
+          const rect = drawingRef.current.getBoundingClientRect();
+          const y = ((touch.clientY - rect.top) / rect.height) * 100;
+
+        // Update the draggedPoint position
+          setDraggedPoint(prev => prev ? {...prev, z: y} : null);
+          setTouchMoved(true);
+        }}
+
+        onTouchEnd={(e) => {
+          // Check if this was a quick tap (less than 200ms)
+          const touchDuration = Date.now() - touchStartTime;
+          console.log('Touch end:', {
+            duration: touchDuration,
+            moved: touchMoved,
+            dragging,
+            point: point
+          });
+          
+          if (touchDuration < 200 && !touchMoved) {
+            console.log('Toggle tapped point');
+            setTappedPoint(current => 
+              // If tapping the same point, clear it. Otherwise, set new point
+              current?.point?.id === point.id ? null : {
+                index: i + 1,
+                point: point
+              }
+              );
+          } else {
+            setTappedPoint(null);
+          }
+
+          // Always clear states
+          setTouchedPointId(null);
+          setSelectedPoint(null);
+          setTouchStartTime(null);
+          setTouchMoved(false);
+          
+          // Handle drag end logic
+          if (dragging && draggedPoint) {
+            const finalY = findClosestPoint(draggedPoint.z);
+            
+            if (point.isGhost) {
+              setPoints(s => [...s, {...point, y: finalY, isAbove: finalY < 50, isGhost: false, id: point.id}]);
+              setGhostPoints(s => s.filter(p => p.id !== point.id));
+              setUndoStack([]);
+            } else {
+              setPoints(s => s.map(p => 
+                p.id === point.id ? {...p, y: finalY, isAbove: finalY < 50} : p
+                ));
+            }
+            
+            setJustDropped(true);
+            setTimeout(() => setJustDropped(false), 100);
+          }
+          setDragging(false);
+          setDraggedPoint(null);
+        }}
+        >
+        <circle
+        cx={pos.x}
+        cy={pos.y}
+        r={D}
+        fill="transparent"
+        />
+        <circle
+        cx={pos.x}
+        cy={pos.y}
+        r={P * (shouldEnlarge ? 2 : 1)}
+        fill={isMobile ? "black" : (isBeingDragged ? "#FCD34D" : point.isGhost ? "gray" : "black")}
+        style={{
+          transition: 'r 0.2s ease, fill 0.2s ease'
+        }}
+        />
+        {/* Added info popup for mobile */}
+        {console.log('Popup render check:', {
+          isMobile,
+          tappedPoint,
+          pointId: point.id,
+          tappedPointId: tappedPoint?.point?.id
+        })}
+        
+        {/* Your existing edit mode delete button */}
+        {editMode && (
+          <g 
+            transform={`translate(${pos.x}, ${pos.y - 20})`}
+            onClick={(e) => {
+              e.stopPropagation();
               const newPoints = points.filter((_, index) => index !== i);
               newPoints.forEach((point, index) => {
                 point.x = (index + 1) * G;
               });
               setPoints(newPoints);
-            } : undefined}
-            onTouchStart={(e) => {
-              if (editMode) return;
-              e.stopPropagation();
-
-              setTouchStartTime(Date.now());
-              setTouchMoved(false);
-
-              // Immediately initiate drag on touch start for mobile
-              if (isMobile) {
-                handlePointDrag(i, point.isGhost)(e);
-              }
-
-              setTouchedPointId(point.id);
-            }}
-
-            onTouchMove={(e) => {
-              if (editMode || !dragging) return;
-              e.preventDefault();
-              e.stopPropagation();
-
-              const touch = e.touches[0];
-              const rect = drawingRef.current.getBoundingClientRect();
-              const y = ((touch.clientY - rect.top) / rect.height) * 100;
-
-            // Update the draggedPoint position
-              setDraggedPoint(prev => prev ? {...prev, z: y} : null);
-              setTouchMoved(true);
-            }}
-
-            onTouchEnd={(e) => {
-              // Check if this was a quick tap (less than 200ms)
-              const touchDuration = Date.now() - touchStartTime;
-              console.log('Touch end:', {
-                duration: touchDuration,
-                moved: touchMoved,
-                dragging,
-                point: point
-              });
-              
-              if (touchDuration < 200 && !touchMoved) {
-                console.log('Toggle tapped point');
-                setTappedPoint(current => 
-                  // If tapping the same point, clear it. Otherwise, set new point
-                  current?.point?.id === point.id ? null : {
-                    index: i + 1,
-                    point: point
-                  }
-                  );
-              } else {
-                setTappedPoint(null);
-              }
-
-              // Always clear states
-              setTouchedPointId(null);
-              setSelectedPoint(null);
-              setTouchStartTime(null);
-              setTouchMoved(false);
-              
-              // Handle drag end logic
-              if (dragging && draggedPoint) {
-                const finalY = findClosestPoint(draggedPoint.z);
-                
-                if (point.isGhost) {
-                  setPoints(s => [...s, {...point, y: finalY, isAbove: finalY < 50, isGhost: false, id: point.id}]);
-                  setGhostPoints(s => s.filter(p => p.id !== point.id));
-                  setUndoStack([]);
-                } else {
-                  setPoints(s => s.map(p => 
-                    p.id === point.id ? {...p, y: finalY, isAbove: finalY < 50} : p
-                    ));
-                }
-                
-                setJustDropped(true);
-                setTimeout(() => setJustDropped(false), 100);
-              }
-              setDragging(false);
-              setDraggedPoint(null);
-            }}
-            >
-            <circle
-            cx={pos.x}
-            cy={pos.y}
-            r={D}
-            fill="transparent"
-            />
-            <circle
-            cx={pos.x}
-            cy={pos.y}
-            r={P * (shouldEnlarge ? 2 : 1)}
-            fill={isMobile ? "black" : (isBeingDragged ? "#FCD34D" : point.isGhost ? "gray" : "black")}
-            style={{
-              transition: 'r 0.2s ease, fill 0.2s ease'
-            }}
-            />
-            {/* Added info popup for mobile */}
-            {console.log('Popup render check:', {
-              isMobile,
-              tappedPoint,
-              pointId: point.id,
-              tappedPointId: tappedPoint?.point?.id
-            })}
-            
-            {/* Your existing edit mode delete button */}
-            {editMode && (
-              <g 
-                transform={`translate(${pos.x}, ${pos.y - 20})`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const newPoints = points.filter((_, index) => index !== i);
-                  newPoints.forEach((point, index) => {
-                    point.x = (index + 1) * G;
-                  });
-                  setPoints(newPoints);
-                  }}
-                  >
-                  <circle r="8" fill="white" stroke="#ef4444" strokeWidth="1" />
-                  <text 
-                  fill="#ef4444" 
-                  fontSize="12" 
-                  textAnchor="middle" 
-                  dy=".3em"
-                  >×</text>
-                  </g>
-                  )}
-                </g>
-                );
-              })}
-
-        {/* Popup - moved outside and after points */}
-        {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
-          const pos = getPos(point, i);
-          return isMobile && tappedPoint && (point.id === tappedPoint.point.id) && (
-            <g style={{ pointerEvents: 'none' }}>
-              <rect
-              x={pos.x + 20}
-              y={pos.y - 40}
-              width="120"
-              height="60"
-              rx="4"
-              fill="white"
-              stroke="#ddd"
-              filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.1))"
-              />
-              <text
-              x={pos.x + 30}
-              y={pos.y - 20}
-              fontSize="12"
-              fill="black"
+              }}
               >
-              Point {i + 1}
-              </text>
-              <text
-              x={pos.x + 30}
-              y={pos.y}
-              fontSize="12"
-              fill="gray"
-              >
-              {(point.text || 'No description').length > 18 
-              ? `${(point.text || 'No description').substring(0, 18)}...`
-              : (point.text || 'No description')}
-              </text>
-            </g>
-            ); 
-        })}
-
-        {/* Digital cutout mask */}
-{(showDigitalCutout || showAnalyticsCutout || cutoutType === 'both') && (
-  <g>
-    <defs>
-      <mask id="cutoutMask">
-        <rect x="0" y="0" width="100%" height="100%" fill="white" />
-        {allPoints.map((point, i) => {
-          // Skip if no relevant points
-          if (
-            cutoutType === 'yellow' && !digitalPoints.has(point.id) ||
-            cutoutType === 'blue' && !bluePoints.has(point.id) ||
-            cutoutType === 'both' && !(digitalPoints.has(point.id) && bluePoints.has(point.id))
-          ) return null;
-          
-          const pos = getPos(point, i);
-          return (
-            <g key={`hole-${point.id}`}>
-              {isVertical ? (
-                <>
-                  <rect
-                    x="0"
-                    y={pos.y - G/2}
-                    width="100%"
-                    height={G}
-                    fill="black"
-                  />
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r={P * 2}
-                    fill="black"
-                  />
-                </>
-              ) : (
-                <>
-                  <rect
-                    x={pos.x - G/2}
-                    y="0"
-                    width={G}
-                    height="100%"
-                    fill="black"
-                  />
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r={P * 2}
-                    fill="black"
-                  />
-                </>
+              <circle r="8" fill="white" stroke="#ef4444" strokeWidth="1" />
+              <text 
+              fill="#ef4444" 
+              fontSize="12" 
+              textAnchor="middle" 
+              dy=".3em"
+              >×</text>
+              </g>
               )}
             </g>
-          );
-        })}
-      </mask>
-    </defs>
+            );
+          })}
 
-    {/* Overlay with appropriate color based on which toggle is on */}
-    <rect
-      x="0"
-      y="0"
-      width="100%"
-      height="100%"
-      fill={cutoutType === 'yellow' ? '#FCD34D' : 
-            cutoutType === 'blue' ? '#3B82F6' : 
-            cutoutType === 'both' ? '#22C55E' : 'transparent'}
-      mask="url(#cutoutMask)"
-    />
-  </g>
+    {/* Popup - moved outside and after points */}
+    {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
+      const pos = getPos(point, i);
+      return isMobile && tappedPoint && (point.id === tappedPoint.point.id) && (
+        <g style={{ pointerEvents: 'none' }}>
+          <rect
+          x={pos.x + 20}
+          y={pos.y - 40}
+          width="120"
+          height="60"
+          rx="4"
+          fill="white"
+          stroke="#ddd"
+          filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.1))"
+          />
+          <text
+          x={pos.x + 30}
+          y={pos.y - 20}
+          fontSize="12"
+          fill="black"
+          >
+          Point {i + 1}
+          </text>
+          <text
+          x={pos.x + 30}
+          y={pos.y}
+          fontSize="12"
+          fill="gray"
+          >
+          {(point.text || 'No description').length > 18 
+          ? `${(point.text || 'No description').substring(0, 18)}...`
+          : (point.text || 'No description')}
+          </text>
+        </g>
+        ); 
+    })}
+
+    {/* Digital cutout mask */}
+{(showDigitalCutout || showAnalyticsCutout || cutoutType === 'both') && (
+<g>
+<defs>
+  <mask id="cutoutMask">
+    <rect x="0" y="0" width="100%" height="100%" fill="white" />
+    {allPoints.map((point, i) => {
+      // Skip if no relevant points
+      if (
+        cutoutType === 'yellow' && !digitalPoints.has(point.id) ||
+        cutoutType === 'blue' && !bluePoints.has(point.id) ||
+        cutoutType === 'both' && !(digitalPoints.has(point.id) && bluePoints.has(point.id))
+      ) return null;
+      
+      const pos = getPos(point, i);
+      return (
+        <g key={`hole-${point.id}`}>
+          {isVertical ? (
+            <>
+              <rect
+                x="0"
+                y={pos.y - G/2}
+                width="100%"
+                height={G}
+                fill="black"
+              />
+              <circle
+                cx={pos.x}
+                cy={pos.y}
+                r={P * 2}
+                fill="black"
+              />
+            </>
+          ) : (
+            <>
+              <rect
+                x={pos.x - G/2}
+                y="0"
+                width={G}
+                height="100%"
+                fill="black"
+              />
+              <circle
+                cx={pos.x}
+                cy={pos.y}
+                r={P * 2}
+                fill="black"
+              />
+            </>
+          )}
+        </g>
+      );
+    })}
+  </mask>
+</defs>
+
+{/* Overlay with appropriate color based on which toggle is on */}
+<rect
+  x="0"
+  y="0"
+  width="100%"
+  height="100%"
+  fill={cutoutType === 'yellow' ? '#FCD34D' : 
+        cutoutType === 'blue' ? '#3B82F6' : 
+        cutoutType === 'both' ? '#22C55E' : 'transparent'}
+  mask="url(#cutoutMask)"
+/>
+</g>
 )}
-    </svg>
+</svg>
   );
 };
 
   // Update the return JSX to use our state
-return (
-  <div style={{
-    width: '100vw',
-    height: '100dvh',
-    display: 'flex',
-    flexDirection: 'column',
-    // position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0
-  }}>
+  return (
+    <div style={{
+      width: '100vw',
+      height: '100dvh',
+      display: 'flex',
+      flexDirection: 'column',
+      // position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0
+    }}>
 
-  <style>{`
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 24px;
-  }
+    <style>{`
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 24px;
+    }
 
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
 
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .2s;
-    border-radius: 24px;
-  }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .2s;
+      border-radius: 24px;
+    }
 
-  .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .2s;
-    border-radius: 50%;
-  }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
 
-  input:checked + .toggle-slider {
-    background-color: #2196F3;
-  }
+    input:checked + .toggle-slider {
+      background-color: #2196F3;
+    }
 
-  input:checked + .toggle-slider:before {
-    transform: translateX(16px);
-  }
-  `}</style>
+    input:checked + .toggle-slider:before {
+      transform: translateX(16px);
+    }
+    `}</style>
 
-  <style>{`
-      @keyframes m{0%{background-position:0 0}100%{background-position:20px 0}}
-      @keyframes v{0%{background-position:0 0}100%{background-position:0 20px}}
-      .r{writing-mode:vertical-rl;transform:rotate(180deg)}
-  `}</style>
+    <style>{`
+        @keyframes m{0%{background-position:0 0}100%{background-position:20px 0}}
+        @keyframes v{0%{background-position:0 0}100%{background-position:0 20px}}
+        .r{writing-mode:vertical-rl;transform:rotate(180deg)}
+    `}</style>
 
-  {/* Outer white container */}
-  <div style={{
-    background: 'white',
-    borderBottom: '1px solid #e2e8f0',
-    display: 'flex',
-    justifyContent: 'center',
-    width: '100%'
-  }}>
+    {/* Outer white container */}
+    <div style={{
+      background: 'white',
+      borderBottom: '1px solid #e2e8f0',
+      display: 'flex',
+      justifyContent: 'center',
+      width: '100%'
+    }}>
 
-  {/* Main content container */}
-  <div style={{
-    padding: '1rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    maxWidth: '1900px'
-  }}>
+    {/* Main content container */}
+    <div style={{
+      padding: '1rem',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      maxWidth: '1900px'
+    }}>
 
-  {/* Single flex container for all items */}
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: '.5rem',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    width: '100%'
-  }}>
+    {/* Single flex container for all items */}
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '.5rem',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      width: '100%'
+    }}>
 
-          {/* Rotation buttons */}
-          <Button 
-            size="sm"
-            variant="outline"
-            style={{ width: '9.5rem' }}
-            onClick={() => setRotated(false)}
-            disabled={!rotated}
-            >
-            {isMobile ? 'Show Chart' : 'Rotate Left'}
-          </Button>
+            {/* Rotation buttons */}
+            {!isMobile && (
+              <>
+                <Button 
+                  size="sm"
+                  variant="outline"
+                  style={{ width: '9.5rem' }}
+                  onClick={() => setRotated(false)}
+                  disabled={!rotated}
+                >
+                  Rotate Left
+                </Button>
 
-          <Button 
-            size="sm" 
-            variant="outline" 
-            style={{ width: '9.5rem' }}
-            onClick={() => setRotated(true)}
-            disabled={rotated}
-            >
-            {isMobile ? 'Show Descriptions' : 'Rotate Right'}
-          </Button>         
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  style={{ width: '9.5rem' }}
+                  onClick={() => setRotated(true)}
+                  disabled={rotated}
+                >
+                  Rotate Right
+                </Button>
+              </>
+            )}
 
-          {/* Document name input */}
-          <Input 
-            type="text"
-            value={filename}
-            onChange={(e) => {
-              // Only update the base drawing name
-              setFilename(e.target.value);
-            }}
-            placeholder="Drawing Name"
-            style={{
-              minWidth: '200px',
-              maxWidth: '14rem',
-              width: '100%',
-              textAlign: 'center',
-              fontSize: '1rem',
-              fontWeight: 600,
-              height: '2.25rem',
-              padding: '0.25rem'
-            }}
-          />
+            {/* Document name input */}
+            <Input 
+              type="text"
+              value={filename}
+              onChange={(e) => {
+                // Only update the base drawing name
+                setFilename(e.target.value);
+              }}
+              placeholder="Drawing Name"
+              style={{
+                minWidth: '200px',
+                maxWidth: '14rem',
+                width: '100%',
+                textAlign: 'center',
+                fontSize: '1rem',
+                fontWeight: 600,
+                height: '2.25rem',
+                padding: '0.25rem'
+              }}
+            />
 
-          {/* Action buttons */}
-            <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => {
-              console.log('Export button clicked');
-              handlePdfExport();
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            >
-            <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
-            </Button>
+            {/* Action buttons */}
+              <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => {
+                console.log('Export button clicked');
+                handlePdfExport();
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+              <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
+              </Button>
 
-            <Button 
-            onClick={() => {
-              if (points.length < 1) return;
-              const lastPoint = points[points.length - 1];
-              setPoints(s => s.slice(0, -1));
-              setUndoStack(s => [...s, lastPoint]);
-            }}
-            disabled={points.length === 0}
-            size="sm" 
-            variant="outline" 
-            style={{ width: '6rem' }}
-            >
-            Undo Dot
-            </Button>
+              <Button 
+              onClick={() => {
+                if (points.length < 1) return;
+                const lastPoint = points[points.length - 1];
+                setPoints(s => s.slice(0, -1));
+                setUndoStack(s => [...s, lastPoint]);
+              }}
+              disabled={points.length === 0}
+              size="sm" 
+              variant="outline" 
+              style={{ width: '6rem' }}
+              >
+              Undo Dot
+              </Button>
 
-            <Button 
-            onClick={() => {
-              if (undoStack.length < 1) return;
-              const lastPoint = undoStack[undoStack.length - 1];
-              setUndoStack(s => s.slice(0, -1));
-              setPoints(s => [...s, lastPoint]);
-            }}
-            disabled={undoStack.length === 0}
-            size="sm" 
-            variant="outline" 
-            style={{ width: '6rem' }}
-            >
-            Redo Dot
-            </Button>
+              <Button 
+              onClick={() => {
+                if (undoStack.length < 1) return;
+                const lastPoint = undoStack[undoStack.length - 1];
+                setUndoStack(s => s.slice(0, -1));
+                setPoints(s => [...s, lastPoint]);
+              }}
+              disabled={undoStack.length === 0}
+              size="sm" 
+              variant="outline" 
+              style={{ width: '6rem' }}
+              >
+              Redo Dot
+              </Button>
 
-            {/* Delete Mode Toggle */}
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={editMode}
-                onChange={handleEditModeToggle}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-            <span style={{ fontSize: '14px' }}>Delete Points</span>
+              {/* Delete Mode Toggle */}
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={editMode}
+                  onChange={handleEditModeToggle}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+              <span style={{ fontSize: '14px' }}>Delete Points</span>
 
-            {/* Cutout Dropdown */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginLeft: '0rem'
-            }}>
-            <label style={{fontSize: '14px'}}>
-              Color Cutout:
-              <select 
-                value={cutoutType}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setCutoutType(value);
-                  setShowDigitalCutout(value === 'yellow');
-                  setShowAnalyticsCutout(value === 'blue');
-                  // Add logic for the 'both' case
-                }}
+              {/* Cutout Dropdown */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginLeft: '0rem'
+              }}>
+              <label style={{fontSize: '14px'}}>
+                Color Cutout:
+                <select 
+                  value={cutoutType}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setCutoutType(value);
+                    setShowDigitalCutout(value === 'yellow');
+                    setShowAnalyticsCutout(value === 'blue');
+                    // Add logic for the 'both' case
+                  }}
+                  style={{
+                    marginLeft: '0.5rem',
+                    padding: '0.25rem',
+                    borderRadius: '0.25rem',
+                    border: '1px solid #e2e8f0'
+                  }}
+                >
+                  <option value="none">None</option>
+                  <option value="yellow">Yellow</option>
+                  <option value="blue">Blue</option>
+                  <option value="both">Both</option>
+                </select>
+              </label>
+            </div>
+
+
+              {/* Points Control */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'left',
+                borderRight: '',  // Subtle divider
+                paddingRight: '', // Subtle padding
+                }}>
+                <label style={{
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  fontSize: '14px'
+                  }}>
+                  <input
+                  type="checkbox"
+                  checked={showPoints}
+                  onChange={(e) => setShowPoints(e.target.checked)}
+                  />
+                  Show Points
+                </label>
+              </div>
+
+              {/* Cumulative Control */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                }}>
+                <label style={{fontSize: '14px'}}>
+                Cumulative:
+                <select 
+                value={cumulativeType} 
+                onChange={(e) => setCumulativeType(e.target.value)}
                 style={{
                   marginLeft: '0.5rem',
                   padding: '0.25rem',
                   borderRadius: '0.25rem',
                   border: '1px solid #e2e8f0'
                 }}
-              >
+                >
                 <option value="none">None</option>
-                <option value="yellow">Yellow</option>
-                <option value="blue">Blue</option>
-                <option value="both">Both</option>
-              </select>
-            </label>
+                <option value="bars">Bar Chart</option>
+                <option value="line">Line Graph</option>
+                </select>
+                </label>
+              </div>
+              
+              {/* Dot count */}
+              <span style={{ marginLeft: '0.5rem', fontSize: '14px', paddingTop: '' }}>
+              {rotated ? (
+              `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+                ) : (
+              `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+              )}
+              </span>
+
+    </div>
+
           </div>
-
-
-            {/* Points Control */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'left',
-              borderRight: '',  // Subtle divider
-              paddingRight: '', // Subtle padding
-              }}>
-              <label style={{
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem', 
-                fontSize: '14px'
-                }}>
-                <input
-                type="checkbox"
-                checked={showPoints}
-                onChange={(e) => setShowPoints(e.target.checked)}
-                />
-                Show Points
-              </label>
-            </div>
-
-            {/* Cumulative Control */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              }}>
-              <label style={{fontSize: '14px'}}>
-              Cumulative:
-              <select 
-              value={cumulativeType} 
-              onChange={(e) => setCumulativeType(e.target.value)}
+        </div>
+              
+            {rotated ? (
+              <div 
+                ref={scrollRef}
+                style={{
+                  position: 'relative',
+                  flex: 1,
+                  overflowY: 'auto',
+                  background: '#f9fafb',
+                  cursor: dragging ? 'ew-resize' : hoveredId ? 'ew-resize' : 'crosshair',
+                  height: isMobile ? 
+                    'calc(100dvh - (env(safe-area-inset-bottom, 1rem) + 4rem))' : // Mobile: account for header and tray
+                    'calc(100dvh - 80px)'  // Desktop: just account for header
+                }}
+              >
+              <div 
+              ref={containerRef}
               style={{
-                marginLeft: '0.5rem',
-                padding: '0.25rem',
-                borderRadius: '0.25rem',
-                border: '1px solid #e2e8f0'
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                minHeight: '100%',
+                display: 'flex',
+                height: `${(points.length + ghostPoints.length + 4) * G}px`
+
               }}
               >
-              <option value="none">None</option>
-              <option value="bars">Bar Chart</option>
-              <option value="line">Line Graph</option>
-              </select>
-              </label>
-            </div>
-            
-            {/* Dot count */}
-            <span style={{ marginLeft: '0.5rem', fontSize: '14px', paddingTop: '' }}>
-            {rotated ? (
-            `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
-              ) : (
-            `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
-            )}
-            </span>
+              <div style={{
+                position: 'relative',
+                background: 'white',
+                borderRight: '1px solid #e2e8f0',
+                flexShrink: 0,
+                width: isMobile ? '100%' : `calc(100% - ${H})`  // Full width on mobile
+              }}>
+              <div style={{
+                position: 'absolute',
+                top: `${getNextX()}px`,
+                left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 70% otherwise on vertical
+                transform: 'translate(-50%,-50%) rotate(90deg)',
+                width: '2.5rem',
+                height: '5rem', // Vertical Plus Button Width
+                border: '1px solid #e2e8f0',
+                borderRadius: '0.375rem'
+              }}>
+              <Button  
+              size="sm"
+              variant="ghost"
+              onClick={addGhostPoint}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                borderRadius: 0,
+                transition: 'background-color 0.2s'
+              }}
+              className="hover:bg-gray-100"
+              >
+              <Plus className="w-4 h-4"/>
+              </Button>
+              </div>
+  {getAllPoints().map((point, i) => (
+   <React.Fragment key={`group-${point.id}`}>
+     {/* Insert hover zone before each point (except the first one) */}
+     {i > 0 && !isMobile && (
+       <div
+       style={{
+         position: 'absolute',
+         left: rotated ? '50%' : `${point.x - G/2}px`,
+         top: rotated ? `${point.x - G/2}px` : '50%',
+         transform: 'translate(-50%, -50%)',
+         width: rotated ? '100%' : '40px',
+         height: rotated ? '40px' : '100%',
+         display: 'flex',
+         alignItems: 'center',
+         justifyContent: 'center',
+         opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
+         transition: 'opacity 0.2s',
+         cursor: 'pointer',
+         pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
+       }}
+       onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+       onMouseLeave={() => !isMobile && setHoveredId(null)}
+       onClick={() => handleInsertAt(i)}
+       >
+       <div
+       style={{
+         width: '24px',
+         height: '24px',
+         borderRadius: '50%',
+         backgroundColor: '#fff',
+         border: '2px solid #9ca3af',
+         display: 'flex',
+         alignItems: 'center',
+         justifyContent: 'center',
+         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+       }}
+       >
+       <Plus size={16} />
+       </div>
+       </div>
+     )}
 
-  </div>
-
-        </div>
-      </div>
-            
-            {rotated ? (
-            <div 
-            ref={scrollRef}
-            style={{
-              position: 'relative',
-              flex: 1,
-              overflowY: 'auto',
-              background: '#f9fafb',
-              cursor: dragging ? 'ew-resize' : hoveredId ? 'ew-resize' : 'crosshair',
-              height: 'calc(100dvh - 80px)'
-            }}
-            >
-            <div 
-            ref={containerRef}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              minHeight: '100%',
-              display: 'flex',
-              height: `${(points.length + ghostPoints.length + 4) * G}px`
-
-            }}
-            >
-            <div style={{
-              position: 'relative',
-              background: 'white',
-              borderRight: '1px solid #e2e8f0',
-              flexShrink: 0,
-              width: isMobile ? '100%' : `calc(100% - ${H})`  // Full width on mobile
-            }}>
-            <div style={{
-              position: 'absolute',
-              top: `${getNextX()}px`,
-              left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 70% otherwise on vertical
-              transform: 'translate(-50%,-50%) rotate(90deg)',
-              width: '2.5rem',
-              height: '5rem', // Vertical Plus Button Width
-              border: '1px solid #e2e8f0',
-              borderRadius: '0.375rem'
-            }}>
-            <Button  
-            size="sm"
-            variant="ghost"
-            onClick={addGhostPoint}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              borderRadius: 0,
-              transition: 'background-color 0.2s'
-            }}
-            className="hover:bg-gray-100"
-            >
-            <Plus className="w-4 h-4"/>
-            </Button>
-            </div>
-{getAllPoints().map((point, i) => (
- <React.Fragment key={`group-${point.id}`}>
-   {/* Insert hover zone before each point (except the first one) */}
-   {i > 0 && !isMobile && (
      <div
-     style={{
-       position: 'absolute',
-       left: rotated ? '50%' : `${point.x - G/2}px`,
-       top: rotated ? `${point.x - G/2}px` : '50%',
-       transform: 'translate(-50%, -50%)',
-       width: rotated ? '100%' : '40px',
-       height: rotated ? '40px' : '100%',
-       display: 'flex',
-       alignItems: 'center',
-       justifyContent: 'center',
-       opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
-       transition: 'opacity 0.2s',
-       cursor: 'pointer',
-       pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
-     }}
-     onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-     onMouseLeave={() => !isMobile && setHoveredId(null)}
-     onClick={() => handleInsertAt(i)}
-     >
-     <div
-     style={{
-       width: '24px',
-       height: '24px',
-       borderRadius: '50%',
-       backgroundColor: '#fff',
-       border: '2px solid #9ca3af',
-       display: 'flex',
-       alignItems: 'center',
-       justifyContent: 'center',
-       boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-     }}
-     >
-     <Plus size={16} />
-     </div>
-     </div>
-   )}
+       key={point.id}
+       data-description-index={i}
+       onDragOver={(e) => {
+         e.preventDefault();
+         e.stopPropagation();
+         const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
+         const currentTime = Date.now();
 
-   <div
-     key={point.id}
-     data-description-index={i}
-     onDragOver={(e) => {
-       e.preventDefault();
-       e.stopPropagation();
-       const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
-       const currentTime = Date.now();
+         if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+           if (originalIndex !== null && i !== draggedOverIndex) {
+             let previewPoints = [...originalPoints];
+             const [movedPoint] = previewPoints.splice(originalIndex, 1);
+             previewPoints.splice(i, 0, movedPoint);
 
-       if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
-         if (originalIndex !== null && i !== draggedOverIndex) {
-           let previewPoints = [...originalPoints];
-           const [movedPoint] = previewPoints.splice(originalIndex, 1);
-           previewPoints.splice(i, 0, movedPoint);
+             // Update x positions and connections in preview
+             previewPoints = previewPoints.map((point, index) => ({
+               ...point,
+               x: (index + 1) * G,
+               connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
+             }));
 
-           // Update x positions and connections in preview
-           previewPoints = previewPoints.map((point, index) => ({
-             ...point,
-             x: (index + 1) * G,
-             connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
-           }));
-
-           setLastUpdateTime(currentTime);
-           setDraggedOverIndex(i);
-           setPreviewPositions(previewPoints);
+             setLastUpdateTime(currentTime);
+             setDraggedOverIndex(i);
+             setPreviewPositions(previewPoints);
+           }
          }
-       }
-     }}
-     onDragEnter={(e) => {
-       e.preventDefault();
-       if (draggedDescriptionIndex !== i) {
-         setDraggedOverIndex(i);
-       }
-     }}
-     onDragLeave={(e) => {
-       e.preventDefault();
-       if (draggedOverIndex === i) {
-         setDraggedOverIndex(null);
-       }
-     }}
-     style={{
-       position: 'absolute',
-       left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 60% otherwise on vertical
-       top: `${point.x}px`,
-       transform: 'translate(-50%,-50%)',
-       opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
-       marginBottom: '25px',
-       display: 'flex',
-       flexDirection: 'row',
-       alignItems: 'center',
-       gap: '0.5rem',
-       background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
-       padding: '0.5rem',
-       borderRadius: '0.375rem',
-       transition: 'all 0.2s ease',
-       border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
-     }}
-   >
-     <div style={{
-       display: 'flex',
-       alignItems: 'center',
-       flexDirection: 'row',
-       gap: '0.5rem'
-     }}>
-       {/* SECTION 1: Color Dots */}
+       }}
+       onDragEnter={(e) => {
+         e.preventDefault();
+         if (draggedDescriptionIndex !== i) {
+           setDraggedOverIndex(i);
+         }
+       }}
+       onDragLeave={(e) => {
+         e.preventDefault();
+         if (draggedOverIndex === i) {
+           setDraggedOverIndex(null);
+         }
+       }}
+       style={{
+         position: 'absolute',
+         left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 60% otherwise on vertical
+         top: `${point.x}px`,
+         transform: 'translate(-50%,-50%)',
+         opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
+         marginBottom: '25px',
+         display: 'flex',
+         flexDirection: 'row',
+         alignItems: 'center',
+         gap: '0.5rem',
+         background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
+         padding: '0.5rem',
+         borderRadius: '0.375rem',
+         transition: 'all 0.2s ease',
+         border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
+       }}
+     >
        <div style={{
          display: 'flex',
+         alignItems: 'center',
          flexDirection: 'row',
          gap: '0.5rem'
        }}>
-         <div 
-           onClick={() => {
-             setDigitalPoints(prev => {
-               const next = new Set(prev);
-               if (next.has(point.id)) {
-                 next.delete(point.id);
-               } else {
-                 next.add(point.id);
-               }
-               return next;
-             });
-           }}
+         {/* SECTION 1: Color Dots */}
+         <div style={{
+           display: 'flex',
+           flexDirection: 'row',
+           gap: '0.5rem'
+         }}>
+           <div 
+             onClick={() => {
+               setDigitalPoints(prev => {
+                 const next = new Set(prev);
+                 if (next.has(point.id)) {
+                   next.delete(point.id);
+                 } else {
+                   next.add(point.id);
+                 }
+                 return next;
+               });
+             }}
+             style={{
+               width: '16px',
+               height: '16px',
+               borderRadius: '50%',
+               border: '1px solid #666',
+               backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
+               cursor: 'pointer',
+               transition: 'background-color 0.2s'
+             }}
+           />
+           <div 
+             onClick={() => {
+               setBluePoints(prev => {
+                 const next = new Set(prev);
+                 if (next.has(point.id)) {
+                   next.delete(point.id);
+                 } else {
+                   next.add(point.id);
+                 }
+                 return next;
+               });
+             }}
+             style={{
+               width: '16px',
+               height: '16px',
+               borderRadius: '50%',
+               border: '1px solid #666',
+               backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
+               cursor: 'pointer',
+               transition: 'background-color 0.2s'
+             }}
+           />
+         </div>
+
+         {/* SECTION 2: Description Input */}
+         <Input
+           type="text"
+           value={point.text}
+           readOnly
+           onClick={() => handleInputClick(point, i)}
+           onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
+           placeholder={`Description ${i + 1}`}
            style={{
-             width: '16px',
-             height: '16px',
-             borderRadius: '50%',
-             border: '1px solid #666',
-             backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
-             cursor: 'pointer',
-             transition: 'background-color 0.2s'
+             width: '200px',
+             height: '2.5rem',
+             border: '1px solid #e2e8f0',
+             borderRadius: '0.375rem'
            }}
          />
-         <div 
-           onClick={() => {
-             setBluePoints(prev => {
-               const next = new Set(prev);
-               if (next.has(point.id)) {
-                 next.delete(point.id);
-               } else {
-                 next.add(point.id);
-               }
-               return next;
+
+         {/* SECTION 3: Drag Handle */}
+         <div
+           draggable
+           onDragStart={(e) => {
+             const currentPoints = getAllPoints();
+             console.log('🟦 Drag Start:', { 
+               index: i, 
+               id: point.id,
+               text: point.text,
+               initialOrder: currentPoints.map(p => ({ id: p.id, x: p.x, text: p.text }))
              });
-           }}
-           style={{
-             width: '16px',
-             height: '16px',
-             borderRadius: '50%',
-             border: '1px solid #666',
-             backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
-             cursor: 'pointer',
-             transition: 'background-color 0.2s'
-           }}
-         />
-       </div>
 
-       {/* SECTION 2: Description Input */}
-       <Input
-         type="text"
-         value={point.text}
-         readOnly
-         onClick={() => handleInputClick(point, i)}
-         onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
-         placeholder={`Description ${i + 1}`}
-         style={{
-           width: '200px',
-           height: '2.5rem',
-           border: '1px solid #e2e8f0',
-           borderRadius: '0.375rem'
-         }}
-       />
-
-       {/* SECTION 3: Drag Handle */}
-       <div
-         draggable
-         onDragStart={(e) => {
-           const currentPoints = getAllPoints();
-           console.log('🟦 Drag Start:', { 
-             index: i, 
-             id: point.id,
-             text: point.text,
-             initialOrder: currentPoints.map(p => ({ id: p.id, x: p.x, text: p.text }))
-           });
-
-           e.dataTransfer.effectAllowed = 'move';
-           setDraggedDescriptionIndex(i);
-           setDraggedItemId(point.id);
-           setOriginalPoints([...currentPoints]);  // Store initial order
-           setOriginalIndex(i);
-           document.body.classList.add('dragging');
-         }}
-         onDragEnd={() => {
-           console.log('🟥 Drag End:', {
-             fromIndex: originalIndex,
-             toIndex: draggedOverIndex,
-           });
-
-           if (originalIndex !== null && draggedOverIndex !== null) {
-             handleReorder(originalIndex, draggedOverIndex);
-           }
-
-           setDraggedDescriptionIndex(null);
-           setDraggedOverIndex(null);
-           setDraggedItemId(null);
-           setPreviewPositions([]);
-           setLastUpdateTime(0);
-           setOriginalPoints(null);
-           setOriginalIndex(null);
-           document.body.classList.remove('dragging');
-         }}
-         onTouchStart={(e) => {
-           e.stopPropagation();
-           console.log('📱 Touch Start on description:', { index: i, text: point.text });
-
-           // Show visual feedback immediately
-           if (isMobile) {
+             e.dataTransfer.effectAllowed = 'move';
              setDraggedDescriptionIndex(i);
              setDraggedItemId(point.id);
-             setOriginalPoints([...points]);
+             setOriginalPoints([...currentPoints]);  // Store initial order
              setOriginalIndex(i);
-             toggleScrollLock(true);  // Prevent scrolling while dragging
-           }
-         }}
-         onTouchMove={(e) => {
-           if (!isMobile || !draggedItemId) return;
-           e.preventDefault();
-           e.stopPropagation();
+             document.body.classList.add('dragging');
+           }}
+           onDragEnd={() => {
+             console.log('🟥 Drag End:', {
+               fromIndex: originalIndex,
+               toIndex: draggedOverIndex,
+             });
 
-           const touch = e.touches[0];
-           const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
-           const descriptionElement = elements.find(el => el.getAttribute('data-description-index'));
-           
-           if (descriptionElement) {
-             const index = parseInt(descriptionElement.getAttribute('data-description-index'));
-             const currentTime = Date.now();
-             
-             if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
-               console.log('📱 Mobile drag:', { 
-                 draggedItemId,
-                 fromIndex: draggedDescriptionIndex, 
-                 toIndex: index 
-               });
-               
-               // Create preview
-               const previewPoints = [...points];
-               const [movedPoint] = previewPoints.splice(draggedDescriptionIndex, 1);
-               previewPoints.splice(index, 0, movedPoint);
-               
-               setLastUpdateTime(currentTime);
-               setDraggedOverIndex(index);
-               setPreviewPositions(previewPoints);
+             if (originalIndex !== null && draggedOverIndex !== null) {
+               handleReorder(originalIndex, draggedOverIndex);
              }
-           }
-         }}
-         onTouchEnd={(e) => {
-           if (!isMobile) return;
-           
-           console.log('📱 Touch End:', {
-             fromIndex: originalIndex,
-             toIndex: draggedOverIndex
-           });
-           
-           if (originalIndex !== null && draggedOverIndex !== null) {
-             handleReorder(originalIndex, draggedOverIndex);
-           }
-           
-           // Clear all drag states
-           setDraggedDescriptionIndex(null);
-           setDraggedOverIndex(null);
-           setDraggedItemId(null);
-           setPreviewPositions([]);
-           setLastUpdateTime(0);
-           setOriginalPoints(null);
-           setOriginalIndex(null);
-           toggleScrollLock(false);
-         }}
-         style={{
-           cursor: 'grab',
-           padding: '0.25rem',
-           color: '#666',
-           transition: 'transform 0.2s, background-color 0.2s',
-           transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
-           backgroundColor: draggedDescriptionIndex === i ? '#FFF9C4' : draggedOverIndex === i ? '#f3f4f6' : 'transparent',
-           borderRadius: '0.25rem'
-         }}
-       >
-         <GripVertical size={16} />
+
+             setDraggedDescriptionIndex(null);
+             setDraggedOverIndex(null);
+             setDraggedItemId(null);
+             setPreviewPositions([]);
+             setLastUpdateTime(0);
+             setOriginalPoints(null);
+             setOriginalIndex(null);
+             document.body.classList.remove('dragging');
+           }}
+           onTouchStart={(e) => {
+             e.stopPropagation();
+             console.log('📱 Touch Start on description:', { index: i, text: point.text });
+
+             // Show visual feedback immediately
+             if (isMobile) {
+               setDraggedDescriptionIndex(i);
+               setDraggedItemId(point.id);
+               setOriginalPoints([...points]);
+               setOriginalIndex(i);
+               toggleScrollLock(true);  // Prevent scrolling while dragging
+             }
+           }}
+           onTouchMove={(e) => {
+             if (!isMobile || !draggedItemId) return;
+             e.preventDefault();
+             e.stopPropagation();
+
+             const touch = e.touches[0];
+             const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+             const descriptionElement = elements.find(el => el.getAttribute('data-description-index'));
+             
+             if (descriptionElement) {
+               const index = parseInt(descriptionElement.getAttribute('data-description-index'));
+               const currentTime = Date.now();
+               
+               if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+                 console.log('📱 Mobile drag:', { 
+                   draggedItemId,
+                   fromIndex: draggedDescriptionIndex, 
+                   toIndex: index 
+                 });
+                 
+                 // Create preview
+                 const previewPoints = [...points];
+                 const [movedPoint] = previewPoints.splice(draggedDescriptionIndex, 1);
+                 previewPoints.splice(index, 0, movedPoint);
+                 
+                 setLastUpdateTime(currentTime);
+                 setDraggedOverIndex(index);
+                 setPreviewPositions(previewPoints);
+               }
+             }
+           }}
+           onTouchEnd={(e) => {
+             if (!isMobile) return;
+             
+             console.log('📱 Touch End:', {
+               fromIndex: originalIndex,
+               toIndex: draggedOverIndex
+             });
+             
+             if (originalIndex !== null && draggedOverIndex !== null) {
+               handleReorder(originalIndex, draggedOverIndex);
+             }
+             
+             // Clear all drag states
+             setDraggedDescriptionIndex(null);
+             setDraggedOverIndex(null);
+             setDraggedItemId(null);
+             setPreviewPositions([]);
+             setLastUpdateTime(0);
+             setOriginalPoints(null);
+             setOriginalIndex(null);
+             toggleScrollLock(false);
+           }}
+           style={{
+             cursor: 'grab',
+             padding: '0.25rem',
+             color: '#666',
+             transition: 'transform 0.2s, background-color 0.2s',
+             transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
+             backgroundColor: draggedDescriptionIndex === i ? '#FFF9C4' : draggedOverIndex === i ? '#f3f4f6' : 'transparent',
+             borderRadius: '0.25rem'
+           }}
+         >
+           <GripVertical size={16} />
+         </div>
        </div>
      </div>
-   </div>
- </React.Fragment>
-))}
-</div>
-<div 
-  ref={drawingRef}
-  style={{
-    position: 'relative',
-    overflow: 'hidden',
-    flex: 1,
-    display: isMobile ? 'none' : 'block'  // Hide on mobile
-  }}
-  className="drawing-area"
-  onMouseMove={handleMouseMove}
-  onClick={handleClick}
-  >
-  {renderSVG(true)}
-  {!hoveredId && !dragging && !isMobile && <div style={{
-    position: 'absolute',
-    pointerEvents: 'none',
-    left: `${cursor.x}%`,
-    top: 0,
-    width: '2px',
-    height: '100%',
-    backgroundImage: 'linear-gradient(to bottom, black 50%, transparent 50%)',
-    backgroundSize: '2px 20px',
-    backgroundRepeat: 'repeat-y',
-    animation: 'v 1s linear infinite'
-  }}/>}
+   </React.Fragment>
+  ))}
   </div>
-  </div>
-  </div>
-  ) : (
   <div 
-  ref={scrollRef}
-  style={{
-    position: 'relative',
-  ...(isMobile ? {} : { flex: 1 }),  // Only apply flex on desktop, omit it entirely for mobile
-  overflowX: 'auto',
-  background: '#f9fafb',
-  cursor: dragging ? 'ns-resize' : hoveredId ? 'ns-resize' : 'crosshair',
-  height: 'calc(100dvh - 80px)',  // Just one value since it's the same either way
-  }}
->
-  <div 
-  ref={containerRef}
-  style={{
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    height: '100%',
-    minWidth: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    width: `${(points.length + ghostPoints.length + 4) * G}px`,
-      minHeight: isMobile ? 'initial' : undefined  // Add this too
-    }}
-    >
-    <div 
     ref={drawingRef}
     style={{
       position: 'relative',
       overflow: 'hidden',
-        height: isMobile ? '100%' : H,  // Use full height on mobile
-        minHeight: isMobile ? 'initial' : undefined,  // Add this to override any min-height
-        touchAction: dragging ? 'none' : 'pan-x'  // Allow horizontal scroll unless dragging
-      }}
-      className="drawing-area"
-      onMouseMove={handleMouseMove}
-      onClick={handleClick}
-      >
-      {renderSVG(false)}
-      {!hoveredId && !dragging && !isMobile && <div style={{
-        position: 'absolute',
-        pointerEvents: 'none',
-        top: `${cursor.y}%`,
-        left: 0,
-        width: '100%',
-        height: '1px',
-        backgroundImage: 'linear-gradient(to right, black 50%, transparent 50%)',
-        backgroundSize: '20px 1px',
-        backgroundRepeat: 'repeat-x',
-        animation: 'm 1s linear infinite'
-      }}/>}
-      </div>
-      <div style={{
-        position: 'relative',
-        background: 'white',
-        borderTop: '1px solid #e2e8f0',
-        flexShrink: 0,
-        height: `calc(100% - ${H})`,
+      flex: 1,
       display: isMobile ? 'none' : 'block'  // Hide on mobile
-    }}>
-    <div style={{
-      position: 'absolute',
-      left: `${getNextX()}px`,
-      top: '50%',
-      transform: 'translate(-50%,-50%) rotate(-90deg)',
-      width: '5rem', // Horizontal Plus Button Height
-      height: '2.5rem',
-      border: '1px solid #e2e8f0',
-      borderRadius: '0.375rem'
-    }}>
-    <Button  
-    size="sm"
-    variant="ghost"
-    onClick={addGhostPoint}
-    style={{ 
-      width: '100%', 
-      height: '100%', 
-      borderRadius: 0,
-      transition: 'background-color 0.2s'
     }}
-    className="hover:bg-gray-100"
+    className="drawing-area"
+    onMouseMove={handleMouseMove}
+    onClick={handleClick}
     >
-    <Plus className="w-4 h-4"/>
-    </Button>
+    {renderSVG(true)}
+    {!hoveredId && !dragging && !isMobile && <div style={{
+      position: 'absolute',
+      pointerEvents: 'none',
+      left: `${cursor.x}%`,
+      top: 0,
+      width: '2px',
+      height: '100%',
+      backgroundImage: 'linear-gradient(to bottom, black 50%, transparent 50%)',
+      backgroundSize: '2px 20px',
+      backgroundRepeat: 'repeat-y',
+      animation: 'v 1s linear infinite'
+    }}/>}
     </div>
-    
-{getAllPoints().map((point, i) => (
-  <React.Fragment key={`group-${point.id}`}>
-    {/* Insert hover zone before each point (except the first one) */}
-    {i > 0 && !isMobile && (
-      <div
-        style={{
-          position: 'absolute',
-          left: rotated ? '50%' : `${point.x - G/2}px`,
-          top: rotated ? `${point.x - G/2}px` : '50%',
-          transform: 'translate(-50%, -50%)',
-          width: rotated ? '100%' : '40px',
-          height: rotated ? '40px' : '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
-          transition: 'opacity 0.2s',
-          cursor: 'pointer',
-          pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
+    </div>
+    </div>
+    ) : (
+    <div 
+      ref={scrollRef}
+      style={{
+        position: 'relative',
+      ...(isMobile ? {} : { flex: 1 }),  // Only apply flex on desktop, omit it entirely for mobile
+      overflowX: 'auto',
+      background: '#f9fafb',
+      cursor: dragging ? 'ns-resize' : hoveredId ? 'ns-resize' : 'crosshair',
+      height: isMobile ? 
+        'calc(100dvh - (env(safe-area-inset-bottom, 1rem) + 4rem))' : // Mobile: account for header and tray
+        'calc(100dvh - 80px)'  // Desktop: just account for header
+      }}
+    >
+    <div 
+    ref={containerRef}
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      height: '100%',
+      minWidth: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      width: `${(points.length + ghostPoints.length + 4) * G}px`,
+        minHeight: isMobile ? 'initial' : undefined  // Add this too
+      }}
+      >
+      <div 
+      ref={drawingRef}
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+          height: isMobile ? '100%' : H,  // Use full height on mobile
+          minHeight: isMobile ? 'initial' : undefined,  // Add this to override any min-height
+          touchAction: dragging ? 'none' : 'pan-x'  // Allow horizontal scroll unless dragging
         }}
-        onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-        onMouseLeave={() => !isMobile && setHoveredId(null)}
-        onClick={() => handleInsertAt(i)}
+        className="drawing-area"
+        onMouseMove={handleMouseMove}
+        onClick={handleClick}
         >
+        {renderSVG(false)}
+        {!hoveredId && !dragging && !isMobile && <div style={{
+          position: 'absolute',
+          pointerEvents: 'none',
+          top: `${cursor.y}%`,
+          left: 0,
+          width: '100%',
+          height: '1px',
+          backgroundImage: 'linear-gradient(to right, black 50%, transparent 50%)',
+          backgroundSize: '20px 1px',
+          backgroundRepeat: 'repeat-x',
+          animation: 'm 1s linear infinite'
+        }}/>}
+        </div>
+        <div style={{
+          position: 'relative',
+          background: 'white',
+          borderTop: '1px solid #e2e8f0',
+          flexShrink: 0,
+          height: `calc(100% - ${H})`,
+        display: isMobile ? 'none' : 'block'  // Hide on mobile
+      }}>
+      <div style={{
+        position: 'absolute',
+        left: `${getNextX()}px`,
+        top: '50%',
+        transform: 'translate(-50%,-50%) rotate(-90deg)',
+        width: '5rem', // Horizontal Plus Button Height
+        height: '2.5rem',
+        border: '1px solid #e2e8f0',
+        borderRadius: '0.375rem'
+      }}>
+      <Button  
+      size="sm"
+      variant="ghost"
+      onClick={addGhostPoint}
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        borderRadius: 0,
+        transition: 'background-color 0.2s'
+      }}
+      className="hover:bg-gray-100"
+      >
+      <Plus className="w-4 h-4"/>
+      </Button>
+      </div>
+      
+  {getAllPoints().map((point, i) => (
+    <React.Fragment key={`group-${point.id}`}>
+      {/* Insert hover zone before each point (except the first one) */}
+      {i > 0 && !isMobile && (
         <div
           style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            backgroundColor: '#fff',
-            border: '2px solid #9ca3af',
+            position: 'absolute',
+            left: rotated ? '50%' : `${point.x - G/2}px`,
+            top: rotated ? `${point.x - G/2}px` : '50%',
+            transform: 'translate(-50%, -50%)',
+            width: rotated ? '100%' : '40px',
+            height: rotated ? '40px' : '100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
+            transition: 'opacity 0.2s',
+            cursor: 'pointer',
+            pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
+          }}
+          onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+          onMouseLeave={() => !isMobile && setHoveredId(null)}
+          onClick={() => handleInsertAt(i)}
+          >
+          <div
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              backgroundColor: '#fff',
+              border: '2px solid #9ca3af',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            <Plus size={16} />
+          </div>
+        </div>
+        )}
+
+        <div
+          key={point.id}
+          data-description-index={i}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
+            const currentTime = Date.now();
+
+            if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+              if (originalIndex !== null && i !== draggedOverIndex) {
+                console.log('🟨 Drag Over:', { 
+                  draggedItemId,
+                  fromIndex: originalIndex,
+                  toIndex: i,
+                });
+
+                let previewPoints = [...originalPoints];
+                const [movedPoint] = previewPoints.splice(originalIndex, 1);
+                previewPoints.splice(i, 0, movedPoint);
+
+                // Update x positions and connections in preview
+                previewPoints = previewPoints.map((point, index) => ({
+                  ...point,
+                  x: (index + 1) * G,
+                  connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
+                }));
+
+                setLastUpdateTime(currentTime);
+                setDraggedOverIndex(i);
+                setPreviewPositions(previewPoints);
+              }
+            }
+          }}
+
+          onDragEnter={(e) => {
+            e.preventDefault();
+            if (draggedDescriptionIndex !== i) {
+              setDraggedOverIndex(i);
+            }
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            if (draggedOverIndex === i) {
+              setDraggedOverIndex(null);
+            }
+          }}
+
+          style={{
+            position: 'absolute',
+            left: `${point.x}px`,
+            top: '50%',
+            transform: 'translate(-50%,-50%)',
+            opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
+            marginBottom: '25px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
+            padding: '0.5rem',
+            borderRadius: '0.375rem',
+            transition: 'all 0.2s ease',
+            border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
           }}
         >
-          <Plus size={16} />
-        </div>
-      </div>
-      )}
+        <div
+          draggable
+          onDragStart={(e) => {
+            const currentPoints = getAllPoints();
+            console.log('🟦 Drag Start:', { 
+              index: i, 
+              id: point.id,
+              text: point.text,
+              initialOrder: currentPoints.map(p => ({ id: p.id, x: p.x, text: p.text }))
+            });
 
-      <div
-        key={point.id}
-        data-description-index={i}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
-          const currentTime = Date.now();
+            e.dataTransfer.effectAllowed = 'move';
+            setDraggedDescriptionIndex(i);
+            setDraggedItemId(point.id);
+            setOriginalPoints([...currentPoints]);  // Store initial order
+            setOriginalIndex(i);
+            document.body.classList.add('dragging');
+          }}
+                
+          onDragEnd={() => {
+            console.log('🟥 Drag End:', {
+              fromIndex: originalIndex,
+              toIndex: draggedOverIndex,
+            });
 
-          if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
-            if (originalIndex !== null && i !== draggedOverIndex) {
-              console.log('🟨 Drag Over:', { 
-                draggedItemId,
-                fromIndex: originalIndex,
-                toIndex: i,
-              });
-
-              let previewPoints = [...originalPoints];
-              const [movedPoint] = previewPoints.splice(originalIndex, 1);
-              previewPoints.splice(i, 0, movedPoint);
-
-              // Update x positions and connections in preview
-              previewPoints = previewPoints.map((point, index) => ({
-                ...point,
-                x: (index + 1) * G,
-                connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
-              }));
-
-              setLastUpdateTime(currentTime);
-              setDraggedOverIndex(i);
-              setPreviewPositions(previewPoints);
+            if (originalIndex !== null && draggedOverIndex !== null) {
+              handleReorder(originalIndex, draggedOverIndex);
             }
-          }
-        }}
 
-        onDragEnter={(e) => {
-          e.preventDefault();
-          if (draggedDescriptionIndex !== i) {
-            setDraggedOverIndex(i);
-          }
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          if (draggedOverIndex === i) {
+            setDraggedDescriptionIndex(null);
             setDraggedOverIndex(null);
-          }
-        }}
+            setDraggedItemId(null);
+            setPreviewPositions([]);
+            setLastUpdateTime(0);
+            setOriginalPoints(null);
+            setOriginalIndex(null);
+            document.body.classList.remove('dragging');
+          }}
 
-        style={{
-          position: 'absolute',
-          left: `${point.x}px`,
-          top: '50%',
-          transform: 'translate(-50%,-50%)',
-          opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
-          marginBottom: '25px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '0.5rem',
-          background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
-          padding: '0.5rem',
-          borderRadius: '0.375rem',
-          transition: 'all 0.2s ease',
-          border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
-        }}
-      >
-      <div
-        draggable
-        onDragStart={(e) => {
-          const currentPoints = getAllPoints();
-          console.log('🟦 Drag Start:', { 
-            index: i, 
-            id: point.id,
-            text: point.text,
-            initialOrder: currentPoints.map(p => ({ id: p.id, x: p.x, text: p.text }))
-          });
+          onTouchStart={(e) => {
+            e.stopPropagation();
+            handleTouchStart(i, e);
+          }}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            cursor: 'grab',
+            padding: '0.25rem',
+            color: '#666',
+            transition: 'transform 0.2s',
+            transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
+            backgroundColor: draggedDescriptionIndex === i ? '#e5e7eb' : 'transparent',
+            borderRadius: '0.25rem'
+          }}
+        >
+          <GripVertical size={16} />
+        </div>
 
-          e.dataTransfer.effectAllowed = 'move';
-          setDraggedDescriptionIndex(i);
-          setDraggedItemId(point.id);
-          setOriginalPoints([...currentPoints]);  // Store initial order
-          setOriginalIndex(i);
-          document.body.classList.add('dragging');
-        }}
-              
-        onDragEnd={() => {
-          console.log('🟥 Drag End:', {
-            fromIndex: originalIndex,
-            toIndex: draggedOverIndex,
-          });
-
-          if (originalIndex !== null && draggedOverIndex !== null) {
-            handleReorder(originalIndex, draggedOverIndex);
-          }
-
-          setDraggedDescriptionIndex(null);
-          setDraggedOverIndex(null);
-          setDraggedItemId(null);
-          setPreviewPositions([]);
-          setLastUpdateTime(0);
-          setOriginalPoints(null);
-          setOriginalIndex(null);
-          document.body.classList.remove('dragging');
-        }}
-
-        onTouchStart={(e) => {
-          e.stopPropagation();
-          handleTouchStart(i, e);
-        }}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{
-          cursor: 'grab',
-          padding: '0.25rem',
-          color: '#666',
-          transition: 'transform 0.2s',
-          transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
-          backgroundColor: draggedDescriptionIndex === i ? '#e5e7eb' : 'transparent',
-          borderRadius: '0.25rem'
-        }}
-      >
-        <GripVertical size={16} />
-      </div>
-
-  {/* Yellow and Blue Input Circles */}
-  <div style={{
-    display: 'flex',
-    alignItems: 'center',
-    flexDirection: 'column',
-    gap: '0.5rem'
-  }}>
-    <Input
-      type="text"
-      value={point.text}
-      readOnly
-      onClick={() => handleInputClick(point, i)}
-      onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
-      placeholder={`Description ${i + 1}`}
-      className="r text-center"
-      style={{ 
-        height: '175px',
-        width: '2.5rem',
-        border: '1px solid #e2e8f0',
-        borderRadius: '0.375rem'
-      }}
-    />
+    {/* Yellow and Blue Input Circles */}
     <div style={{
-      display: 'flex',
-      gap: '0.5rem'  // Space between the circles
-    }}>
-      <div 
-        onClick={() => {
-          setDigitalPoints(prev => {
-            const next = new Set(prev);
-            if (next.has(point.id)) {
-              next.delete(point.id);
-            } else {
-              next.add(point.id);
-            }
-            return next;
-          });
-        }}
-        style={{
-          width: '16px',
-          height: '16px',
-          borderRadius: '50%',
-          border: '1px solid #666',
-          backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent', //Yellow
-          cursor: 'pointer',
-          transition: 'background-color 0.2s'
-        }}
-      />
-      <div 
-        onClick={() => {
-          setBluePoints(prev => {
-            const next = new Set(prev);
-            if (next.has(point.id)) {
-              next.delete(point.id);
-            } else {
-              next.add(point.id);
-            }
-            return next;
-          });
-        }}
-        style={{
-          width: '16px',
-          height: '16px',
-          borderRadius: '50%',
-          border: '1px solid #666',
-          backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent', //Blue
-          cursor: 'pointer',
-          transition: 'background-color 0.2s'
-        }}
-      />
-    </div>
-  </div>
-</div>
-</React.Fragment>
-))}
-
-</div>
-</div>
-</div>
-)}
-
-{modalOpen && (
-  <div 
-  style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-      height: '100vh',  // Use vh instead of percentage or dvh
-      maxHeight: 'none',
-      backgroundColor: 'rgba(0,0,0,0.5)',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      overflow: 'hidden'  // Prevent any scrolling
-    }}
-    onKeyDown={(e) => {
-      if (e.key === 'Escape') {
-        setModalOpen(false);
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      flexDirection: 'column',
+      gap: '0.5rem'
+    }}>
+      <Input
+        type="text"
+        value={point.text}
+        readOnly
+        onClick={() => handleInputClick(point, i)}
+        onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
+        placeholder={`Description ${i + 1}`}
+        className="r text-center"
+        style={{ 
+          height: '175px',
+          width: '2.5rem',
+          border: '1px solid #e2e8f0',
+          borderRadius: '0.375rem'
+        }}
+      />
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem'  // Space between the circles
+      }}>
+        <div 
+          onClick={() => {
+            setDigitalPoints(prev => {
+              const next = new Set(prev);
+              if (next.has(point.id)) {
+                next.delete(point.id);
+              } else {
+                next.add(point.id);
+              }
+              return next;
+            });
+          }}
+          style={{
+            width: '16px',
+            height: '16px',
+            borderRadius: '50%',
+            border: '1px solid #666',
+            backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent', //Yellow
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+        />
+        <div 
+          onClick={() => {
+            setBluePoints(prev => {
+              const next = new Set(prev);
+              if (next.has(point.id)) {
+                next.delete(point.id);
+              } else {
+                next.add(point.id);
+              }
+              return next;
+            });
+          }}
+          style={{
+            width: '16px',
+            height: '16px',
+            borderRadius: '50%',
+            border: '1px solid #666',
+            backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent', //Blue
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+        />
+      </div>
+    </div>
+  </div>
+  </React.Fragment>
+  ))}
+
+  </div>
+  </div>
+  </div>
+  )}
+
+  {modalOpen && (
+    <div 
+    style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+        height: '100vh',  // Use vh instead of percentage or dvh
+        maxHeight: 'none',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        overflow: 'hidden'  // Prevent any scrolling
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          setModalOpen(false);
+        } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+          handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
+          setModalOpen(false);
+        }
+      }}
+      >
+      <div style={{
+        backgroundColor: 'white',
+        padding: '2rem',
+        borderRadius: '0.5rem',
+        width: '90%',
+        maxWidth: '500px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
+      <h2 style={{ margin: 0 }}>Edit Description</h2>
+      <textarea
+      ref={textareaRef}
+      value={editText}
+      onChange={(e) => setEditText(e.target.value)}
+      style={{
+        width: '100%',
+        height: '150px',
+        padding: '0.5rem',
+        borderRadius: '0.25rem',
+        border: '1px solid #e2e8f0'
+      }}
+      />
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem',
+        justifyContent: 'flex-end'
+      }}>
+      <Button 
+      size="sm"
+      variant="outline" 
+      onClick={() => setModalOpen(false)}
+      >
+      Cancel{!isMobile && " (Esc)"}
+      </Button>
+      <Button
+      size="sm"
+      variant="outline"
+      onClick={() => {
         handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
         setModalOpen(false);
-      }
-    }}
-    >
-    <div style={{
-      backgroundColor: 'white',
-      padding: '2rem',
-      borderRadius: '0.5rem',
-      width: '90%',
-      maxWidth: '500px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1rem'
-    }}>
-    <h2 style={{ margin: 0 }}>Edit Description</h2>
-    <textarea
-    ref={textareaRef}
-    value={editText}
-    onChange={(e) => setEditText(e.target.value)}
-    style={{
-      width: '100%',
-      height: '150px',
-      padding: '0.5rem',
-      borderRadius: '0.25rem',
-      border: '1px solid #e2e8f0'
-    }}
-    />
-    <div style={{
-      display: 'flex',
-      gap: '0.5rem',
-      justifyContent: 'flex-end'
-    }}>
-    <Button 
-    size="sm"
-    variant="outline" 
-    onClick={() => setModalOpen(false)}
-    >
-    Cancel{!isMobile && " (Esc)"}
-    </Button>
-    <Button
-    size="sm"
-    variant="outline"
-    onClick={() => {
-      handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
-      setModalOpen(false);
-    }}
-    >
-    Save{!isMobile && " (⌘ + Enter)"}
-    </Button>
-    </div>
-    </div>
-    </div>
-    )}
-</div>
-);
+      }}
+      >
+      Save{!isMobile && " (⌘ + Enter)"}
+      </Button>
+      </div>
+      </div>
+      </div>
+      )}
+      {/* Add the BottomTray only for mobile */}
+    {isMobile && <BottomTray 
+      rotated={rotated} 
+      setRotated={setRotated} 
+      isMobile={isMobile} 
+    />}
+  </div>
+  );
 };
+
+const BottomTray = ({ rotated, setRotated, isMobile }) => (
+  <div style={{
+    position: 'sticky',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    background: 'white',
+    borderTop: '1px solid #e2e8f0',
+    padding: '0.5rem',
+    paddingBottom: '0.5rem',  // Adjust bottom padding 'env(safe-area-inset-bottom'??
+    display: 'flex',
+    justifyContent: 'center',  // Changed from space-around to center
+    gap: '0.75rem',  // Controls space between buttons
+    zIndex: 50
+  }}>
+    <Button 
+      size="sm"
+      variant="outline"
+      style={{ 
+        width: '11rem',  // Adjust button width
+        height: '3rem'  // Adjust button height
+      }}
+      onClick={() => setRotated(false)}
+      disabled={!rotated}
+    >
+      Show Chart
+    </Button>
+
+    <Button 
+      size="sm"
+      variant="outline"
+      style={{ 
+        width: '11rem',
+        height: '3rem'
+      }}
+      onClick={() => setRotated(true)}
+      disabled={rotated}
+    >
+      Show Descriptions
+    </Button>
+  </div>
+);
 
 export default InteractiveDrawing;
