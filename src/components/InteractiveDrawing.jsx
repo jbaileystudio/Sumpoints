@@ -1522,6 +1522,9 @@ const isNearGridLine = rotated
       display: 'flex',
       flexDirection: 'column',
       // position: 'fixed',
+      position: 'fixed',  // Add this
+      overflowY: 'hidden',  // Add this
+      WebkitOverflowScrolling: 'touch',  // Add this
       top: 0,
       left: 0,
       right: 0,
@@ -1587,7 +1590,9 @@ const isNearGridLine = rotated
       borderBottom: '1px solid #e2e8f0',
       display: 'flex',
       justifyContent: 'center',
-      width: '100%'
+      width: '100%',
+      touchAction: 'none',  // Add this
+      userSelect: 'none',   // Add this
     }}>
 
     {/* Main content container */}
@@ -2076,8 +2081,8 @@ const isNearGridLine = rotated
            }}
            onTouchStart={(e) => {
              e.stopPropagation();
+             e.preventDefault();  // Add this line
              console.log('📱 Touch Start on description:', { index: i, text: point.text });
-
              // Show visual feedback immediately
              if (isMobile) {
                setDraggedDescriptionIndex(i);
@@ -2618,7 +2623,10 @@ const BottomTray = ({ rotated, setRotated, isMobile }) => (
     display: 'flex',
     justifyContent: 'center',  // Changed from space-around to center
     gap: '0.75rem',  // Controls space between buttons
+    touchAction: 'none',
+    userSelect: 'none',
     zIndex: 50
+
   }}>
     <Button 
       size="sm"
