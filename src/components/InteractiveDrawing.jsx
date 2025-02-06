@@ -312,26 +312,16 @@ pdf.save(`${formattedFilename}.pdf`);
     setHoveredId(null);  // Clear hoveredId when toggling edit mode
   };
 
+  // Add this helper function at the top level of your component
   const toggleScrollLock = (lock) => {
-    const container = scrollRef.current;
-    if (!container) return;
-
     if (lock) {
-      // Store current scroll position
-      container.dataset.scrollY = window.scrollY.toString();
-      // Lock scrolling
-      container.style.overflow = 'hidden';
-      container.style.position = 'fixed';
-      container.style.top = `-${window.scrollY}px`;
-      container.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
     } else {
-      // Restore scroll position
-      container.style.position = '';
-      container.style.overflow = '';
-      container.style.top = '';
-      container.style.width = '';
-      window.scrollTo(0, parseInt(container.dataset.scrollY || '0'));
-      delete container.dataset.scrollY;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     }
   };
 
