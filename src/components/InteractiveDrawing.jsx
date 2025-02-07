@@ -80,8 +80,7 @@ const InteractiveDrawing = () => {
     console.log('Points gathered:', allPoints);
 
     // Add the formatted filename here, right after getting allPoints
-    const formattedFilename = `${filename}_${allPoints.length} Events_${calculateScores(points).total} Cml Score`;
-
+const formattedFilename = `${filename}_${allPoints.length} Events_${calculateScores(points).total} Cml Score${cumulativeType === 'bars' ? '_Bar Chart' : cumulativeType === 'line' ? '_Line Chart' : ''}`;
 
     // Calculate minimum width for 15 points
     const minWidth = 16 * G;  // 15 points + 1 extra space
@@ -105,83 +104,95 @@ const InteractiveDrawing = () => {
 
     // Create SVG content similar to your current export
     const scores = calculateScores(allPoints);
-const svgContent = `
-  <svg 
-    width="${totalWidth * scale}px"
-    height="${600 * scale}px" 
-    viewBox="0 0 ${totalWidth} 600"
-    style="background-color: white;"
-    preserveAspectRatio="xMidYMid meet"
-  >
-    <defs>
-      <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
-        ${HASH_POINTS.map((hp, i) => `
+    const svgContent = `
+      <svg 
+        width="${totalWidth * scale}px"
+        height="${600 * scale}px" 
+        viewBox="0 0 ${totalWidth} 600"
+        style="background-color: white;"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <defs>
+          <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
+            ${HASH_POINTS.map((hp, i) => `
+              <line 
+                x1="-6" y1="${hp}%" 
+                x2="6" y2="${hp}%" 
+                stroke="grey"
+              />
+            `).join('')}
+            <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="grey"/>
+          </pattern>
+        </defs>
+
+        <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
+        <line x1="0" y1="50%" x2="100%" y2="50%" stroke="grey"/>
+
+        ${allPoints.map((point, i) => i > 0 ? `
           <line 
-            x1="-6" y1="${hp}%" 
-            x2="6" y2="${hp}%" 
-            stroke="grey"
+            x1="${allPoints[i-1].x}" 
+            y1="${allPoints[i-1].y}%" 
+            x2="${point.x}" 
+            y2="${point.y}%" 
+            stroke="black" 
+            stroke-width="2"
+          />
+        ` : '').join('')}
+
+        ${allPoints.map(point => `
+          <circle 
+            cx="${point.x}" 
+            cy="${point.y}%" 
+            r="${P}" 
+            fill="black"
           />
         `).join('')}
-        <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="grey"/>
-      </pattern>
-    </defs>
 
-    <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
-    <line x1="0" y1="50%" x2="100%" y2="50%" stroke="grey"/>
-
-    ${allPoints.map((point, i) => i > 0 ? `
-      <line 
-        x1="${allPoints[i-1].x}" 
-        y1="${allPoints[i-1].y}%" 
-        x2="${point.x}" 
-        y2="${point.y}%" 
-        stroke="black" 
-        stroke-width="2"
+        ${cumulativeType === 'bars' ? 
+  scores.cumulative.map((score, i) => {
+    const scale = 2;  // Adjust this value to scale both visualizations
+    const barHeight = Math.abs(score * 5) * scale;
+    const y = score >= 0 ? 
+      300 - barHeight :  // 300 is center point
+      300;
+    return `
+      <rect
+        x="${(i + 1) * G - (G * 0.4)}"
+        y="${y}"
+        width="${G * 0.8}"
+        height="${barHeight}"
+        fill="#666666"
       />
-    ` : '').join('')}
-
-    ${allPoints.map(point => `
-      <circle 
-        cx="${point.x}" 
-        cy="${point.y}%" 
-        r="${P}" 
-        fill="black"
-      />
-    `).join('')}
-
-    ${cumulativeType === 'bars' ? 
-      scores.cumulative.map((score, i) => {
-        const barHeight = Math.abs(score * 5);
-        const y = score >= 0 ? 50 - barHeight : 50;
-        return `
-          <rect
-            x="${(i + 1) * G - (G * 0.4)}"
-            y="${y}%"
-            width="${G * 0.8}"
-            height="${barHeight}%"
-            fill="#666666"
-          />
-        `;
-      }).join('')
-    : cumulativeType === 'line' ?
+    `;
+  }).join('')
+: cumulativeType === 'line' ?
   (() => {
-    // Just create a single path connecting all points
-    const points = scores.cumulative.map((score, i) => ({
-      x: (i + 1) * G,
-      y: 50 - (score * 5)
-    }));
+    const scale = 2;  // Same scale factor as bars
+    const points = scores.cumulative.map((score, i) => {
+      const y = 300 - (score * 5 * scale);  // Use 300 as center point like bars
+      return {
+        x: (i + 1) * G,
+        y: y
+      };
+    });
     
-    // Create a simple path that connects all points
+    const pathData = points.reduce((path, point, index) => {
+      if (index === 0) {
+        return `M ${point.x} ${point.y}`;
+      }
+      return `${path} L ${point.x} ${point.y}`;
+    }, '');
+    
     return `
       <path
-        d="M ${points.map(p => `${p.x} ${p.y}%`).join(' L ')}"
+        d="${pathData}"
         stroke="#666666"
         stroke-width="3"
         fill="none"
       />
     `;
   })()
-    : ''}
+: ''}
   </svg>
 `;
 
