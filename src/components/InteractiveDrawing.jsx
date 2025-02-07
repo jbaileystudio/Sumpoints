@@ -104,54 +104,86 @@ const InteractiveDrawing = () => {
 
 
     // Create SVG content similar to your current export
-    const svgContent = `
-      <svg 
-        width="${totalWidth * scale}px"
-        height="${600 * scale}px" 
-        viewBox="0 0 ${totalWidth} 600"
-        style="background-color: white;"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <!-- Your existing SVG content -->
-        <defs>
-          <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
-      ${HASH_POINTS.map((hp, i) => `
-              <line 
-                x1="-6" y1="${hp}%" 
-                x2="6" y2="${hp}%" 
-                stroke="grey"
-              />
-        `).join('')}
-            <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="grey"/>
-          </pattern>
-        </defs>
-
-        <!-- Grid and points -->
-        <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
-        <line x1="0" y1="50%" x2="100%" y2="50%" stroke="grey"/>
-
-        <!-- Points and lines -->
-      ${allPoints.map((point, i) => i > 0 ? `
+    const scores = calculateScores(allPoints);
+const svgContent = `
+  <svg 
+    width="${totalWidth * scale}px"
+    height="${600 * scale}px" 
+    viewBox="0 0 ${totalWidth} 600"
+    style="background-color: white;"
+    preserveAspectRatio="xMidYMid meet"
+  >
+    <defs>
+      <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
+        ${HASH_POINTS.map((hp, i) => `
           <line 
-            x1="${allPoints[i-1].x}" 
-            y1="${allPoints[i-1].y}%" 
-            x2="${point.x}" 
-            y2="${point.y}%" 
-            stroke="black" 
-            stroke-width="2"
-          />
-        ` : '').join('')}
-
-      ${allPoints.map(point => `
-          <circle 
-            cx="${point.x}" 
-            cy="${point.y}%" 
-            r="${P}" 
-            fill="black"
+            x1="-6" y1="${hp}%" 
+            x2="6" y2="${hp}%" 
+            stroke="grey"
           />
         `).join('')}
-      </svg>
+        <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="grey"/>
+      </pattern>
+    </defs>
+
+    <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
+    <line x1="0" y1="50%" x2="100%" y2="50%" stroke="grey"/>
+
+    ${allPoints.map((point, i) => i > 0 ? `
+      <line 
+        x1="${allPoints[i-1].x}" 
+        y1="${allPoints[i-1].y}%" 
+        x2="${point.x}" 
+        y2="${point.y}%" 
+        stroke="black" 
+        stroke-width="2"
+      />
+    ` : '').join('')}
+
+    ${allPoints.map(point => `
+      <circle 
+        cx="${point.x}" 
+        cy="${point.y}%" 
+        r="${P}" 
+        fill="black"
+      />
+    `).join('')}
+
+    ${cumulativeType === 'bars' ? 
+      scores.cumulative.map((score, i) => {
+        const barHeight = Math.abs(score * 5);
+        const y = score >= 0 ? 50 - barHeight : 50;
+        return `
+          <rect
+            x="${(i + 1) * G - (G * 0.4)}"
+            y="${y}%"
+            width="${G * 0.8}"
+            height="${barHeight}%"
+            fill="#666666"
+          />
+        `;
+      }).join('')
+    : cumulativeType === 'line' ?
+  (() => {
+    // Just create a single path connecting all points
+    const points = scores.cumulative.map((score, i) => ({
+      x: (i + 1) * G,
+      y: 50 - (score * 5)
+    }));
+    
+    // Create a simple path that connects all points
+    return `
+      <path
+        d="M ${points.map(p => `${p.x} ${p.y}%`).join(' L ')}"
+        stroke="#666666"
+        stroke-width="3"
+        fill="none"
+      />
     `;
+  })()
+    : ''}
+  </svg>
+`;
 
     // Inside your try block
     try {
@@ -1410,32 +1442,32 @@ const isNearGridLine = rotated
       return isMobile && tappedPoint && (point.id === tappedPoint.point.id) && (
         <g style={{ pointerEvents: 'none' }}>
           <rect
-          x={pos.x + 20}
-          y={pos.y - 40}
-          width="120"
-          height="60"
-          rx="4"
-          fill="white"
-          stroke="#ddd"
-          filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.1))"
+            x={pos.x + 20}
+            y={pos.y - 40}
+            width="120"
+            height="60"
+            rx="4"
+            fill="white"
+            stroke="#ddd"
+            filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.1))"
           />
           <text
-          x={pos.x + 30}
-          y={pos.y - 20}
-          fontSize="12"
-          fill="black"
+            x={pos.x + 30}
+            y={pos.y - 20}
+            fontSize="12"
+            fill="black"
           >
-          Point {i + 1}
-          </text>
-          <text
-          x={pos.x + 30}
-          y={pos.y}
-          fontSize="12"
-          fill="gray"
+            Point {i + 1}
+            </text>
+            <text
+            x={pos.x + 30}
+            y={pos.y}
+            fontSize="12"
+            fill="gray"
           >
-          {(point.text || 'No description').length > 18 
-          ? `${(point.text || 'No description').substring(0, 18)}...`
-          : (point.text || 'No description')}
+            {(point.text || 'No description').length > 18 
+            ? `${(point.text || 'No description').substring(0, 18)}...`
+            : (point.text || 'No description')}
           </text>
         </g>
         ); 
@@ -1597,7 +1629,7 @@ const isNearGridLine = rotated
 
     {/* Main content container */}
     <div style={{
-      padding: '1rem',
+      padding: '.667rem',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -1609,269 +1641,250 @@ const isNearGridLine = rotated
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '.5rem',
+      gap: '0.75rem',
       flexWrap: 'wrap',
-      justifyContent: 'center',
+      justifyContent: isMobile ? 'center' : `start`,
       width: '100%'
     }}>
 
-            {/* Rotation buttons */}
-            {!isMobile && (
-              <>
-                <Button 
-                  size="sm"
-                  variant="outline"
-                  style={{ width: '9.5rem' }}
-                  onClick={() => setRotated(false)}
-                  disabled={!rotated}
-                >
-                  Rotate Left
-                </Button>
+    {/* Rotation buttons */}
+    {!isMobile && (
+      <>
+        <Button 
+          size="sm"
+          variant="outline"
+          style={{ width: '9.5rem' }}
+          onClick={() => setRotated(false)}
+          disabled={!rotated}
+        >
+          Rotate Left
+        </Button>
 
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  style={{ width: '9.5rem' }}
-                  onClick={() => setRotated(true)}
-                  disabled={rotated}
-                >
-                  Rotate Right
-                </Button>
-              </>
-            )}
+        <Button 
+          size="sm" 
+          variant="outline" 
+          style={{ width: '9.5rem' }}
+          onClick={() => setRotated(true)}
+          disabled={rotated}
+        >
+          Rotate Right
+        </Button>
+      </>
+    )}
 
-            {/* Document name input */}
-            <Input 
-              type="text"
-              value={filename}
-              onChange={(e) => {
-                // Only update the base drawing name
-                setFilename(e.target.value);
-              }}
-              placeholder="Drawing Name"
-              style={{
-                minWidth: '200px',
-                maxWidth: '14rem',
-                width: '100%',
-                textAlign: 'center',
-                fontSize: '1rem',
-                fontWeight: 600,
-                height: '2.25rem',
-                padding: '0.25rem'
-              }}
-            />
+    {/* Document name input */}
+    <Input 
+      type="text"
+      value={filename}
+      onChange={(e) => {
+        // Only update the base drawing name
+        setFilename(e.target.value);
+      }}
+      placeholder="Drawing Name"
+      style={{
+        minWidth: '200px',
+        maxWidth: '14rem',
+        width: '100%',
+        textAlign: 'center',
+        fontSize: '1rem',
+        fontWeight: 600,
+        height: '2.25rem',
+        padding: '0.25rem'
+      }}
+    />
 
-            {/* Action buttons */}
-              <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => {
-                console.log('Export button clicked');
-                handlePdfExport();
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-              >
-              <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
-              </Button>
+    {/* Action buttons */}
+      <Button 
+      size="sm" 
+      variant="outline" 
+      onClick={() => {
+        console.log('Export button clicked');
+        handlePdfExport();
+      }}
+      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+      >
+      <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
+      </Button>
 
-{false && (  // Add this line to hide the buttons
-  <>
+      {false && (  // Add this line to hide the buttons
+        <>
 
-              <Button 
-                onClick={() => {
-                  if (points.length < 1) return;
-                  const lastPoint = points[points.length - 1];
-                  setPoints(s => s.slice(0, -1));
-                  setUndoStack(s => [...s, lastPoint]);
-                }}
-                disabled={points.length === 0}
-                size="sm" 
-                variant="outline" 
-                style={{ width: '6rem' }}
-                >
-              Undo Dot
-              </Button>
+          <Button 
+            onClick={() => {
+              if (points.length < 1) return;
+              const lastPoint = points[points.length - 1];
+              setPoints(s => s.slice(0, -1));
+              setUndoStack(s => [...s, lastPoint]);
+            }}
+            disabled={points.length === 0}
+            size="sm" 
+            variant="outline" 
+            style={{ width: '6rem' }}
+            >
+          Undo Dot
+          </Button>
 
-              <Button 
-                onClick={() => {
-                  if (undoStack.length < 1) return;
-                  const lastPoint = undoStack[undoStack.length - 1];
-                  setUndoStack(s => s.slice(0, -1));
-                  setPoints(s => [...s, lastPoint]);
-                }}
-                disabled={undoStack.length === 0}
-                size="sm" 
-                variant="outline" 
-                style={{ width: '6rem' }}
-                >
-              Redo Dot
-              </Button>
+          <Button 
+            onClick={() => {
+              if (undoStack.length < 1) return;
+              const lastPoint = undoStack[undoStack.length - 1];
+              setUndoStack(s => s.slice(0, -1));
+              setPoints(s => [...s, lastPoint]);
+            }}
+            disabled={undoStack.length === 0}
+            size="sm" 
+            variant="outline" 
+            style={{ width: '6rem' }}
+            >
+          Redo Dot
+          </Button>
 
-  </>
-)} {/* Close the condition here */}
+        </>
+      )} {/* Close the condition here */}
 
-              {/* Delete Mode Toggle */}
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={editMode}
-                  onChange={handleEditModeToggle}
-                />
-                <span className="toggle-slider"></span>
-              </label>
-              <span style={{ fontSize: '14px' }}>Delete Points</span>
+      {/* Delete Mode Toggle */}
+      <label className="toggle-switch">
+        <input
+          type="checkbox"
+          checked={editMode}
+          onChange={handleEditModeToggle}
+        />
+        <span className="toggle-slider"></span>
+      </label>
+      <span style={{ fontSize: '14px' }}>Delete Points</span>
+      {/* Points Control */}
+        <label className="toggle-switch">
+          <input
+            type="checkbox"
+            checked={showPoints}
+            onChange={(e) => setShowPoints(e.target.checked)}
+          />
+          <span className="toggle-slider"></span>
+        </label>
+        <span style={{ fontSize: '14px' }}>Show Points</span>
+      
+
+      {/* Cumulative Control */}
+      <label style={{fontSize: '14px'}}>
+        Cumulative:
+        <select 
+          value={cumulativeType} 
+          onChange={(e) => setCumulativeType(e.target.value)}
+          style={{
+            marginLeft: '0.5rem',
+            padding: '0.25rem',
+            borderRadius: '0.25rem',
+            border: '1px solid #e2e8f0'
+          }}
+        >
+          <option value="none">None</option>
+          <option value="bars">Bar Chart</option>
+          <option value="line">Line Graph</option>
+        </select>
+      </label>
+
+      {/* Cutout Dropdown */}
+      <label style={{fontSize: '14px'}}>
+        Color Cutout:
+        <select 
+          value={cutoutType}
+          onChange={(e) => {
+            const value = e.target.value;
+            setCutoutType(value);
+            setShowDigitalCutout(value === 'yellow');
+            setShowAnalyticsCutout(value === 'blue');
+            // Add logic for the 'both' case
+          }}
+          style={{
+            marginLeft: '0.5rem',
+            padding: '0.25rem',
+            borderRadius: '0.25rem',
+            border: '1px solid #e2e8f0'
+          }}
+        >
+          <option value="none">None</option>
+          <option value="yellow">Yellow</option>
+          <option value="blue">Blue</option>
+          <option value="both">Both</option>
+        </select>
+      </label>
 
               
-
-
-              {/* Points Control */}
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'left',
-                borderRight: '',  // Subtle divider
-                paddingRight: '', // Subtle padding
-                gap: '0.5rem',
-                paddingTop: '',
-              }}>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={showPoints}
-                    onChange={(e) => setShowPoints(e.target.checked)}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-                <span style={{ fontSize: '14px' }}>Show Points</span>
-              </div>
-
-              {/* Cutout Dropdown */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-              }}>
-              <label style={{fontSize: '14px'}}>
-                Color Cutout:
-                <select 
-                  value={cutoutType}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setCutoutType(value);
-                    setShowDigitalCutout(value === 'yellow');
-                    setShowAnalyticsCutout(value === 'blue');
-                    // Add logic for the 'both' case
-                  }}
-                  style={{
-                    marginLeft: '0.5rem',
-                    padding: '0.25rem',
-                    borderRadius: '0.25rem',
-                    border: '1px solid #e2e8f0'
-                  }}
-                >
-                  <option value="none">None</option>
-                  <option value="yellow">Yellow</option>
-                  <option value="blue">Blue</option>
-                  <option value="both">Both</option>
-                </select>
-              </label>
-            </div>
-
-              {/* Cumulative Control */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-              }}>
-                <label style={{fontSize: '14px'}}>
-                Cumulative:
-                <select 
-                  value={cumulativeType} 
-                  onChange={(e) => setCumulativeType(e.target.value)}
-                  style={{
-                    marginLeft: '0.5rem',
-                    padding: '0.25rem',
-                    borderRadius: '0.25rem',
-                    border: '1px solid #e2e8f0'
-                  }}
-                >
-                  <option value="none">None</option>
-                  <option value="bars">Bar Chart</option>
-                  <option value="line">Line Graph</option>
-                </select>
-                </label>
-              </div>
               
-              {/* Dot count */}
-              <span style={{ marginLeft: '0.5rem', fontSize: '14px', paddingTop: '' }}>
-              {rotated ? (
-              `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
-                ) : (
-              `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
-              )}
-              </span>
+      {/* Dot count */}
+      <span style={{ marginLeft: '0.5rem', fontSize: '14px', paddingTop: '' }}>
+      {rotated ? (
+      `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+        ) : (
+      `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+      )}
+      </span>
 
     </div>
 
-          </div>
-        </div>
+  </div>
+</div>
               
-            {rotated ? (
-              <div 
-                ref={scrollRef}
-                style={{
-                  position: 'relative',
-                  flex: 1,
-                  overflowY: 'auto',
-                  background: '#f9fafb',
-                  cursor: dragging ? 'ew-resize' : hoveredId ? 'ew-resize' : 'crosshair',
-                  height: isMobile ? 
-                    'calc(100dvh - (env(safe-area-inset-bottom, 1rem) + 4rem))' : // Mobile: account for header and tray
-                    'calc(100dvh - 80px)'  // Desktop: just account for header
-                }}
-              >
-              <div 
-              ref={containerRef}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                minHeight: '100%',
-                display: 'flex',
-                height: `${(points.length + ghostPoints.length + 4) * G}px`
+{rotated ? (
+  <div 
+    ref={scrollRef}
+    style={{
+      position: 'relative',
+      flex: 1,
+      overflowY: 'auto',
+      background: '#f9fafb',
+      cursor: dragging ? 'ew-resize' : hoveredId ? 'ew-resize' : 'crosshair',
+      height: isMobile ? 
+        'calc(100dvh - (env(safe-area-inset-bottom, 1rem) + 4rem))' : // Mobile: account for header and tray
+        'calc(100dvh - 80px)'  // Desktop: just account for header
+    }}
+  >
+  <div 
+  ref={containerRef}
+  style={{
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    minHeight: '100%',
+    display: 'flex',
+    height: `${(points.length + ghostPoints.length + 4) * G}px`
 
-              }}
-              >
-              <div style={{
-                position: 'relative',
-                background: 'white',
-                borderRight: '1px solid #e2e8f0',
-                flexShrink: 0,
-                width: isMobile ? '100%' : `calc(100% - ${H})`  // Full width on mobile
-              }}>
-              <div style={{
-                position: 'absolute',
-                top: `${getNextX()}px`,
-                left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 70% otherwise on vertical
-                transform: 'translate(-50%,-50%) rotate(90deg)',
-                width: '2.5rem',
-                height: '5rem', // Vertical Plus Button Width
-                border: '1px solid #e2e8f0',
-                borderRadius: '0.375rem'
-              }}>
-              <Button  
-              size="sm"
-              variant="ghost"
-              onClick={addGhostPoint}
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                borderRadius: 0,
-                transition: 'background-color 0.2s'
-              }}
-              className="hover:bg-gray-100"
-              >
-              <Plus className="w-4 h-4"/>
-              </Button>
-              </div>
+  }}
+  >
+  <div style={{
+    position: 'relative',
+    background: 'white',
+    borderRight: '1px solid #e2e8f0',
+    flexShrink: 0,
+    width: isMobile ? '100%' : `calc(100% - ${H})`  // Full width on mobile
+  }}>
+  <div style={{
+    position: 'absolute',
+    top: `${getNextX()}px`,
+    left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 70% otherwise on vertical
+    transform: 'translate(-50%,-50%) rotate(90deg)',
+    width: '2.5rem',
+    height: '5rem', // Vertical Plus Button Width
+    border: '1px solid #e2e8f0',
+    borderRadius: '0.375rem'
+  }}>
+  <Button  
+  size="sm"
+  variant="ghost"
+  onClick={addGhostPoint}
+  style={{ 
+    width: '100%', 
+    height: '100%', 
+    borderRadius: 0,
+    transition: 'background-color 0.2s'
+  }}
+  className="hover:bg-gray-100"
+  >
+  <Plus className="w-4 h-4"/>
+  </Button>
+  </div>
+  
   {getAllPoints().map((point, i) => (
    <React.Fragment key={`group-${point.id}`}>
      {/* Insert hover zone before each point (except the first one) */}
