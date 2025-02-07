@@ -1674,35 +1674,41 @@ const isNearGridLine = rotated
               <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
               </Button>
 
+{false && (  // Add this line to hide the buttons
+  <>
+
               <Button 
-              onClick={() => {
-                if (points.length < 1) return;
-                const lastPoint = points[points.length - 1];
-                setPoints(s => s.slice(0, -1));
-                setUndoStack(s => [...s, lastPoint]);
-              }}
-              disabled={points.length === 0}
-              size="sm" 
-              variant="outline" 
-              style={{ width: '6rem' }}
-              >
+                onClick={() => {
+                  if (points.length < 1) return;
+                  const lastPoint = points[points.length - 1];
+                  setPoints(s => s.slice(0, -1));
+                  setUndoStack(s => [...s, lastPoint]);
+                }}
+                disabled={points.length === 0}
+                size="sm" 
+                variant="outline" 
+                style={{ width: '6rem' }}
+                >
               Undo Dot
               </Button>
 
               <Button 
-              onClick={() => {
-                if (undoStack.length < 1) return;
-                const lastPoint = undoStack[undoStack.length - 1];
-                setUndoStack(s => s.slice(0, -1));
-                setPoints(s => [...s, lastPoint]);
-              }}
-              disabled={undoStack.length === 0}
-              size="sm" 
-              variant="outline" 
-              style={{ width: '6rem' }}
-              >
+                onClick={() => {
+                  if (undoStack.length < 1) return;
+                  const lastPoint = undoStack[undoStack.length - 1];
+                  setUndoStack(s => s.slice(0, -1));
+                  setPoints(s => [...s, lastPoint]);
+                }}
+                disabled={undoStack.length === 0}
+                size="sm" 
+                variant="outline" 
+                style={{ width: '6rem' }}
+                >
               Redo Dot
               </Button>
+
+  </>
+)} {/* Close the condition here */}
 
               {/* Delete Mode Toggle */}
               <label className="toggle-switch">
@@ -1715,11 +1721,33 @@ const isNearGridLine = rotated
               </label>
               <span style={{ fontSize: '14px' }}>Delete Points</span>
 
+              
+
+
+              {/* Points Control */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'left',
+                borderRight: '',  // Subtle divider
+                paddingRight: '', // Subtle padding
+                gap: '0.5rem',
+                paddingTop: '',
+              }}>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={showPoints}
+                    onChange={(e) => setShowPoints(e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+                <span style={{ fontSize: '14px' }}>Show Points</span>
+              </div>
+
               {/* Cutout Dropdown */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                marginLeft: '0rem'
               }}>
               <label style={{fontSize: '14px'}}>
                 Color Cutout:
@@ -1747,49 +1775,26 @@ const isNearGridLine = rotated
               </label>
             </div>
 
-
-              {/* Points Control */}
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'left',
-                borderRight: '',  // Subtle divider
-                paddingRight: '', // Subtle padding
-                }}>
-                <label style={{
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem', 
-                  fontSize: '14px'
-                  }}>
-                  <input
-                  type="checkbox"
-                  checked={showPoints}
-                  onChange={(e) => setShowPoints(e.target.checked)}
-                  />
-                  Show Points
-                </label>
-              </div>
-
               {/* Cumulative Control */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                }}>
+              }}>
                 <label style={{fontSize: '14px'}}>
                 Cumulative:
                 <select 
-                value={cumulativeType} 
-                onChange={(e) => setCumulativeType(e.target.value)}
-                style={{
-                  marginLeft: '0.5rem',
-                  padding: '0.25rem',
-                  borderRadius: '0.25rem',
-                  border: '1px solid #e2e8f0'
-                }}
+                  value={cumulativeType} 
+                  onChange={(e) => setCumulativeType(e.target.value)}
+                  style={{
+                    marginLeft: '0.5rem',
+                    padding: '0.25rem',
+                    borderRadius: '0.25rem',
+                    border: '1px solid #e2e8f0'
+                  }}
                 >
-                <option value="none">None</option>
-                <option value="bars">Bar Chart</option>
-                <option value="line">Line Graph</option>
+                  <option value="none">None</option>
+                  <option value="bars">Bar Chart</option>
+                  <option value="line">Line Graph</option>
                 </select>
                 </label>
               </div>
