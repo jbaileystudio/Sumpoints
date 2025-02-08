@@ -1645,7 +1645,6 @@ const isNearGridLine = rotated
       alignItems: 'center',
       justifyContent: 'center',
       width: '100%',
-      maxWidth: '1900px'
     }}>
 
     {/* Single flex container for all items */}
