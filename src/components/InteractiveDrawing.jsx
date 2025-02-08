@@ -1664,7 +1664,7 @@ const isNearGridLine = rotated
         <Button 
           size="sm"
           variant="outline"
-          style={{ width: '9.5rem' }}
+          style={{ width: '6.8rem' }}
           onClick={() => setRotated(false)}
           disabled={!rotated}
         >
@@ -1674,7 +1674,7 @@ const isNearGridLine = rotated
         <Button 
           size="sm" 
           variant="outline" 
-          style={{ width: '9.5rem' }}
+          style={{ width: '6.8rem' }}
           onClick={() => setRotated(true)}
           disabled={rotated}
         >
@@ -1895,7 +1895,7 @@ const isNearGridLine = rotated
   <Plus className="w-4 h-4"/>
   </Button>
   </div>
-  
+
   {getAllPoints().map((point, i) => (
    <React.Fragment key={`group-${point.id}`}>
      {/* Insert hover zone before each point (except the first one) */}
