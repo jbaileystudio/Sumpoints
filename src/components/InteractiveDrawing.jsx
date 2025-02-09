@@ -80,7 +80,7 @@ const InteractiveDrawing = () => {
     console.log('Points gathered:', allPoints);
 
     // Add the formatted filename here, right after getting allPoints
-const formattedFilename = `${filename}_${allPoints.length} Events_${calculateScores(points).total} Cml Score${cumulativeType === 'bars' ? '_Bar Chart' : cumulativeType === 'line' ? '_Line Chart' : ''}`;
+    const formattedFilename = `${filename}_${allPoints.length} Events_${calculateScores(points).total} Cml Score${cumulativeType === 'bars' ? '_Bars' : cumulativeType === 'line' ? '_Line' : ''}`;
 
     // Calculate minimum width for 15 points
     const minWidth = 16 * G;  // 15 points + 1 extra space
@@ -211,7 +211,11 @@ const formattedFilename = `${filename}_${allPoints.length} Events_${calculateSco
 
   // Add count below title
       pdf.setFontSize(12);
-      pdf.text(`${allPoints.length} Events | Cumulative Score ${calculateScores(points).total}`, margins, margins + 0.3);
+      pdf.text(
+        `${allPoints.length} Events | ${calculateScores(points).total} Cml Score${cumulativeType === 'bars' ? ' - Bars' : cumulativeType === 'line' ? ' - Line' : ''}`, 
+        margins, 
+        margins + 0.3
+      );
 
       const contentStart = margins + 0.5;
 
@@ -1788,8 +1792,8 @@ const isNearGridLine = rotated
           }}
         >
           <option value="none">None</option>
-          <option value="bars">Bar Chart</option>
-          <option value="line">Line Graph</option>
+          <option value="bars">Bars</option>
+          <option value="line">Line</option>
         </select>
       </label>
 
