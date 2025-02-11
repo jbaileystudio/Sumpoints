@@ -32,7 +32,7 @@ const InteractiveDrawing = () => {
   const [points, setPoints] = useState([]);
   const [ghostPoints, setGhostPoints] = useState([]);
   const [undoStack, setUndoStack] = useState([]);
-  const [filename, setFilename] = useState('My Drawing');
+  const [filename, setFilename] = useState('');
   const [cursor, setCursor] = useState({ x: 0, y: 50 });
   const textareaRef = useRef(null);  // Add this here with other refs
   const [rotated, setRotated] = useState(false);
@@ -73,6 +73,22 @@ const InteractiveDrawing = () => {
     windowWidth: window.innerWidth, 
     MOBILE_BREAKPOINT 
   });
+
+  const saveToLocalStorage = () => {
+  // Don't save if we're initializing
+  if (points.length === 0 && filename === '') {
+    return;
+  }
+  
+  const state = {
+    points,
+    digitalPoints: Array.from(digitalPoints),
+    bluePoints: Array.from(bluePoints),
+    filename
+  };
+  console.log('Saving state:', state);
+  localStorage.setItem('drawingState', JSON.stringify(state));
+};
 
   const handlePdfExport = async () => {
     console.log('Starting PDF export');
@@ -797,6 +813,26 @@ const isNearGridLine = rotated
     });
     setDragging(true);
   };
+
+  useEffect(() => {
+    const savedState = localStorage.getItem('drawingState');
+    console.log('Loading saved state:', savedState);
+    if (savedState) {
+      const state = JSON.parse(savedState);
+      console.log('Parsed state:', state);
+      setPoints(state.points);
+      setDigitalPoints(new Set(state.digitalPoints));
+      setBluePoints(new Set(state.bluePoints));
+      // Only set filename if it exists and isn't empty
+      if (state.filename && state.filename !== '') {
+        setFilename(state.filename);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    saveToLocalStorage();
+  }, [points, digitalPoints, bluePoints, filename]);
 
   useEffect(() => {
     if (drawingRef.current) {
@@ -1688,6 +1724,7 @@ const isNearGridLine = rotated
         value={filename}
         onChange={(e) => setFilename(e.target.value)}
         placeholder="Drawing Name"
+        autoComplete="off"  // Add this line
         style={{
           minWidth: '200px',
           maxWidth: '14rem',
