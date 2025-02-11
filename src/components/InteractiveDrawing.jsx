@@ -212,7 +212,7 @@ const InteractiveDrawing = () => {
   // Add count below title
       pdf.setFontSize(12);
       pdf.text(
-        `${allPoints.length} Events | ${calculateScores(points).total} Cml Score${cumulativeType === 'bars' ? ' - Bars' : cumulativeType === 'line' ? ' - Line' : ''}`, 
+        `${allPoints.length} Events | ${calculateScores(points).total} Cml Score${cumulativeType === 'bars' ? ' | Bars' : cumulativeType === 'line' ? ' | Line' : ''}`, 
         margins, 
         margins + 0.3
       );
@@ -1671,7 +1671,7 @@ const isNearGridLine = rotated
           onClick={() => setRotated(false)}
           disabled={!rotated}
         >
-          Rotate Left
+          Turn Left
         </Button>
 
         <Button 
@@ -1681,7 +1681,7 @@ const isNearGridLine = rotated
           onClick={() => setRotated(true)}
           disabled={rotated}
         >
-          Rotate Right
+          Turn Right
         </Button>
       </>
     )}
@@ -1833,6 +1833,27 @@ const isNearGridLine = rotated
       `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
       )}
       </span>
+
+      {editMode && (
+        <Button 
+          size="sm"
+          variant="link"
+          onClick={() => {
+            setPoints([]);
+            setDigitalPoints(new Set());
+            setBluePoints(new Set());
+          }}
+          style={{ 
+            color: '#ef4444',
+            padding: 0,          // Remove all padding
+            margin: 0,           // Remove all margin
+            height: 'auto',      // Remove fixed height
+            minHeight: 'unset'   // Remove minimum height
+          }}
+        >
+          Delete All
+        </Button>
+      )}
 
     </div>
 
