@@ -1631,142 +1631,105 @@ const isNearGridLine = rotated
         .r{writing-mode:vertical-rl;transform:rotate(180deg)}
     `}</style>
 
-    {/* Outer white container */}
-    <div style={{
-      background: 'white',
-      borderBottom: '1px solid #e2e8f0',
-      display: 'flex',
-      justifyContent: 'center',
-      width: '100%',
-      touchAction: 'none',  // Add this
-      userSelect: 'none',   // Add this
-    }}>
-
-    {/* Main content container */}
-    <div style={{
-      padding: '.667rem',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-    }}>
-
+{/* Outer white container */}
+<div style={{
+  background: 'white',
+  borderBottom: '1px solid #e2e8f0',
+  display: 'flex',
+  justifyContent: 'center',
+  width: '100%',
+  touchAction: 'none',
+  userSelect: 'none',
+}}>
+  {/* Main content container */}
+  <div style={{
+    padding: '.667rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  }}>
     {/* Single flex container for all items */}
     <div style={{
       display: 'flex',
       alignItems: 'center',
       gap: '0.75rem',
       flexWrap: 'wrap',
-      justifyContent: isMobile ? 'center' : `start`,
+      justifyContent: isMobile ? 'center' : 'start',
       width: '100%'
     }}>
+      {/* Rotation buttons */}
+      {!isMobile && (
+        <>
+          <Button 
+            size="sm"
+            variant="outline"
+            style={{ width: '7rem' }}
+            onClick={() => setRotated(false)}
+            disabled={!rotated}
+          >
+            Turn Left
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            style={{ width: '7rem' }}
+            onClick={() => setRotated(true)}
+            disabled={rotated}
+          >
+            Turn Right
+          </Button>
+        </>
+      )}
 
-    {/* Rotation buttons */}
-    {!isMobile && (
-      <>
-        <Button 
-          size="sm"
-          variant="outline"
-          style={{ width: '6.8rem' }}
-          onClick={() => setRotated(false)}
-          disabled={!rotated}
-        >
-          Turn Left
-        </Button>
+      {/* Document name input */}
+      <Input 
+        type="text"
+        value={filename}
+        onChange={(e) => setFilename(e.target.value)}
+        placeholder="Drawing Name"
+        style={{
+          minWidth: '200px',
+          maxWidth: '14rem',
+          width: '100%',
+          textAlign: 'center',
+          fontSize: '1rem',
+          fontWeight: 600,
+          height: '2.25rem',
+          padding: '0.25rem'
+        }}
+      />
 
-        <Button 
-          size="sm" 
-          variant="outline" 
-          style={{ width: '6.8rem' }}
-          onClick={() => setRotated(true)}
-          disabled={rotated}
-        >
-          Turn Right
-        </Button>
-      </>
-    )}
-
-    {/* Document name input */}
-    <Input 
-      type="text"
-      value={filename}
-      onChange={(e) => {
-        // Only update the base drawing name
-        setFilename(e.target.value);
-      }}
-      placeholder="Drawing Name"
-      style={{
-        minWidth: '200px',
-        maxWidth: '14rem',
-        width: '100%',
-        textAlign: 'center',
-        fontSize: '1rem',
-        fontWeight: 600,
-        height: '2.25rem',
-        padding: '0.25rem'
-      }}
-    />
-
-    {/* Action buttons */}
+      {/* Export button */}
       <Button 
-      size="sm" 
-      variant="outline" 
-      onClick={() => {
-        console.log('Export button clicked');
-        handlePdfExport();
-      }}
-      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+        size="sm" 
+        variant="outline" 
+        onClick={() => handlePdfExport()}
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.5rem',
+          height: '2.25rem'
+        }}
       >
-      <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
+        <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
       </Button>
 
-      {false && (  // Add this line to hide the buttons
-        <>
-
-          <Button 
-            onClick={() => {
-              if (points.length < 1) return;
-              const lastPoint = points[points.length - 1];
-              setPoints(s => s.slice(0, -1));
-              setUndoStack(s => [...s, lastPoint]);
-            }}
-            disabled={points.length === 0}
-            size="sm" 
-            variant="outline" 
-            style={{ width: '6rem' }}
-            >
-          Undo Dot
-          </Button>
-
-          <Button 
-            onClick={() => {
-              if (undoStack.length < 1) return;
-              const lastPoint = undoStack[undoStack.length - 1];
-              setUndoStack(s => s.slice(0, -1));
-              setPoints(s => [...s, lastPoint]);
-            }}
-            disabled={undoStack.length === 0}
-            size="sm" 
-            variant="outline" 
-            style={{ width: '6rem' }}
-            >
-          Redo Dot
-          </Button>
-
-        </>
-      )} {/* Close the condition here */}
-
       {/* Delete Mode Toggle */}
-      <label className="toggle-switch">
-        <input
-          type="checkbox"
-          checked={editMode}
-          onChange={handleEditModeToggle}
-        />
-        <span className="toggle-slider"></span>
-      </label>
-      <span style={{ fontSize: '14px' }}>Delete Points</span>
-      {/* Points Control */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
+        <label className="toggle-switch">
+          <input
+            type="checkbox"
+            checked={editMode}
+            onChange={handleEditModeToggle}
+          />
+          <span className="toggle-slider"></span>
+        </label>
+        <span style={{ fontSize: '14px', lineHeight: '1' }}>Delete Points</span>
+      </div>
+
+      {/* Show Points Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
         <label className="toggle-switch">
           <input
             type="checkbox"
@@ -1775,31 +1738,31 @@ const isNearGridLine = rotated
           />
           <span className="toggle-slider"></span>
         </label>
-        <span style={{ fontSize: '14px' }}>Show Points</span>
-      
+        <span style={{ fontSize: '14px', lineHeight: '1' }}>Show Points</span>
+      </div>
 
-      {/* Cumulative Control */}
-      <label style={{fontSize: '14px'}}>
-        Cumulative:
+      {/* Cumulative dropdown */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
+        <span style={{ fontSize: '14px', lineHeight: '1' }}>Cumulative:</span>
         <select 
           value={cumulativeType} 
           onChange={(e) => setCumulativeType(e.target.value)}
           style={{
-            marginLeft: '0.5rem',
             padding: '0.25rem',
             borderRadius: '0.25rem',
-            border: '1px solid #e2e8f0'
+            border: '1px solid #e2e8f0',
+            height: '1.75rem'
           }}
         >
           <option value="none">None</option>
           <option value="bars">Bars</option>
           <option value="line">Line</option>
         </select>
-      </label>
+      </div>
 
-      {/* Cutout Dropdown */}
-      <label style={{fontSize: '14px'}}>
-        Color Cutout:
+      {/* Color Cutout dropdown */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
+        <span style={{ fontSize: '14px', lineHeight: '1' }}>Color Cutout:</span>
         <select 
           value={cutoutType}
           onChange={(e) => {
@@ -1807,13 +1770,12 @@ const isNearGridLine = rotated
             setCutoutType(value);
             setShowDigitalCutout(value === 'yellow');
             setShowAnalyticsCutout(value === 'blue');
-            // Add logic for the 'both' case
           }}
           style={{
-            marginLeft: '0.5rem',
             padding: '0.25rem',
             borderRadius: '0.25rem',
-            border: '1px solid #e2e8f0'
+            border: '1px solid #e2e8f0',
+            height: '1.75rem'
           }}
         >
           <option value="none">None</option>
@@ -1821,42 +1783,46 @@ const isNearGridLine = rotated
           <option value="blue">Blue</option>
           <option value="both">Both</option>
         </select>
-      </label>
+      </div>
 
-              
-              
       {/* Dot count */}
-      <span style={{ marginLeft: '0.5rem', fontSize: '14px', paddingTop: '' }}>
-      {rotated ? (
-      `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
-        ) : (
-      `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
-      )}
-      </span>
+      <div style={{ display: 'flex', alignItems: 'center', height: '2.25rem' }}>
+        <span style={{ fontSize: '14px', lineHeight: '1' }}>
+          {rotated ? (
+            `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+          ) : (
+            `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+          )}
+        </span>
+      </div>
 
+      {/* Delete All button */}
       {editMode && (
-        <Button 
-          size="sm"
-          variant="link"
-          onClick={() => {
-            setPoints([]);
-            setDigitalPoints(new Set());
-            setBluePoints(new Set());
-          }}
-          style={{ 
-            color: '#ef4444',
-            padding: 0,          // Remove all padding
-            margin: 0,           // Remove all margin
-            height: 'auto',      // Remove fixed height
-            minHeight: 'unset'   // Remove minimum height
-          }}
-        >
-          Delete All
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', height: '2.25rem' }}>
+          <Button 
+            size="sm"
+            variant="link"
+            onClick={() => {
+              setPoints([]);
+              setDigitalPoints(new Set());
+              setBluePoints(new Set());
+            }}
+            style={{ 
+              color: '#ef4444',
+              padding: 0,
+              margin: 0,
+              height: 'auto',
+              minHeight: 'unset',
+              lineHeight: '1',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            Delete All
+          </Button>
+        </div>
       )}
-
     </div>
-
   </div>
 </div>
               
