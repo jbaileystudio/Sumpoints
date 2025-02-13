@@ -1604,7 +1604,6 @@ const isNearGridLine = rotated
       height: '100dvh',
       display: 'flex',
       flexDirection: 'column',
-      // position: 'fixed',
       position: 'fixed',  // Add this
       overflowY: 'hidden',  // Add this
       WebkitOverflowScrolling: 'touch',  // Add this
@@ -1877,36 +1876,37 @@ const isNearGridLine = rotated
         'calc(100dvh - 80px)'  // Desktop: just account for header
     }}
   >
-  <div 
-  ref={containerRef}
-  style={{
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    minHeight: '100%',
-    display: 'flex',
-    height: `${(points.length + ghostPoints.length + 4) * G}px`
+    <div 
+      ref={containerRef}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        minHeight: '100%',
+        display: 'flex',
+        height: `${(points.length + ghostPoints.length + 4) * G}px`
 
-  }}
-  >
-  <div style={{
-    position: 'relative',
-    background: 'white',
-    borderRight: '1px solid #e2e8f0',
-    flexShrink: 0,
-    width: isMobile ? '100%' : `calc(100% - ${H})`  // Full width on mobile
-  }}>
-  <div style={{
-    position: 'absolute',
-    top: `${getNextX()}px`,
-    left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 70% otherwise on vertical
-    transform: 'translate(-50%,-50%) rotate(90deg)',
-    width: '2.5rem',
-    height: '5rem', // Vertical Plus Button Width
-    border: '1px solid #e2e8f0',
-    borderRadius: '0.375rem'
-  }}>
+      }}
+    >
+      <div style={{
+        position: 'relative',
+        background: 'white',
+        borderRight: '1px solid #e2e8f0',
+        flexShrink: 0,
+        width: isMobile ? '100%' : `calc(100% - ${H})`  // Full width on mobile
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: `${getNextX()}px`,
+          left: isMobile ? '50%' : '60%',  // Use 50% on mobile, 60% otherwise on vertical
+          transform: 'translate(-50%,-50%) rotate(90deg)',
+          width: '2.5rem',
+          height: '5rem', // Vertical Plus Button Width
+          border: '1px solid #e2e8f0',
+          borderRadius: '.375rem'
+        }}>
+
   <Button  
   size="sm"
   variant="ghost"
@@ -1930,7 +1930,7 @@ const isNearGridLine = rotated
        <div
        style={{
          position: 'absolute',
-         left: rotated ? '50%' : `${point.x - G/2}px`,
+         left: rotated ? '60%' : `${point.x - G/2}px`,
          top: rotated ? `${point.x - G/2}px` : '50%',
          transform: 'translate(-50%, -50%)',
          width: rotated ? '100%' : '40px',
@@ -2007,7 +2007,7 @@ const isNearGridLine = rotated
        }}
        style={{
          position: 'absolute',
-         left: isMobile ? '50%' : '70%',  // Use 50% on mobile, 60% otherwise on vertical
+         left: isMobile ? '50%' : '60%',  // Use 50% on mobile, 60% otherwise on vertical
          top: `${point.x}px`,
          transform: 'translate(-50%,-50%)',
          opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
@@ -2027,13 +2027,14 @@ const isNearGridLine = rotated
          display: 'flex',
          alignItems: 'center',
          flexDirection: 'row',
-         gap: '0.5rem'
+         gap: '.75rem', //Gap between all divs inside vertical descriptions section
        }}>
          {/* SECTION 1: Color Dots */}
          <div style={{
            display: 'flex',
            flexDirection: 'row',
-           gap: '0.5rem'
+           gap: '.85rem', //Gap between two colored dots vertical
+           paddingRight: '.25rem' //Padding between two colored dots and description box vertical
          }}>
            <div 
              onClick={() => {
@@ -2048,8 +2049,8 @@ const isNearGridLine = rotated
                });
              }}
              style={{
-               width: '16px',
-               height: '16px',
+               width: '24px',
+               height: '24px',
                borderRadius: '50%',
                border: '1px solid #666',
                backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
@@ -2070,8 +2071,8 @@ const isNearGridLine = rotated
                });
              }}
              style={{
-               width: '16px',
-               height: '16px',
+               width: '24px',
+               height: '24px',
                borderRadius: '50%',
                border: '1px solid #666',
                backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
@@ -2203,7 +2204,7 @@ const isNearGridLine = rotated
            }}
            style={{
              cursor: 'grab',
-             padding: '0.25rem',
+             padding: '0.25rem', //Gap between drag handle and the other divs inside vertical section
              color: '#666',
              transition: 'transform 0.2s, background-color 0.2s',
              transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
@@ -2306,8 +2307,8 @@ const isNearGridLine = rotated
           background: 'white',
           borderTop: '1px solid #e2e8f0',
           flexShrink: 0,
-          height: `calc(100% - ${H})`,
-        display: isMobile ? 'none' : 'block'  // Hide on mobile
+          height: `300px`,
+          display: isMobile ? 'none' : 'block'  // Hide on mobile
       }}>
       <div style={{
         position: 'absolute',
@@ -2525,7 +2526,7 @@ const isNearGridLine = rotated
       />
       <div style={{
         display: 'flex',
-        gap: '0.5rem'  // Space between the circles
+        gap: '0.25rem',  // Space between the circles
       }}>
         <div 
           onClick={() => {
@@ -2540,8 +2541,8 @@ const isNearGridLine = rotated
             });
           }}
           style={{
-            width: '16px',
-            height: '16px',
+            width: '24px',
+            height: '24px',
             borderRadius: '50%',
             border: '1px solid #666',
             backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent', //Yellow
@@ -2562,8 +2563,8 @@ const isNearGridLine = rotated
             });
           }}
           style={{
-            width: '16px',
-            height: '16px',
+            width: '24px',
+            height: '24px',
             borderRadius: '50%',
             border: '1px solid #666',
             backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent', //Blue
