@@ -2262,8 +2262,8 @@ const isNearGridLine = rotated
       }}
     >
     <div 
-    ref={containerRef}
-    style={{
+      ref={containerRef}
+      style={{
       position: 'absolute',
       top: 0,
       left: 0,
@@ -2274,312 +2274,318 @@ const isNearGridLine = rotated
       width: `${(points.length + ghostPoints.length + 4) * G}px`,
         minHeight: isMobile ? 'initial' : undefined  // Add this too
       }}
-      >
+    >
       <div 
-      ref={drawingRef}
-      style={{
-        position: 'relative',
-        overflow: 'hidden',
-          height: isMobile ? '100%' : H,  // Use full height on mobile
-          minHeight: isMobile ? 'initial' : undefined,  // Add this to override any min-height
-          touchAction: dragging ? 'none' : 'pan-x'  // Allow horizontal scroll unless dragging
+        ref={drawingRef}
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          height: isMobile ? '100%' : H,
+          minHeight: isMobile ? 'initial' : undefined,
+          touchAction: dragging ? 'none' : 'pan-x'
         }}
         className="drawing-area"
         onMouseMove={handleMouseMove}
         onClick={handleClick}
-        >
-        {renderSVG(false)}
-        {!hoveredId && !dragging && !isMobile && <div style={{
-          position: 'absolute',
-          pointerEvents: 'none',
-          top: `${cursor.y}%`,
-          left: 0,
-          width: '100%',
-          height: '1px',
-          backgroundImage: 'linear-gradient(to right, black 50%, transparent 50%)',
-          backgroundSize: '20px 1px',
-          backgroundRepeat: 'repeat-x',
-          animation: 'm 1s linear infinite'
-        }}/>}
-        </div>
-        <div style={{
-          position: 'relative',
-          background: 'white',
-          borderTop: '1px solid #e2e8f0',
-          flexShrink: 0,
-          height: `300px`,
-          display: isMobile ? 'none' : 'block'  // Hide on mobile
-      }}>
-      <div style={{
-        position: 'absolute',
-        left: `${getNextX()}px`,
-        top: '50%',
-        transform: 'translate(-50%,-50%) rotate(-90deg)',
-        width: '5rem', // Horizontal Plus Button Height
-        height: '2.5rem',
-        border: '1px solid #e2e8f0',
-        borderRadius: '0.375rem'
-      }}>
-      <Button  
-      size="sm"
-      variant="ghost"
-      onClick={addGhostPoint}
-      style={{ 
-        width: '100%', 
-        height: '100%', 
-        borderRadius: 0,
-        transition: 'background-color 0.2s'
-      }}
-      className="hover:bg-gray-100"
       >
-      <Plus className="w-4 h-4"/>
-      </Button>
-      </div>
-      
-  {getAllPoints().map((point, i) => (
-    <React.Fragment key={`group-${point.id}`}>
-      {/* Insert hover zone before each point (except the first one) */}
-      {i > 0 && !isMobile && (
-        <div
-          style={{
+          {renderSVG(false)}
+          {!hoveredId && !dragging && !isMobile && <div style={{
             position: 'absolute',
-            left: rotated ? '50%' : `${point.x - G/2}px`,
-            top: rotated ? `${point.x - G/2}px` : '50%',
-            transform: 'translate(-50%, -50%)',
-            width: rotated ? '100%' : '40px',
-            height: rotated ? '40px' : '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
-            transition: 'opacity 0.2s',
-            cursor: 'pointer',
-            pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
-          }}
-          onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-          onMouseLeave={() => !isMobile && setHoveredId(null)}
-          onClick={() => handleInsertAt(i)}
-          >
-          <div
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              backgroundColor: '#fff',
-              border: '2px solid #9ca3af',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
-          >
-            <Plus size={16} />
-          </div>
+            pointerEvents: 'none',
+            top: `${cursor.y}%`,
+            left: 0,
+            width: '100%',
+            height: '1px',
+            backgroundImage: 'linear-gradient(to right, black 50%, transparent 50%)',
+            backgroundSize: '20px 1px',
+            backgroundRepeat: 'repeat-x',
+            animation: 'm 1s linear infinite'
+          }}/>}
         </div>
-        )}
+          <div style={{
+            position: 'relative',
+            background: 'white',
+            borderTop: '1px solid #e2e8f0',
+            height: `calc(100% - ${H})`,  // This should take remaining space after SVG
+            display: isMobile ? 'none' : 'block'
+          }}>
+            <div style={{    // Add this new div here
+              height: '300px',
+              position: 'relative',
+              overflowY: 'auto',
+              background: 'white'
+            }}>
+              <div style={{
+                position: 'absolute',
+                left: `${getNextX()}px`,
+                top: '50%',
+                transform: 'translate(-50%,-50%) rotate(-90deg)',
+                width: '5rem', // Horizontal Plus Button Height
+                height: '2.5rem',
+                border: '1px solid #e2e8f0',
+                borderRadius: '0.375rem'
+              }}>
+                <Button  
+                size="sm"
+                variant="ghost"
+                onClick={addGhostPoint}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  borderRadius: 0,
+                  transition: 'background-color 0.2s'
+                }}
+                className="hover:bg-gray-100"
+                >
+                <Plus className="w-4 h-4"/>
+                </Button>
+              </div>
+            
+              {getAllPoints().map((point, i) => (
+                <React.Fragment key={`group-${point.id}`}>
+                  {/* Insert hover zone before each point (except the first one) */}
+                  {i > 0 && !isMobile && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: rotated ? '50%' : `${point.x - G/2}px`,
+                        top: rotated ? `${point.x - G/2}px` : '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: rotated ? '100%' : '40px',
+                        height: rotated ? '40px' : '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
+                        transition: 'opacity 0.2s',
+                        cursor: 'pointer',
+                        pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
+                      }}
+                      onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+                      onMouseLeave={() => !isMobile && setHoveredId(null)}
+                      onClick={() => handleInsertAt(i)}
+                      >
+                      <div
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          backgroundColor: '#fff',
+                          border: '2px solid #9ca3af',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}
+                      >
+                        <Plus size={16} />
+                      </div>
+                    </div>
+                    )}
 
-        <div
-          key={point.id}
-          data-description-index={i}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
-            const currentTime = Date.now();
+                    <div
+                      key={point.id}
+                      data-description-index={i}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
+                        const currentTime = Date.now();
 
-            if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
-              if (originalIndex !== null && i !== draggedOverIndex) {
-                console.log('🟨 Drag Over:', { 
-                  draggedItemId,
-                  fromIndex: originalIndex,
-                  toIndex: i,
-                });
+                        if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+                          if (originalIndex !== null && i !== draggedOverIndex) {
+                            console.log('🟨 Drag Over:', { 
+                              draggedItemId,
+                              fromIndex: originalIndex,
+                              toIndex: i,
+                            });
 
-                let previewPoints = [...originalPoints];
-                const [movedPoint] = previewPoints.splice(originalIndex, 1);
-                previewPoints.splice(i, 0, movedPoint);
+                            let previewPoints = [...originalPoints];
+                            const [movedPoint] = previewPoints.splice(originalIndex, 1);
+                            previewPoints.splice(i, 0, movedPoint);
 
-                // Update x positions and connections in preview
-                previewPoints = previewPoints.map((point, index) => ({
-                  ...point,
-                  x: (index + 1) * G,
-                  connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
-                }));
+                            // Update x positions and connections in preview
+                            previewPoints = previewPoints.map((point, index) => ({
+                              ...point,
+                              x: (index + 1) * G,
+                              connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
+                            }));
 
-                setLastUpdateTime(currentTime);
-                setDraggedOverIndex(i);
-                setPreviewPositions(previewPoints);
-              }
-            }
-          }}
+                            setLastUpdateTime(currentTime);
+                            setDraggedOverIndex(i);
+                            setPreviewPositions(previewPoints);
+                          }
+                        }
+                      }}
 
-          onDragEnter={(e) => {
-            e.preventDefault();
-            if (draggedDescriptionIndex !== i) {
-              setDraggedOverIndex(i);
-            }
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            if (draggedOverIndex === i) {
-              setDraggedOverIndex(null);
-            }
-          }}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        if (draggedDescriptionIndex !== i) {
+                          setDraggedOverIndex(i);
+                        }
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        if (draggedOverIndex === i) {
+                          setDraggedOverIndex(null);
+                        }
+                      }}
 
-          style={{
-            position: 'absolute',
-            left: `${point.x}px`,
-            top: '50%',
-            transform: 'translate(-50%,-50%)',
-            opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
-            marginBottom: '25px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.5rem',
-            background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
-            padding: '0.5rem',
-            borderRadius: '0.375rem',
-            transition: 'all 0.2s ease',
-            border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
-          }}
-        >
-        <div
-          draggable
-          onDragStart={(e) => {
-            const currentPoints = getAllPoints();
-            console.log('🟦 Drag Start:', { 
-              index: i, 
-              id: point.id,
-              text: point.text,
-              initialOrder: currentPoints.map(p => ({ id: p.id, x: p.x, text: p.text }))
-            });
+                      style={{
+                        position: 'absolute',
+                        left: `${point.x}px`,
+                        top: '50%',
+                        transform: 'translate(-50%,-50%)',
+                        opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
+                        marginBottom: '25px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
+                        padding: '0.5rem',
+                        borderRadius: '0.375rem',
+                        transition: 'all 0.2s ease',
+                        border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
+                      }}
+                    >
+                    <div
+                      draggable
+                      onDragStart={(e) => {
+                        const currentPoints = getAllPoints();
+                        console.log('🟦 Drag Start:', { 
+                          index: i, 
+                          id: point.id,
+                          text: point.text,
+                          initialOrder: currentPoints.map(p => ({ id: p.id, x: p.x, text: p.text }))
+                        });
 
-            e.dataTransfer.effectAllowed = 'move';
-            setDraggedDescriptionIndex(i);
-            setDraggedItemId(point.id);
-            setOriginalPoints([...currentPoints]);  // Store initial order
-            setOriginalIndex(i);
-            document.body.classList.add('dragging');
-          }}
-                
-          onDragEnd={() => {
-            console.log('🟥 Drag End:', {
-              fromIndex: originalIndex,
-              toIndex: draggedOverIndex,
-            });
+                        e.dataTransfer.effectAllowed = 'move';
+                        setDraggedDescriptionIndex(i);
+                        setDraggedItemId(point.id);
+                        setOriginalPoints([...currentPoints]);  // Store initial order
+                        setOriginalIndex(i);
+                        document.body.classList.add('dragging');
+                      }}
+                            
+                      onDragEnd={() => {
+                        console.log('🟥 Drag End:', {
+                          fromIndex: originalIndex,
+                          toIndex: draggedOverIndex,
+                        });
 
-            if (originalIndex !== null && draggedOverIndex !== null) {
-              handleReorder(originalIndex, draggedOverIndex);
-            }
+                        if (originalIndex !== null && draggedOverIndex !== null) {
+                          handleReorder(originalIndex, draggedOverIndex);
+                        }
 
-            setDraggedDescriptionIndex(null);
-            setDraggedOverIndex(null);
-            setDraggedItemId(null);
-            setPreviewPositions([]);
-            setLastUpdateTime(0);
-            setOriginalPoints(null);
-            setOriginalIndex(null);
-            document.body.classList.remove('dragging');
-          }}
+                        setDraggedDescriptionIndex(null);
+                        setDraggedOverIndex(null);
+                        setDraggedItemId(null);
+                        setPreviewPositions([]);
+                        setLastUpdateTime(0);
+                        setOriginalPoints(null);
+                        setOriginalIndex(null);
+                        document.body.classList.remove('dragging');
+                      }}
 
-          onTouchStart={(e) => {
-            e.stopPropagation();
-            handleTouchStart(i, e);
-          }}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          style={{
-            cursor: 'grab',
-            padding: '0.25rem',
-            color: '#666',
-            transition: 'transform 0.2s',
-            transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
-            backgroundColor: draggedDescriptionIndex === i ? '#e5e7eb' : 'transparent',
-            borderRadius: '0.25rem'
-          }}
-        >
-          <GripVertical size={16} />
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        handleTouchStart(i, e);
+                      }}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      style={{
+                        cursor: 'grab',
+                        padding: '0.25rem',
+                        color: '#666',
+                        transition: 'transform 0.2s',
+                        transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
+                        backgroundColor: draggedDescriptionIndex === i ? '#e5e7eb' : 'transparent',
+                        borderRadius: '0.25rem'
+                      }}
+                    >
+                      <GripVertical size={16} />
+                    </div>
+
+                {/* Yellow and Blue Input Circles */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
+                }}>
+                  <Input
+                    type="text"
+                    value={point.text}
+                    readOnly
+                    onClick={() => handleInputClick(point, i)}
+                    onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
+                    placeholder={`Description ${i + 1}`}
+                    className="r text-center"
+                    style={{ 
+                      height: '175px',
+                      width: '2.5rem',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '0.375rem'
+                    }}
+                  />
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.25rem',  // Space between the circles
+                  }}>
+                    <div 
+                      onClick={() => {
+                        setDigitalPoints(prev => {
+                          const next = new Set(prev);
+                          if (next.has(point.id)) {
+                            next.delete(point.id);
+                          } else {
+                            next.add(point.id);
+                          }
+                          return next;
+                        });
+                      }}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        border: '1px solid #666',
+                        backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent', //Yellow
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                    />
+                    <div 
+                      onClick={() => {
+                        setBluePoints(prev => {
+                          const next = new Set(prev);
+                          if (next.has(point.id)) {
+                            next.delete(point.id);
+                          } else {
+                            next.add(point.id);
+                          }
+                          return next;
+                        });
+                      }}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        border: '1px solid #666',
+                        backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent', //Blue
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              </React.Fragment>
+              ))}
+            </div>
+
         </div>
-
-    {/* Yellow and Blue Input Circles */}
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      flexDirection: 'column',
-      gap: '0.5rem'
-    }}>
-      <Input
-        type="text"
-        value={point.text}
-        readOnly
-        onClick={() => handleInputClick(point, i)}
-        onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
-        placeholder={`Description ${i + 1}`}
-        className="r text-center"
-        style={{ 
-          height: '175px',
-          width: '2.5rem',
-          border: '1px solid #e2e8f0',
-          borderRadius: '0.375rem'
-        }}
-      />
-      <div style={{
-        display: 'flex',
-        gap: '0.25rem',  // Space between the circles
-      }}>
-        <div 
-          onClick={() => {
-            setDigitalPoints(prev => {
-              const next = new Set(prev);
-              if (next.has(point.id)) {
-                next.delete(point.id);
-              } else {
-                next.add(point.id);
-              }
-              return next;
-            });
-          }}
-          style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            border: '1px solid #666',
-            backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent', //Yellow
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-        />
-        <div 
-          onClick={() => {
-            setBluePoints(prev => {
-              const next = new Set(prev);
-              if (next.has(point.id)) {
-                next.delete(point.id);
-              } else {
-                next.add(point.id);
-              }
-              return next;
-            });
-          }}
-          style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            border: '1px solid #666',
-            backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent', //Blue
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-        />
-      </div>
     </div>
-  </div>
-  </React.Fragment>
-  ))}
-
-  </div>
-  </div>
   </div>
   )}
 
