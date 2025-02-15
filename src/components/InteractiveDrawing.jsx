@@ -74,6 +74,32 @@ const InteractiveDrawing = () => {
     MOBILE_BREAKPOINT 
   });
 
+  const getCutoutStats = (points, digitalPoints, bluePoints, cutoutType) => {
+    if (cutoutType === 'none') return null;
+
+    const totalPoints = points.length;
+    let notCovered = 0;  // Changed from 'covered'
+
+    if (cutoutType === 'yellow') {
+      notCovered = points.filter(p => digitalPoints.has(p.id)).length;  // These points get hatching
+    } else if (cutoutType === 'blue') {
+      notCovered = points.filter(p => bluePoints.has(p.id)).length;
+    } else if (cutoutType === 'both') {
+      notCovered = points.filter(p => digitalPoints.has(p.id) && bluePoints.has(p.id)).length;
+    }
+
+    const covered = totalPoints - notCovered;  // Now these are the ones without hatching
+    const coveredPercent = Math.round((covered / totalPoints) * 100);
+    const notCoveredPercent = Math.round((notCovered / totalPoints) * 100);
+
+    return {
+      covered,
+      notCovered,
+      coveredPercent,
+      notCoveredPercent
+    };
+  };
+
   const saveToLocalStorage = () => {
   // Don't save if we're initializing
   if (points.length === 0 && filename === '') {
@@ -96,8 +122,16 @@ const InteractiveDrawing = () => {
     console.log('Points gathered:', allPoints);
 
     // Add the formatted filename here, right after getting allPoints
-    const formattedFilename = `${filename}_${allPoints.length} Events_${calculateScores(points).total} Cml Score${cumulativeType === 'bars' ? '_Bars' : cumulativeType === 'line' ? '_Line' : ''}`;
-
+    const formattedFilename = `${filename}_${allPoints.length} Events${
+  cumulativeType !== 'none' ? `_${calculateScores(points).total} Cml Score` : ''
+}${
+  cumulativeType === 'bars' ? '_Bars' : 
+  cumulativeType === 'line' ? '_Line' : ''
+}${
+  cutoutType === 'yellow' ? '_Yellow Cutout' :
+  cutoutType === 'blue' ? '_Blue Cutout' :
+  cutoutType === 'both' ? '_Green Cutout' : ''
+}`;
     // Calculate minimum width for 15 points
     const minWidth = 16 * G;  // 15 points + 1 extra space
     const totalWidth = Math.max(minWidth, (allPoints.length + 1) * G);
@@ -121,118 +155,208 @@ const InteractiveDrawing = () => {
     // Create SVG content similar to your current export
     const scores = calculateScores(allPoints);
     const svgContent = `
-      <svg 
-        width="${totalWidth * scale}px"
-        height="${600 * scale}px" 
-        viewBox="0 0 ${totalWidth} 600"
-        style="background-color: white;"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
-            ${HASH_POINTS.map((hp, i) => `
-              <line 
-                x1="-6" y1="${hp}%" 
-                x2="6" y2="${hp}%" 
-                stroke="grey"
-              />
-            `).join('')}
-            <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="grey"/>
-          </pattern>
-        </defs>
-
-        <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
-        <line x1="0" y1="50%" x2="100%" y2="50%" stroke="grey"/>
-
-        ${allPoints.map((point, i) => i > 0 ? `
+  <svg 
+    width="${totalWidth * scale}px"
+    height="${600 * scale}px" 
+    viewBox="0 0 ${totalWidth} 600"
+    style="background-color: white;"
+    preserveAspectRatio="xMidYMid meet"
+    shape-rendering="geometricPrecision"
+  >
+    <defs>
+      <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
+        ${HASH_POINTS.map((hp, i) => `
           <line 
-            x1="${allPoints[i-1].x}" 
-            y1="${allPoints[i-1].y}%" 
-            x2="${point.x}" 
-            y2="${point.y}%" 
-            stroke="black" 
-            stroke-width="2"
-          />
-        ` : '').join('')}
-
-        ${allPoints.map(point => `
-          <circle 
-            cx="${point.x}" 
-            cy="${point.y}%" 
-            r="${P}" 
-            fill="black"
+            x1="-6" y1="${hp}%" 
+            x2="6" y2="${hp}%" 
+            stroke="grey"
           />
         `).join('')}
+      </pattern>
 
-        ${cumulativeType === 'bars' ? 
-  scores.cumulative.map((score, i) => {
-    const scale = 2;  // Adjust this value to scale both visualizations
-    const barHeight = Math.abs(score * 5) * scale;
-    const y = score >= 0 ? 
-      300 - barHeight :  // 300 is center point
-      300;
-    return `
-      <rect
-        x="${(i + 1) * G - (G * 0.4)}"
-        y="${y}"
-        width="${G * 0.8}"
-        height="${barHeight}"
-        fill="#666666"
-      />
-    `;
-  }).join('')
-: cumulativeType === 'line' ?
-  (() => {
-    const scale = 2;  // Same scale factor as bars
-    const points = scores.cumulative.map((score, i) => {
-      const y = 300 - (score * 5 * scale);  // Use 300 as center point like bars
-      return {
-        x: (i + 1) * G,
-        y: y
-      };
-    });
+      <!-- Add hatching patterns -->
+      <pattern id="yellow-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
+        <path d="M0,10 l10,-10 M-2,12 l14,-14 M8,12 l4,-4" 
+          stroke="black" 
+          strokeWidth="1"
+          fill="none"
+        />
+      </pattern>
+
+      <pattern id="blue-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
+        <path d="M10,10 l-10,-10 M12,12 l-14,-14 M-2,2 l4,-4" 
+          stroke="black" 
+          strokeWidth="1"
+          fill="none"
+        />
+      </pattern>
+
+      <!-- Both hatches - crossing pattern (#) -->
+        <pattern id="both-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
+          <!-- Yellow direction (\) -->
+          <path d="M0,10 l10,-10 M-2,12 l14,-14 M8,12 l4,-4" 
+            stroke="black" 
+            strokeWidth="1"
+            fill="none"
+          />
+          <!-- Blue direction (/) -->
+          <path d="M10,10 l-10,-10 M12,12 l-14,-14 M-2,2 l4,-4" 
+            stroke="black" 
+            strokeWidth="1"
+            fill="none"
+          />
+        </pattern>
+    </defs>
+
+    <!-- Background grid elements -->
+    <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
     
-    const pathData = points.reduce((path, point, index) => {
-      if (index === 0) {
-        return `M ${point.x} ${point.y}`;
-      }
-      return `${path} L ${point.x} ${point.y}`;
-    }, '');
-    
-    return `
-      <path
-        d="${pathData}"
-        stroke="#666666"
-        stroke-width="3"
-        fill="none"
+    <!-- Vertical grid lines -->
+    <line x1="0" y1="0" x2="0" y2="100%" stroke="grey"/>
+    <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="#ADADAD"/>
+    ${Array.from({ length: Math.ceil(totalWidth / G) }, (_, i) => 
+      `<line 
+        x1="${(i + 1) * G}" 
+        y1="0" 
+        x2="${(i + 1) * G}" 
+        y2="100%" 
+        stroke="grey"
+      />`
+    ).join('')}
+
+    <!-- Center line - moved after grid elements -->
+    <line x1="0" y1="50%" x2="${totalWidth}" y2="50%" stroke="grey" stroke-width="1"/>
+
+    <!-- Add cutout patterns if selected -->
+    ${cutoutType !== 'none' ? 
+      Array.from({ length: Math.ceil(totalWidth / G) }, (_, i) => {
+        const x = (i + 1) * G;
+        const point = allPoints.find(p => p.x === x);
+        
+        if (!point) return '';
+        
+        let pattern = '';
+        if (cutoutType === 'yellow' && !digitalPoints.has(point.id)) {
+          pattern = 'url(#yellow-hatch)';
+        } else if (cutoutType === 'blue' && !bluePoints.has(point.id)) {
+          pattern = 'url(#blue-hatch)';
+        } else if (cutoutType === 'both' && !(digitalPoints.has(point.id) && bluePoints.has(point.id))) {
+          pattern = 'url(#both-hatch)';
+        }
+
+        return pattern ? `
+          <rect
+            x="${x - G/2}"
+            y="0"
+            width="${G}"
+            height="100%"
+            fill="${pattern}"
+            opacity="0.5"
+          />
+        ` : '';
+      }).join('') 
+    : ''}
+
+${showPoints ? `
+    <!-- Points and connecting lines | Including export stroke width -->
+    ${allPoints.map((point, i) => i > 0 ? `
+      <line 
+        x1="${allPoints[i-1].x}" 
+        y1="${allPoints[i-1].y}%" 
+        x2="${point.x}" 
+        y2="${point.y}%" 
+        stroke="black" 
+        stroke-width="2"
       />
-    `;
-  })()
-: ''}
+    ` : '').join('')}
+
+    ${allPoints.map(point => `
+      <circle 
+        cx="${point.x}" 
+        cy="${point.y}%" 
+        r="${P}" 
+        fill="black"
+      />
+    `).join('')}
+` : ''}
+
+
+    <!-- Add cumulative visualization if selected -->
+    ${cumulativeType === 'bars' ? 
+      scores.cumulative.map((score, i) => {
+        const scale = 2;
+        const barHeight = Math.abs(score * 5) * scale;
+        const y = score >= 0 ? 300 - barHeight : 300;
+        return `
+          <rect
+            x="${(i + 1) * G - (G * 0.4)}"
+            y="${y}"
+            width="${G * 0.8}"
+            height="${barHeight}"
+            fill="#666666"
+          />
+        `;
+      }).join('')
+    : cumulativeType === 'line' ?
+      (() => {
+        const scale = 2;
+        const points = scores.cumulative.map((score, i) => ({
+          x: (i + 1) * G,
+          y: 300 - (score * 5 * scale)
+        }));
+        
+        const pathData = points.reduce((path, point, index) => 
+          index === 0 ? `M ${point.x} ${point.y}` : `${path} L ${point.x} ${point.y}`
+        , '');
+        
+        return `
+          <path
+            d="${pathData}"
+            stroke="#666666"
+            stroke-width="3"
+            fill="none"
+          />
+        `;
+      })()
+    : ''}
   </svg>
 `;
 
     // Inside your try block
     try {
-      console.log('Creating PDF instance');
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'in',
-        format: 'letter'
-      });
+    console.log('Creating PDF instance');
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'in',
+      format: 'letter'
+    });
 
-  // Add title and count right after PDF creation
+    // Add these two lines here, before the PDF text gets set
+    const stats = getCutoutStats(points, digitalPoints, bluePoints, cutoutType);
+    const cutoutText = cutoutType !== 'none' && stats ? 
+      `${cutoutType === 'yellow' ? 'Yellow' : cutoutType === 'blue' ? 'Blue' : 'Green'} Cutout - ` +
+      `${stats.covered} Events Covered (${stats.coveredPercent}%), ` +
+      `${stats.notCovered} Events Not (${stats.notCoveredPercent}%)` 
+      : '';
+    
+      // Add title and count right after PDF creation
       pdf.setFontSize(16);
       pdf.text(filename, margins, margins);
 
-  // Add count below title
+      // Add count below title
       pdf.setFontSize(12);
       pdf.text(
-        `${allPoints.length} Events | ${calculateScores(points).total} Cml Score${cumulativeType === 'bars' ? ' | Bars' : cumulativeType === 'line' ? ' | Line' : ''}`, 
+        `${allPoints.length} Events${
+          cumulativeType !== 'none' ? ` | ${calculateScores(points).total} Cml Score` : ''
+        }${
+          cumulativeType === 'bars' ? ' | Bars' : 
+          cumulativeType === 'line' ? ' | Line' : ''
+        }${
+          cutoutType !== 'none' ? ` | ${cutoutText}` : ''
+        }`,
         margins, 
         margins + 0.3
       );
-
       const contentStart = margins + 0.5;
 
   // Add aspect ratio calculations
@@ -665,126 +789,126 @@ const isNearGridLine = rotated
       
       // In your existing handleExport function, just modify the div style in descriptionsContent:
 
-      return `
-      <div style="
-        position: absolute; 
-        left: ${(point.x * scale) - ((boxWidth/2) * (scale/0.985) * (.75/scale))}px;
-        width: ${boxWidth}px;
-        writing-mode: vertical-rl;
-        transform: rotate(180deg);
-        transform-origin: bottom center;
-        text-orientation: mixed;
-        direction: ltr;
-        white-space: pre-line;
-        max-height: 350px;
-        overflow: hidden;
-        font-size: ${fontSize}px;
-        bottom: 0;
-        height: 300px;
-        text-align: right;
-        text-indent: 0;
-        border: none; // <-- Red border
-        padding-left: 0;
-        padding-right: 0;
-        padding-bottom: ${fontSize * scale * 2}px;  
-        margin-left: 0;
-        margin-right: 0;
-        box-sizing: border-box;
-      ">
-        ${point.text || ''}
-      </div>
-      `;
-      }).join('')}
-  </div>
-    `;
-
-    const printWindow = window.open('', '', 'width=960,height=672');
-
-    const content = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>${filename}</title>
-        <style>
-          @media print {
-            @page {
-              size: landscape letter;
-              margin: 0.5in;
-            }
-
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-
-            html, body {
-              width: 11in !important;
-              height: 8.5in !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              overflow: hidden !important;
-            }
-
-            div {
-              page-break-inside: avoid;
-            }
-          }
-
-          @media screen and (max-width: 425px) {
-            @page {
-              margin: 0.5in !important;
-              size: landscape letter !important;
-            }
-          }
-        </style>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="chrome" content="noPrintingHeaderFooter">
-        <meta name="PrintCSS" content="landscape">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-      </head>
-      <body>
-<div style="
-  max-width: 11in;
-  margin: 0 auto;
-  height: 8.5in;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  align-items: center;
-  transform-origin: top center;
-  @media print {
-    transform: none !important;
-    zoom: ${scale} !important;
-  }
-">
-          <h1 style="text-align: center; margin: 0.25in 0 0.2in 0; font-family: Arial, sans-serif;">
-            ${filename}
-          </h1>
+            return `
             <div style="
-            text-align: center;
-            margin: 0 0 0.375in 0;
-            font-family: Arial, sans-serif;
-            color: #000;
-            font-size: 14px;
-          ">
-            ${allPoints.length} events
-          </div>
-          <div style="
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            transform-origin: top center;
-            margin: 0 auto;  // Add this
-          ">
-            ${svgContent}
-            ${descriptionsContent}
-          </div>
+              position: absolute; 
+              left: ${(point.x * scale) - ((boxWidth/2) * (scale/0.985) * (.75/scale))}px;
+              width: ${boxWidth}px;
+              writing-mode: vertical-rl;
+              transform: rotate(180deg);
+              transform-origin: bottom center;
+              text-orientation: mixed;
+              direction: ltr;
+              white-space: pre-line;
+              max-height: 350px;
+              overflow: hidden;
+              font-size: ${fontSize}px;
+              bottom: 0;
+              height: 300px;
+              text-align: right;
+              text-indent: 0;
+              border: none; // <-- Red border
+              padding-left: 0;
+              padding-right: 0;
+              padding-bottom: ${fontSize * scale * 2}px;  
+              margin-left: 0;
+              margin-right: 0;
+              box-sizing: border-box;
+            ">
+              ${point.text || ''}
+            </div>
+            `;
+            }).join('')}
         </div>
-      </body>
-    </html>
-    `;
+          `;
+
+          const printWindow = window.open('', '', 'width=960,height=672');
+
+          const content = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${filename}</title>
+              <style>
+                @media print {
+                  @page {
+                    size: landscape letter;
+                    margin: 0.5in;
+                  }
+
+                  * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                  }
+
+                  html, body {
+                    width: 11in !important;
+                    height: 8.5in !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: hidden !important;
+                  }
+
+                  div {
+                    page-break-inside: avoid;
+                  }
+                }
+
+                @media screen and (max-width: 425px) {
+                  @page {
+                    margin: 0.5in !important;
+                    size: landscape letter !important;
+                  }
+                }
+              </style>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+              <meta name="apple-mobile-web-app-capable" content="yes">
+              <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+              <meta name="chrome" content="noPrintingHeaderFooter">
+              <meta name="PrintCSS" content="landscape">
+              <meta name="apple-mobile-web-app-capable" content="yes">
+            </head>
+            <body>
+      <div style="
+        max-width: 11in;
+        margin: 0 auto;
+        height: 8.5in;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        align-items: center;
+        transform-origin: top center;
+        @media print {
+          transform: none !important;
+          zoom: ${scale} !important;
+        }
+      ">
+      <h1 style="text-align: center; margin: 0.25in 0 0.2in 0; font-family: Arial, sans-serif;">
+        ${filename}
+      </h1>
+        <div style="
+        text-align: center;
+        margin: 0 0 0.375in 0;
+        font-family: Arial, sans-serif;
+        color: #000;
+        font-size: 14px;
+      ">
+        ${allPoints.length} events
+      </div>
+      <div style="
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        transform-origin: top center;
+        margin: 0 auto;  // Add this
+      ">
+        ${svgContent}
+        ${descriptionsContent}
+      </div>
+    </div>
+  </body>
+</html>
+`;
 
     printWindow.document.write(content);
     printWindow.document.close();
@@ -1933,8 +2057,8 @@ const isNearGridLine = rotated
          left: rotated ? '60%' : `${point.x - G/2}px`,
          top: rotated ? `${point.x - G/2}px` : '50%',
          transform: 'translate(-50%, -50%)',
-         width: rotated ? '100%' : '40px',
-         height: rotated ? '40px' : '100%',
+         width: rotated ? '30%' : '40px',
+         height: rotated ? '40px' : '50%',
          display: 'flex',
          alignItems: 'center',
          justifyContent: 'center',
@@ -2351,8 +2475,8 @@ const isNearGridLine = rotated
                         left: rotated ? '50%' : `${point.x - G/2}px`,
                         top: rotated ? `${point.x - G/2}px` : '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: rotated ? '100%' : '40px',
-                        height: rotated ? '40px' : '100%',
+                        width: rotated ? '30%' : '40px',
+                        height: rotated ? '40px' : '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
