@@ -12,7 +12,13 @@ const T = 175; // Text width
 const H = '70%'; // Drawing height
 const P = 8;   // Point radius
 const D = 32;  // Hover area size
-const MOBILE_BREAKPOINT = 1198;  // Mobile width breakpoint in pixels
+const MOBILE_BREAKPOINT = 992;  // Mobile width breakpoint in pixels
+
+const isIPad = () => {
+  const isIpadOS = navigator.userAgent.includes('iPad');
+  const isIpadMac = navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 0;
+  return isIpadOS || isIpadMac;
+};
 
 // Generate hash points for our grid
 const HASH_COUNT = 10;
@@ -43,7 +49,6 @@ const InteractiveDrawing = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState(null);
   const [editText, setEditText] = useState('');
-  const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
   const [draggedDescriptionIndex, setDraggedDescriptionIndex] = useState(null);
   const [draggedOverIndex, setDraggedOverIndex] = useState(null);
   const [previewPositions, setPreviewPositions] = useState([]);
@@ -67,6 +72,8 @@ const InteractiveDrawing = () => {
   const [showAnalyticsCutout, setShowAnalyticsCutout] = useState(false);
   const [cutoutType, setCutoutType] = useState('none');
   const [hasTouchCapability] = useState('ontouchstart' in window);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT || isIPad());
+
 
 
 
@@ -939,6 +946,16 @@ const isNearGridLine = rotated
     });
     setDragging(true);
   };
+
+  // Update your resize listener to include iPad check:
+useEffect(() => {
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT || isIPad());
+  };
+
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
 
   useEffect(() => {
     const savedState = localStorage.getItem('drawingState');
