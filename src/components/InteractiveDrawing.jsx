@@ -12,7 +12,7 @@ const T = 175; // Text width
 const H = '70%'; // Drawing height
 const P = 8;   // Point radius
 const D = 32;  // Hover area size
-const MOBILE_BREAKPOINT = 425;  // Mobile width breakpoint in pixels
+const MOBILE_BREAKPOINT = 1198;  // Mobile width breakpoint in pixels
 
 // Generate hash points for our grid
 const HASH_COUNT = 10;
@@ -66,6 +66,8 @@ const InteractiveDrawing = () => {
   const [bluePoints, setBluePoints] = useState(new Set());
   const [showAnalyticsCutout, setShowAnalyticsCutout] = useState(false);
   const [cutoutType, setCutoutType] = useState('none');
+  const [hasTouchCapability] = useState('ontouchstart' in window);
+
 
 
   console.log('Mobile check:', { 
@@ -338,7 +340,7 @@ ${showPoints ? `
       `${stats.covered} Events Covered (${stats.coveredPercent}%), ` +
       `${stats.notCovered} Events Not (${stats.notCoveredPercent}%)` 
       : '';
-    
+
       // Add title and count right after PDF creation
       pdf.setFontSize(16);
       pdf.text(filename, margins, margins);
@@ -689,7 +691,7 @@ const isNearGridLine = rotated
   };
 
   const handleExport = () => {
-    const allPoints = getAllPoints();
+  const allPoints = getAllPoints();
   const totalWidth = (allPoints.length + 1) * G;  // Total width needed
   
   // Calculate available space (in inches converted to pixels)
@@ -924,7 +926,7 @@ const isNearGridLine = rotated
     const point = allPoints[i];
 
   // Don't prevent default on mobile to allow scrolling
-    if (!isMobile) {
+    if (!hasTouchCapability) {
       e.preventDefault();
     }
 
@@ -1098,9 +1100,15 @@ const isNearGridLine = rotated
 
       const touch = e.touches[0];
       const rect = drawingRef.current.getBoundingClientRect();
+      // Current calculation:
       const y = ((touch.clientY - rect.top) / rect.height) * 100;
 
-      setDraggedPoint(prev => ({...prev, z: y}));
+      // Need to transform based on rotation:
+      const yPos = rotated ? 
+        ((touch.clientX - rect.left) / rect.width) * 100 : // Use X coordinate when rotated
+        ((touch.clientY - rect.top) / rect.height) * 100;  // Use Y coordinate when not rotated
+
+      setDraggedPoint(prev => ({...prev, z: yPos}));
     }
   };
 
@@ -1491,7 +1499,7 @@ const isNearGridLine = rotated
           setTouchMoved(false);
 
           // Immediately initiate drag on touch start for mobile
-          if (isMobile) {
+          if (hasTouchCapability) {
             handlePointDrag(i, point.isGhost)(e);
           }
 
@@ -1951,7 +1959,7 @@ const isNearGridLine = rotated
           {rotated ? (
             `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
           ) : (
-            `${points.length} black dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+            `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
           )}
         </span>
       </div>
@@ -2031,315 +2039,318 @@ const isNearGridLine = rotated
           borderRadius: '.375rem'
         }}>
 
-  <Button  
-  size="sm"
-  variant="ghost"
-  onClick={addGhostPoint}
-  style={{ 
-    width: '100%', 
-    height: '100%', 
-    borderRadius: 0,
-    transition: 'background-color 0.2s'
-  }}
-  className="hover:bg-gray-100"
-  >
-  <Plus className="w-4 h-4"/>
-  </Button>
-  </div>
+        <Button  
+        size="sm"
+        variant="ghost"
+        onClick={addGhostPoint}
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          borderRadius: 0,
+          transition: 'background-color 0.2s'
+        }}
+        className="hover:bg-gray-100"
+        >
+        <Plus className="w-4 h-4"/>
+        </Button>
+        </div>
 
-  {getAllPoints().map((point, i) => (
-   <React.Fragment key={`group-${point.id}`}>
-     {/* Insert hover zone before each point (except the first one) */}
-     {i > 0 && !isMobile && (
-       <div
-       style={{
-         position: 'absolute',
-         left: rotated ? '60%' : `${point.x - G/2}px`,
-         top: rotated ? `${point.x - G/2}px` : '50%',
-         transform: 'translate(-50%, -50%)',
-         width: rotated ? '30%' : '40px',
-         height: rotated ? '40px' : '50%',
-         display: 'flex',
-         alignItems: 'center',
-         justifyContent: 'center',
-         opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
-         transition: 'opacity 0.2s',
-         cursor: 'pointer',
-         pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
-       }}
-       onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-       onMouseLeave={() => !isMobile && setHoveredId(null)}
-       onClick={() => handleInsertAt(i)}
-       >
-       <div
-       style={{
-         width: '24px',
-         height: '24px',
-         borderRadius: '50%',
-         backgroundColor: '#fff',
-         border: '2px solid #9ca3af',
-         display: 'flex',
-         alignItems: 'center',
-         justifyContent: 'center',
-         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-       }}
-       >
-       <Plus size={16} />
-       </div>
-       </div>
-     )}
-
-     <div
-       key={point.id}
-       data-description-index={i}
-       onDragOver={(e) => {
-         e.preventDefault();
-         e.stopPropagation();
-         const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
-         const currentTime = Date.now();
-
-         if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
-           if (originalIndex !== null && i !== draggedOverIndex) {
-             let previewPoints = [...originalPoints];
-             const [movedPoint] = previewPoints.splice(originalIndex, 1);
-             previewPoints.splice(i, 0, movedPoint);
-
-             // Update x positions and connections in preview
-             previewPoints = previewPoints.map((point, index) => ({
-               ...point,
-               x: (index + 1) * G,
-               connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
-             }));
-
-             setLastUpdateTime(currentTime);
-             setDraggedOverIndex(i);
-             setPreviewPositions(previewPoints);
-           }
-         }
-       }}
-       onDragEnter={(e) => {
-         e.preventDefault();
-         if (draggedDescriptionIndex !== i) {
-           setDraggedOverIndex(i);
-         }
-       }}
-       onDragLeave={(e) => {
-         e.preventDefault();
-         if (draggedOverIndex === i) {
-           setDraggedOverIndex(null);
-         }
-       }}
-       style={{
-         position: 'absolute',
-         left: isMobile ? '50%' : '60%',  // Use 50% on mobile, 60% otherwise on vertical
-         top: `${point.x}px`,
-         transform: 'translate(-50%,-50%)',
-         opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
-         marginBottom: '25px',
-         display: 'flex',
-         flexDirection: 'row',
-         alignItems: 'center',
-         gap: '0.5rem',
-         background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
-         padding: '0.5rem',
-         borderRadius: '0.375rem',
-         transition: 'all 0.2s ease',
-         border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
-       }}
-     >
-       <div style={{
-         display: 'flex',
-         alignItems: 'center',
-         flexDirection: 'row',
-         gap: '.75rem', //Gap between all divs inside vertical descriptions section
-       }}>
-         {/* SECTION 1: Color Dots */}
-         <div style={{
-           display: 'flex',
-           flexDirection: 'row',
-           gap: '.85rem', //Gap between two colored dots vertical
-           paddingRight: '.25rem' //Padding between two colored dots and description box vertical
-         }}>
-           <div 
-             onClick={() => {
-               setDigitalPoints(prev => {
-                 const next = new Set(prev);
-                 if (next.has(point.id)) {
-                   next.delete(point.id);
-                 } else {
-                   next.add(point.id);
-                 }
-                 return next;
-               });
+        {getAllPoints().map((point, i) => (
+         <React.Fragment key={`group-${point.id}`}>
+           {/* Insert hover zone before each point (except the first one) */}
+           {i > 0 && !isMobile && (
+             <div
+             style={{
+               position: 'absolute',
+               left: rotated ? '60%' : `${point.x - G/2}px`,
+               top: rotated ? `${point.x - G/2}px` : '50%',
+               transform: 'translate(-50%, -50%)',
+               width: rotated ? '30%' : '40px',
+               height: rotated ? '40px' : '50%',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'center',
+               opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
+               transition: 'opacity 0.2s',
+               cursor: 'pointer',
+               pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
              }}
+             onMouseEnter={() => !isMobile && setHoveredId(point.id)}
+             onMouseLeave={() => !isMobile && setHoveredId(null)}
+             onClick={() => handleInsertAt(i)}
+             >
+             <div
              style={{
                width: '24px',
                height: '24px',
                borderRadius: '50%',
-               border: '1px solid #666',
-               backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
-               cursor: 'pointer',
-               transition: 'background-color 0.2s'
+               backgroundColor: '#fff',
+               border: '2px solid #9ca3af',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'center',
+               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
              }}
-           />
-           <div 
-             onClick={() => {
-               setBluePoints(prev => {
-                 const next = new Set(prev);
-                 if (next.has(point.id)) {
-                   next.delete(point.id);
-                 } else {
-                   next.add(point.id);
-                 }
-                 return next;
-               });
-             }}
-             style={{
-               width: '24px',
-               height: '24px',
-               borderRadius: '50%',
-               border: '1px solid #666',
-               backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
-               cursor: 'pointer',
-               transition: 'background-color 0.2s'
-             }}
-           />
-         </div>
+             >
+             <Plus size={16} />
+             </div>
+             </div>
+           )}
 
-         {/* SECTION 2: Description Input */}
-         <Input
-           type="text"
-           value={point.text}
-           readOnly
-           onClick={() => handleInputClick(point, i)}
-           onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
-           placeholder={`Description ${i + 1}`}
-           style={{
-             width: '200px',
-             height: '2.5rem',
-             border: '1px solid #e2e8f0',
-             borderRadius: '0.375rem'
-           }}
-         />
-
-         {/* SECTION 3: Drag Handle */}
-         <div
-           draggable
-           onDragStart={(e) => {
-             const currentPoints = getAllPoints();
-             console.log('🟦 Drag Start:', { 
-               index: i, 
-               id: point.id,
-               text: point.text,
-               initialOrder: currentPoints.map(p => ({ id: p.id, x: p.x, text: p.text }))
-             });
-
-             e.dataTransfer.effectAllowed = 'move';
-             setDraggedDescriptionIndex(i);
-             setDraggedItemId(point.id);
-             setOriginalPoints([...currentPoints]);  // Store initial order
-             setOriginalIndex(i);
-             document.body.classList.add('dragging');
-           }}
-           onDragEnd={() => {
-             console.log('🟥 Drag End:', {
-               fromIndex: originalIndex,
-               toIndex: draggedOverIndex,
-             });
-
-             if (originalIndex !== null && draggedOverIndex !== null) {
-               handleReorder(originalIndex, draggedOverIndex);
-             }
-
-             setDraggedDescriptionIndex(null);
-             setDraggedOverIndex(null);
-             setDraggedItemId(null);
-             setPreviewPositions([]);
-             setLastUpdateTime(0);
-             setOriginalPoints(null);
-             setOriginalIndex(null);
-             document.body.classList.remove('dragging');
-           }}
-           onTouchStart={(e) => {
-             e.stopPropagation();
-             e.preventDefault();  // Add this line
-             console.log('📱 Touch Start on description:', { index: i, text: point.text });
-             // Show visual feedback immediately
-             if (isMobile) {
-               setDraggedDescriptionIndex(i);
-               setDraggedItemId(point.id);
-               setOriginalPoints([...points]);
-               setOriginalIndex(i);
-               toggleScrollLock(true);  // Prevent scrolling while dragging
-             }
-           }}
-           onTouchMove={(e) => {
-             if (!isMobile || !draggedItemId) return;
-             e.preventDefault();
-             e.stopPropagation();
-
-             const touch = e.touches[0];
-             const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
-             const descriptionElement = elements.find(el => el.getAttribute('data-description-index'));
-             
-             if (descriptionElement) {
-               const index = parseInt(descriptionElement.getAttribute('data-description-index'));
+           <div
+             key={point.id}
+             data-description-index={i}
+             onDragOver={(e) => {
+               e.preventDefault();
+               e.stopPropagation();
+               const i = parseInt(e.currentTarget.getAttribute('data-description-index'));
                const currentTime = Date.now();
-               
+
                if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
-                 console.log('📱 Mobile drag:', { 
-                   draggedItemId,
-                   fromIndex: draggedDescriptionIndex, 
-                   toIndex: index 
-                 });
-                 
-                 // Create preview
-                 const previewPoints = [...points];
-                 const [movedPoint] = previewPoints.splice(draggedDescriptionIndex, 1);
-                 previewPoints.splice(index, 0, movedPoint);
-                 
-                 setLastUpdateTime(currentTime);
-                 setDraggedOverIndex(index);
-                 setPreviewPositions(previewPoints);
+                 if (originalIndex !== null && i !== draggedOverIndex) {
+                   let previewPoints = [...originalPoints];
+                   const [movedPoint] = previewPoints.splice(originalIndex, 1);
+                   previewPoints.splice(i, 0, movedPoint);
+
+                   // Update x positions and connections in preview
+                   previewPoints = previewPoints.map((point, index) => ({
+                     ...point,
+                     x: (index + 1) * G,
+                     connectsTo: index > 0 ? previewPoints[index - 1].id : undefined
+                   }));
+
+                   setLastUpdateTime(currentTime);
+                   setDraggedOverIndex(i);
+                   setPreviewPositions(previewPoints);
+                 }
                }
-             }
-           }}
-           onTouchEnd={(e) => {
-             if (!isMobile) return;
-             
-             console.log('📱 Touch End:', {
-               fromIndex: originalIndex,
-               toIndex: draggedOverIndex
-             });
-             
-             if (originalIndex !== null && draggedOverIndex !== null) {
-               handleReorder(originalIndex, draggedOverIndex);
-             }
-             
-             // Clear all drag states
-             setDraggedDescriptionIndex(null);
-             setDraggedOverIndex(null);
-             setDraggedItemId(null);
-             setPreviewPositions([]);
-             setLastUpdateTime(0);
-             setOriginalPoints(null);
-             setOriginalIndex(null);
-             toggleScrollLock(false);
-           }}
-           style={{
-             cursor: 'grab',
-             padding: '0.25rem', //Gap between drag handle and the other divs inside vertical section
-             color: '#666',
-             transition: 'transform 0.2s, background-color 0.2s',
-             transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
-             backgroundColor: draggedDescriptionIndex === i ? '#FFF9C4' : draggedOverIndex === i ? '#f3f4f6' : 'transparent',
-             borderRadius: '0.25rem'
-           }}
-         >
-           <GripVertical size={16} />
-         </div>
-       </div>
-     </div>
+             }}
+             onDragEnter={(e) => {
+               e.preventDefault();
+               if (draggedDescriptionIndex !== i) {
+                 setDraggedOverIndex(i);
+               }
+             }}
+             onDragLeave={(e) => {
+               e.preventDefault();
+               if (draggedOverIndex === i) {
+                 setDraggedOverIndex(null);
+               }
+             }}
+             style={{
+               position: 'absolute',
+               left: isMobile ? '50%' : '60%',  // Use 50% on mobile, 60% otherwise on vertical
+               top: `${point.x}px`,
+               transform: 'translate(-50%,-50%)',
+               opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
+               marginBottom: '25px',
+               display: 'flex',
+               flexDirection: 'row',
+               alignItems: 'center',
+               gap: '0.5rem',
+               background: draggedOverIndex === i ? '#FFF9C4' : 'transparent',  // Highlight drop target
+               padding: '0.5rem',
+               borderRadius: '0.375rem',
+               transition: 'all 0.2s ease',
+               border: draggedOverIndex === i ? '2px dashed #FCD34D' : '2px solid transparent'  // Show drop zone
+             }}
+           >
+             <div style={{
+               display: 'flex',
+               alignItems: 'center',
+               flexDirection: 'row',
+               gap: '.75rem', //Gap between all divs inside vertical descriptions section
+             }}>
+               {/* SECTION 1: Color Dots */}
+               <div style={{
+                 display: 'flex',
+                 flexDirection: 'row',
+                 gap: '.85rem', //Gap between two colored dots vertical
+                 paddingRight: '.25rem' //Padding between two colored dots and description box vertical
+               }}>
+                 <div 
+                   onClick={() => {
+                     setDigitalPoints(prev => {
+                       const next = new Set(prev);
+                       if (next.has(point.id)) {
+                         next.delete(point.id);
+                       } else {
+                         next.add(point.id);
+                       }
+                       return next;
+                     });
+                   }}
+                   style={{
+                     width: '24px',
+                     height: '24px',
+                     borderRadius: '50%',
+                     border: '1px solid #666',
+                     backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
+                     cursor: 'pointer',
+                     transition: 'background-color 0.2s'
+                   }}
+                 />
+                 <div 
+                   onClick={() => {
+                     setBluePoints(prev => {
+                       const next = new Set(prev);
+                       if (next.has(point.id)) {
+                         next.delete(point.id);
+                       } else {
+                         next.add(point.id);
+                       }
+                       return next;
+                     });
+                   }}
+                   style={{
+                     width: '24px',
+                     height: '24px',
+                     borderRadius: '50%',
+                     border: '1px solid #666',
+                     backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
+                     cursor: 'pointer',
+                     transition: 'background-color 0.2s'
+                   }}
+                 />
+               </div>
+
+               {/* SECTION 2: Description Input */}
+               <Input
+                 type="text"
+                 value={point.text}
+                 readOnly
+                 onClick={() => handleInputClick(point, i)}
+                 onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
+                 placeholder={`Description ${i + 1}`}
+                 style={{
+                   width: '200px',
+                   height: '2.5rem',
+                   border: '1px solid #e2e8f0',
+                   borderRadius: '0.375rem'
+                 }}
+               />
+
+               {/* SECTION 3: Drag Handle */}
+               <div
+                 draggable
+                 onDragStart={(e) => {
+                   const currentPoints = getAllPoints();
+                   console.log('🟦 Drag Start:', { 
+                     index: i, 
+                     id: point.id,
+                     text: point.text,
+                     initialOrder: currentPoints.map(p => ({ id: p.id, x: p.x, text: p.text }))
+                   });
+
+                   e.dataTransfer.effectAllowed = 'move';
+                   setDraggedDescriptionIndex(i);
+                   setDraggedItemId(point.id);
+                   setOriginalPoints([...currentPoints]);  // Store initial order
+                   setOriginalIndex(i);
+                   document.body.classList.add('dragging');
+                 }}
+                 onDragEnd={() => {
+                   console.log('🟥 Drag End:', {
+                     fromIndex: originalIndex,
+                     toIndex: draggedOverIndex,
+                   });
+
+                   if (originalIndex !== null && draggedOverIndex !== null) {
+                     handleReorder(originalIndex, draggedOverIndex);
+                   }
+
+                   setDraggedDescriptionIndex(null);
+                   setDraggedOverIndex(null);
+                   setDraggedItemId(null);
+                   setPreviewPositions([]);
+                   setLastUpdateTime(0);
+                   setOriginalPoints(null);
+                   setOriginalIndex(null);
+                   document.body.classList.remove('dragging');
+                 }}
+                 onTouchStart={(e) => {
+                   e.stopPropagation();
+                   e.preventDefault();  // Add this line
+                   console.log('📱 Touch Start on description:', { index: i, text: point.text });
+                   // Show visual feedback immediately
+                   if (hasTouchCapability) {
+                     setDraggedDescriptionIndex(i);
+                     setDraggedItemId(point.id);
+                     setOriginalPoints([...points]);
+                     setOriginalIndex(i);
+                     toggleScrollLock(true);  // Prevent scrolling while dragging
+                   }
+                 }}
+                 onTouchMove={(e) => {
+                   if (!hasTouchCapability || !draggedItemId) return;
+                   e.preventDefault();
+                   e.stopPropagation();
+
+                   const touch = e.touches[0];
+                   const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+                   const descriptionElement = elements.find(el => el.getAttribute('data-description-index'));
+                   
+                   if (descriptionElement) {
+                     const index = parseInt(descriptionElement.getAttribute('data-description-index'));
+                     const currentTime = Date.now();
+                     
+                     if (currentTime - lastUpdateTime > DEBOUNCE_TIME) {
+                       console.log('📱 Mobile drag:', { 
+                         draggedItemId,
+                         fromIndex: draggedDescriptionIndex, 
+                         toIndex: index 
+                       });
+                       
+                       // Create preview
+                       const previewPoints = [...points];
+                       const [movedPoint] = previewPoints.splice(draggedDescriptionIndex, 1);
+                       previewPoints.splice(index, 0, movedPoint);
+                       
+                       setLastUpdateTime(currentTime);
+                       setDraggedOverIndex(index);
+                       setPreviewPositions(previewPoints);
+                     }
+                   }
+                 }}
+                 onTouchEnd={(e) => {
+                   if (!hasTouchCapability) return;
+                   
+                   console.log('📱 Touch End:', {
+                     fromIndex: originalIndex,
+                     toIndex: draggedOverIndex
+                   });
+                   
+                   if (originalIndex !== null && draggedOverIndex !== null) {
+                     handleReorder(originalIndex, draggedOverIndex);
+                   }
+                   
+                   // Clear all drag states
+                   setDraggedDescriptionIndex(null);
+                   setDraggedOverIndex(null);
+                   setDraggedItemId(null);
+                   setPreviewPositions([]);
+                   setLastUpdateTime(0);
+                   setOriginalPoints(null);
+                   setOriginalIndex(null);
+                   toggleScrollLock(false);
+                 }}
+                 style={{
+                   cursor: 'grab',
+                   padding: '0.25rem', //Gap between drag handle and the other divs inside vertical section
+                   color: '#666',
+                   transition: 'transform 0.2s, background-color 0.2s',
+                   transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
+                   backgroundColor: draggedDescriptionIndex === i ? '#FFF9C4' : draggedOverIndex === i ? '#f3f4f6' : 'transparent',
+                   borderRadius: '0.25rem',
+                   touchAction: 'none',        // Prevent default touch actions like scrolling
+    overscrollBehavior: 'none', // Prevent bounce/scroll chaining
+    WebkitOverflowScrolling: 'touch' // Better touch scrolling control
+                 }}
+               >
+                 <GripVertical size={16} />
+               </div>
+            </div>
+        </div>
    </React.Fragment>
   ))}
   </div>
@@ -2625,7 +2636,8 @@ const isNearGridLine = rotated
                         transition: 'transform 0.2s',
                         transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
                         backgroundColor: draggedDescriptionIndex === i ? '#e5e7eb' : 'transparent',
-                        borderRadius: '0.25rem'
+                        borderRadius: '0.25rem',
+
                       }}
                     >
                       <GripVertical size={16} />
