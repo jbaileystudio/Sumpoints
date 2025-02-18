@@ -44,7 +44,8 @@ const InteractiveDrawing = () => {
   const [rotated, setRotated] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [draggedPoint, setDraggedPoint] = useState(null);
-  const [hoveredId, setHoveredId] = useState(null);
+  const [hoveredPointId, setHoveredPointId] = useState(null);
+  const [hoveredInsertId, setHoveredInsertId] = useState(null);
   const [justDropped, setJustDropped] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState(null);
@@ -505,7 +506,8 @@ pdf.save(`${formattedFilename}.pdf`);
   // Add this with your other functions near the top of your component
   const handleEditModeToggle = () => {
     setEditMode(!editMode);
-    setHoveredId(null);  // Clear hoveredId when toggling edit mode
+    setHoveredPointId(null);  // Clear both hover states
+    setHoveredInsertId(null);
   };
 
   // Add this helper function at the top level of your component
@@ -637,17 +639,19 @@ const handleClick = e => {
   console.log('Click event:', {
     editMode,
     dragging,
-    hoveredId,
+    hoveredPointId,  // Update this
+    hoveredInsertId, // Add this
     justDropped,
     target: e.target.closest('.drawing-area')
   });
 
-  if (!drawingRef.current || dragging || hoveredId || justDropped || 
+  if (!drawingRef.current || dragging || hoveredPointId || hoveredInsertId || justDropped || 
     !e.target.closest('.drawing-area')) {
     console.log('Click blocked by:', {
       noDrawingRef: !drawingRef.current,
       dragging,
-      hoveredId,
+      hoveredPointId,  // Update this
+      hoveredInsertId, // Add this
       justDropped,
       noDrawingArea: !e.target.closest('.drawing-area')
     });
@@ -1290,7 +1294,7 @@ useEffect(() => {
     >
     ☹️
     </text>
-    {!dragging && !hoveredId && isNearNextLine && !isMobile && (
+    {!dragging && !hoveredPointId && !hoveredInsertId && isNearNextLine && !isMobile && (
       <circle
       cx={previewPos.x}
       cy={previewPos.y}
@@ -1475,13 +1479,13 @@ useEffect(() => {
   {/* Points */}
     {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
       const pos = getPos(point, i);
-      const isHovered = hoveredId === point.id;
+      const isHovered = hoveredPointId === point.id;  // Change this to use hoveredPointId
       const isBeingDragged = point.id === draggedItemId;
     // Only enlarge the specific point being touched
       const shouldEnlarge = (isMobile ? 
         (point.id === touchedPointId || tappedPoint?.point.id === point.id) : 
         (isHovered || isBeingDragged || point.id === touchedPointId || selectedPoint?.point.id === point.id)
-        );        
+      );        
       console.log('Enlarge conditions:', {
         isHovered,
         isBeingDragged,
@@ -1498,8 +1502,8 @@ useEffect(() => {
           cursor: editMode ? 'pointer' : dragging ? 'grabbing' : 'grab',
           transition: previewPositions.length > 0 ? 'transform 0.2s ease' : 'none'
         }}
-        onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-        onMouseLeave={() => !isMobile && setHoveredId(null)}
+        onMouseEnter={() => !isMobile && setHoveredPointId(point.id)}
+onMouseLeave={() => !isMobile && setHoveredPointId(null)}
         onMouseDown={editMode ? undefined : handlePointDrag(i, point.isGhost)}
         onDoubleClick={editMode ? () => {
           const newPoints = points.filter((_, index) => index !== i);
@@ -2019,7 +2023,7 @@ useEffect(() => {
       flex: 1,
       overflowY: 'auto',
       background: '#f9fafb',
-      cursor: dragging ? 'ew-resize' : hoveredId ? 'ew-resize' : 'crosshair',
+      cursor: dragging ? 'ew-resize' : (hoveredPointId || hoveredInsertId) ? 'ew-resize' : 'crosshair',
       height: isMobile ? 
         'calc(100dvh - (env(safe-area-inset-bottom, 1rem) + 4rem))' : // Mobile: account for header and tray
         'calc(100dvh - 80px)'  // Desktop: just account for header
@@ -2087,13 +2091,13 @@ useEffect(() => {
                display: 'flex',
                alignItems: 'center',
                justifyContent: 'center',
-               opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
+               opacity: hoveredInsertId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
                transition: 'opacity 0.2s',
                cursor: 'pointer',
                pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
              }}
-             onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-             onMouseLeave={() => !isMobile && setHoveredId(null)}
+             onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
+onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
              onClick={() => handleInsertAt(i)}
              >
              <div
@@ -2384,7 +2388,7 @@ useEffect(() => {
     onClick={handleClick}
     >
     {renderSVG(true)}
-    {!hoveredId && !dragging && !isMobile && <div style={{
+    {!hoveredPointId && !hoveredInsertId && !isMobile && <div style={{
       position: 'absolute',
       pointerEvents: 'none',
       left: `${cursor.x}%`,
@@ -2407,7 +2411,7 @@ useEffect(() => {
       ...(isMobile ? {} : { flex: 1 }),  // Only apply flex on desktop, omit it entirely for mobile
       overflowX: 'auto',
       background: '#f9fafb',
-      cursor: dragging ? 'ns-resize' : hoveredId ? 'ns-resize' : 'crosshair',
+      cursor: dragging ? 'ns-resize' : (hoveredPointId || hoveredInsertId) ? 'ns-resize' : 'crosshair',
       height: isMobile ? 
         'calc(100dvh - (env(safe-area-inset-bottom, 1rem) + 4rem))' : // Mobile: account for header and tray
         'calc(100dvh - 80px)'  // Desktop: just account for header
@@ -2441,7 +2445,7 @@ useEffect(() => {
         onClick={handleClick}
       >
           {renderSVG(false)}
-          {!hoveredId && !dragging && !isMobile && <div style={{
+          {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && <div style={{
             position: 'absolute',
             pointerEvents: 'none',
             top: `${cursor.y}%`,
@@ -2508,13 +2512,13 @@ useEffect(() => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        opacity: hoveredId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
+                        opacity: hoveredInsertId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
                         transition: 'opacity 0.2s',
                         cursor: 'pointer',
                         pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
                       }}
-                      onMouseEnter={() => !isMobile && setHoveredId(point.id)}
-                      onMouseLeave={() => !isMobile && setHoveredId(null)}
+                      onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
+onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
                       onClick={() => handleInsertAt(i)}
                       >
                       <div
