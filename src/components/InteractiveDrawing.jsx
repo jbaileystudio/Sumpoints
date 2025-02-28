@@ -12,7 +12,7 @@ const T = 175; // Text width
 const H = '70%'; // Drawing height
 const P = 8;   // Point radius
 const D = 32;  // Hover area size
-const MOBILE_BREAKPOINT = 992;  // Mobile width breakpoint in pixels
+const MOBILE_BREAKPOINT = 1375;  // Mobile breakpoint in pixels
 
 const isIPad = () => {
   const isIpadOS = navigator.userAgent.includes('iPad');
@@ -1503,7 +1503,7 @@ useEffect(() => {
           transition: previewPositions.length > 0 ? 'transform 0.2s ease' : 'none'
         }}
         onMouseEnter={() => !isMobile && setHoveredPointId(point.id)}
-onMouseLeave={() => !isMobile && setHoveredPointId(null)}
+        onMouseLeave={() => !isMobile && setHoveredPointId(null)}
         onMouseDown={editMode ? undefined : handlePointDrag(i, point.isGhost)}
         onDoubleClick={editMode ? () => {
           const newPoints = points.filter((_, index) => index !== i);
