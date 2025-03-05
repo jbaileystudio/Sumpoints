@@ -4,6 +4,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { GripVertical } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import ReactDOM from 'react-dom';
+
 
 
 // Constants for our grid and layout
@@ -33,9 +35,601 @@ const findClosestPoint = y => {
     );
 };
 
+// Mobile Flow Pills Component
+// Simplified debug-focused version of MobileFlowPills
+// Modified MobileFlowPills with proper z-index handling
+// Modified MobileFlowPills with left-positioned Add button
+const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow }) => {
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState("");
+  
+  // Add this useEffect to handle outside clicks for the mobile dropup menus
+  useEffect(() => {
+    // Only add the listener if a menu is open
+    if (openMenuId !== null) {
+      const handleClickOutside = (event) => {
+        // Check if the click was on a menu button
+        const isMenuButton = event.target.closest('[data-menu-button]');
+        // Check if the click was inside the portal menu
+        const isInsideMenu = event.target.closest('.dropup-menu-content');
+        
+        // If the click was neither on a menu button nor inside a menu, close all menus
+        if (!isMenuButton && !isInsideMenu) {
+          setOpenMenuId(null);
+        }
+      };
+      
+      // Add listener with a slight delay to prevent immediate closing
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+      }, 10);
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('touchstart', handleClickOutside);
+      };
+    }
+  }, [openMenuId]);
+
+  // Menu toggle function
+  const handleMenuClick = (e, flowId) => {
+    e.stopPropagation();
+    console.log("Menu clicked for flow:", flowId);
+    setOpenMenuId(prevId => prevId === flowId ? null : flowId);
+  };
+  
+  // Function to start editing a flow
+  const handleEditClick = (flowId, flowName) => {
+    console.log("Starting edit for flow:", flowId, "with name:", flowName);
+    setOpenMenuId(null); // Close the menu
+    setEditingId(flowId); // Set which flow is being edited
+    setEditingName(flowName); // Initialize with current name
+  };
+  
+  // Function to save edited flow name
+  const handleSaveEdit = (flowId) => {
+    console.log("Saving edit for flow:", flowId, "with new name:", editingName);
+    if (editingName.trim()) {
+      onRenameFlow(flowId, editingName.trim());
+      setEditingId(null); // Exit edit mode
+    }
+  };
+  
+  // Function to cancel editing
+  const handleCancelEdit = () => {
+    console.log("Canceling edit");
+    setEditingId(null);
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      overflowX: 'auto',
+      padding: '0.5rem',
+      gap: '1rem',
+      borderBottom: '1px solid #e2e8f0'
+    }}>
+      {/* Add Flow Button - Now first in the list */}
+      <button
+        style={{
+          padding: '0.5rem 1rem',
+          borderRadius: '9999px',
+          border: '1px solid #e2e8f0',
+          backgroundColor: 'white',
+          color: '#1f2937',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: '44px',
+          height: '38px',
+          flexShrink: 0 // Prevent shrinking
+        }}
+        onClick={onAddFlow}
+      >
+        +
+      </button>
+      
+      {/* Flow Pills */}
+      {flows.map(flow => (
+        <div key={flow.id} style={{ position: 'relative' }}>
+          {editingId === flow.id ? (
+            // EDIT MODE - Complete replacement for the pill
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0.25rem',
+              borderRadius: '9999px',
+              border: '1px solid #3b82f6',
+              backgroundColor: 'white',
+              boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.3)',
+              height: '38px' // Consistent height
+            }}>
+              <input
+                type="text"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveEdit(flow.id);
+                  if (e.key === 'Escape') handleCancelEdit();
+                }}
+                autoFocus
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  width: '100px',
+                  padding: '0.5rem',
+                  fontSize: '14px',
+                  borderRadius: '0.25rem'
+                }}
+              />
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                <button
+                  onClick={() => handleSaveEdit(flow.id)}
+                  style={{
+                    background: '#10b981',
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '28px',
+                    height: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  style={{
+                    background: '#ef4444',
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: '28px',
+                    height: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ) : (
+            // NORMAL VIEW MODE
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: '9999px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: flow.id === activeFlowId ? '#3b82f6' : 'white',
+                overflow: 'hidden',
+                height: '38px',
+              }}
+            >
+              {/* Flow name section */}
+              <div
+                onClick={() => onSelectFlow(flow.id)}
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  color: flow.id === activeFlowId ? 'white' : '#1f2937',
+                  fontWeight: flow.id === activeFlowId ? '600' : '400',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                }}
+              >
+                {flow.name}
+              </div>
+            
+              
+              {/* Menu button */}
+              <div
+                data-menu-button={flow.id}
+                onClick={(e) => handleMenuClick(e, flow.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 0.75rem',
+                  height: '100%',
+                  backgroundColor: flow.id === activeFlowId ? 
+                    'rgba(255, 255, 255, 0.15)' : 
+                    'rgba(0, 0, 0, 0.03)',
+                  cursor: 'pointer',
+                  minWidth: '44px',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+                  stroke={flow.id === activeFlowId ? "white" : "#6b7280"} strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
+                  <circle cx="12" cy="5" r="1.5" fill="currentColor"></circle>
+                  <circle cx="12" cy="19" r="1.5" fill="currentColor"></circle>
+                </svg>
+              </div>
+            </div>
+          )}
+          
+          {/* DROPUP MENU - Using portal */}
+          {openMenuId === flow.id && (
+            <Portal>
+              <div
+                className="dropup-menu-content"  // Add this class
+                style={{
+                  position: 'absolute',
+                  backgroundColor: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '0.375rem',
+                  boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  width: '120px',
+                  pointerEvents: 'auto',
+                  zIndex: 9999
+                }}
+                ref={el => {
+                  if (el) {
+                    // Get the position of the button element
+                    const button = document.querySelector(`[data-menu-button="${flow.id}"]`);
+                    if (button) {
+                      const rect = button.getBoundingClientRect();
+                      // Position the menu above the button
+                      el.style.top = `${rect.top - el.offsetHeight - 8}px`;
+                      el.style.left = `${rect.right - el.offsetWidth}px`;
+                    }
+                  }
+                }}
+              >
+                <button
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    width: '100%',
+                    textAlign: 'left',
+                    borderBottom: '1px solid #e2e8f0',
+                    backgroundColor: 'white'
+                  }}
+                  onClick={() => {
+                    console.log("Edit button clicked for flow:", flow.id);
+                    handleEditClick(flow.id, flow.name);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  <span>Edit</span>
+                </button>
+                
+                {flows.length > 1 && (
+                  <button
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.75rem 1rem',
+                      width: '100%',
+                      textAlign: 'left',
+                      backgroundColor: 'white'
+                    }}
+                    onClick={() => {
+                      console.log("Delete button clicked for flow:", flow.id);
+                      if (confirm(`Delete flow "${flow.name}"?`)) {
+                        onDeleteFlow(flow.id);
+                      }
+                      setOpenMenuId(null);
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                    </svg>
+                    <span>Delete</span>
+                  </button>
+                )}
+              </div>
+            </Portal>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const Portal = ({ children }) => {
+  const [mounted, setMounted] = useState(false);
+  const portalRoot = useRef(null);
+
+  useEffect(() => {
+    // Create a div that will be the portal's root
+    portalRoot.current = document.createElement('div');
+    portalRoot.current.style.position = 'fixed';
+    portalRoot.current.style.zIndex = '9999';
+    portalRoot.current.style.top = '0';
+    portalRoot.current.style.left = '0';
+    portalRoot.current.style.width = '100%';
+    portalRoot.current.style.height = '100%';
+    portalRoot.current.style.pointerEvents = 'none';
+    document.body.appendChild(portalRoot.current);
+    setMounted(true);
+
+    return () => {
+      if (portalRoot.current) {
+        document.body.removeChild(portalRoot.current);
+      }
+    };
+  }, []);
+
+  if (!mounted || !portalRoot.current) {
+    return null;
+  }
+
+  // Use createPortal to render children into the portal root
+  return ReactDOM.createPortal(children, portalRoot.current);
+};
+
+// Desktop Flow Dropdown Component
+const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
+// Add this useEffect to handle outside clicks
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    
+    // Bind the event listener
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      // Unbind the event listener on clean up
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+
+  // Add new state for editing
+  const [editingFlowId, setEditingFlowId] = useState(null);
+  const [editingName, setEditingName] = useState("");
+  
+  // Function to handle the rename flow action
+  const handleRenameFlow = (flowId, newName) => {
+    console.log('Attempting to rename flow:', flowId, 'to:', newName);
+    // Call the prop function passed from parent
+    if (newName.trim()) {
+      console.log('Calling onRenameFlow with:', flowId, newName.trim());
+      onRenameFlow(flowId, newName.trim());
+      setEditingFlowId(null);
+    } else {
+      console.log('New name is empty, not renaming');
+      setEditingFlowId(null);
+    }
+  };
+  
+  // Your existing useEffect and other code...
+  
+  // Get active flow name
+  const activeFlow = flows.find(flow => flow.id === activeFlowId) || flows[0];
+  
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          padding: '0.5rem 1rem',
+          border: '1px solid #e2e8f0',
+          borderRadius: '0.375rem',
+          backgroundColor: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.875rem',
+          height: '2.25rem'
+        }}
+      >
+        <span>Flow: {activeFlow?.name}</span>
+        <span style={{ 
+          borderLeft: '1px solid #e2e8f0', 
+          height: '1rem',
+          marginLeft: '0.25rem'
+        }}></span>
+        <span style={{ 
+          transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
+          transition: 'transform 0.2s'
+        }}>▼</span>
+      </button>
+      
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 0.25rem)',
+          left: 0,
+          zIndex: 10,
+          backgroundColor: 'white',
+          border: '1px solid #e2e8f0',
+          borderRadius: '0.375rem',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          width: '200px',
+          maxHeight: '300px',
+          overflowY: 'auto'
+        }}>
+
+          {/* Add Flow Option (no changes needed) */}
+          <button
+            onClick={() => {
+              onAddFlow();
+              setIsOpen(false);
+            }}
+            style={{
+              padding: '0.5rem 1rem',
+              width: '100%',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <span style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '1.5rem',
+              height: '1.5rem',
+              borderRadius: '50%',
+              backgroundColor: '#f3f4f6'
+            }}>+</span>
+            <span>Add new flow</span>
+          </button>
+
+
+              {/* Flow items */}
+
+          {flows.map(flow => (
+            <div
+              key={flow.id}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0.5rem 1rem',
+                width: '100%',
+                backgroundColor: flow.id === activeFlowId ? '#f3f4f6' : 'white',
+                borderBottom: '1px solid #e2e8f0'
+              }}
+            >
+              {editingFlowId === flow.id ? (
+                // Edit mode
+                <input
+                  type="text"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRenameFlow(flow.id, editingName);
+                    if (e.key === 'Escape') setEditingFlowId(null);
+                  }}
+                  autoFocus
+                  style={{
+                    width: '70%',
+                    padding: '0.25rem',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '0.25rem'
+                  }}
+                />
+              ) : (
+                // View mode
+                <button
+                  onClick={() => {
+                    onSelectFlow(flow.id);
+                    setIsOpen(false);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    textAlign: 'left',
+                    width: '70%',
+                    padding: 0
+                  }}
+                >
+                  {flow.name}
+                </button>
+              )}
+              
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {/* Edit button */}
+                {editingFlowId === flow.id ? (
+                  // Save button when editing
+                  <button
+                    onClick={() => {
+                      console.log('Save button clicked'); 
+                      handleRenameFlow(flow.id, editingName);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#10b981',
+                      cursor: 'pointer',
+                      opacity: 0.7,
+                      padding: '4px'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </button>
+                ) : (
+                  // Edit button when not editing
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingFlowId(flow.id);
+                      setEditingName(flow.name);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#60a5fa',
+                      cursor: 'pointer',
+                      opacity: 0.7,
+                      padding: '4px'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                )}
+                
+                {/* Delete button */}
+                {flows.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Delete flow "${flow.name}"?`)) {
+                        onDeleteFlow(flow.id);
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      opacity: 0.7,
+                      padding: '4px'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          
+
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+
 const InteractiveDrawing = () => {
   // State management
-  const [points, setPoints] = useState([]);
+ // const [points, setPoints] = useState([]);
   const [ghostPoints, setGhostPoints] = useState([]);
   const [undoStack, setUndoStack] = useState([]);
   const [filename, setFilename] = useState('');
@@ -67,16 +661,161 @@ const InteractiveDrawing = () => {
   const [tappedPoint, setTappedPoint] = useState(null);
   const [touchStartTime, setTouchStartTime] = useState(null);
   const [touchMoved, setTouchMoved] = useState(false);
-  const [digitalPoints, setDigitalPoints] = useState(new Set());
+//  const [digitalPoints, setDigitalPoints] = useState(new Set());
   const [showDigitalCutout, setShowDigitalCutout] = useState(false);
-  const [bluePoints, setBluePoints] = useState(new Set());
+//  const [bluePoints, setBluePoints] = useState(new Set());
   const [showAnalyticsCutout, setShowAnalyticsCutout] = useState(false);
   const [cutoutType, setCutoutType] = useState('none');
   const [hasTouchCapability] = useState('ontouchstart' in window);
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT || isIPad());
+  const [flows, setFlows] = useState([
+    {
+      id: "flow-1",
+      name: "Flow 1",
+      points: [],
+      digitalPoints: new Set(),
+      bluePoints: new Set()
+    }
+  ]);
+  const [activeFlowId, setActiveFlowId] = useState("flow-1");
+
+const renameFlow = (flowId, newName) => {
+  console.log('renameFlow called with:', flowId, newName);
+  console.log('Current flows before rename:', flows);
+  
+  setFlows(currentFlows => {
+    const updatedFlows = currentFlows.map(flow => 
+      flow.id === flowId 
+        ? { ...flow, name: newName } 
+        : flow
+    );
+    console.log('Updated flows after rename:', updatedFlows);
+    return updatedFlows;
+  });
+};
+
+const deleteFlow = (flowId) => {
+  console.log('Deleting flow:', flowId);
+  console.log('Current flows:', flows);
+  
+  // Don't allow deleting the last flow
+  if (flows.length <= 1) {
+    console.log('Cannot delete the last flow');
+    return;
+}
+  
+  // If we're deleting the active flow, select another flow
+  let newActiveId = activeFlowId;
+  if (flowId === activeFlowId) {
+    // Find another flow to make active
+    const flowIndex = flows.findIndex(f => f.id === flowId);
+    const newIndex = flowIndex > 0 ? flowIndex - 1 : 1; // Go to previous or next
+    newActiveId = flows[newIndex].id;
+    console.log('New active flow will be:', newActiveId);
+  }
+  
+  // Remove the flow
+  setFlows(flows.filter(flow => flow.id !== flowId));
+  
+  // Update active flow if needed
+  if (newActiveId !== activeFlowId) {
+    setActiveFlowId(newActiveId);
+  }
+  
+  console.log('Flows after deletion:', flows.filter(flow => flow.id !== flowId));
+};
+
+  const getActiveFlow = () => {
+    return flows.find(flow => flow.id === activeFlowId) || flows[0];
+  };
+
+  const points = getActiveFlow().points;
+  const digitalPoints = getActiveFlow().digitalPoints;
+  const bluePoints = getActiveFlow().bluePoints;
+
+  // Updated addNewFlow function with proper numbering and auto-selection
+  const addNewFlow = () => {
+    // Find the highest number in existing flow names
+    const highestNumber = flows.reduce((max, flow) => {
+      // Extract the number from the flow name (assuming format "Flow X")
+      const match = flow.name.match(/Flow (\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        return num > max ? num : max;
+      }
+      return max;
+    }, 0);
+    
+    // Use the next number after the highest
+    const newFlowNumber = highestNumber + 1;
+    const newFlowId = `flow-${Date.now()}`; // Use timestamp for unique ID
+    
+    const newFlow = {
+      id: newFlowId,
+      name: `Flow ${newFlowNumber}`,
+      points: [],
+      digitalPoints: new Set(),
+      bluePoints: new Set()
+    };
+    
+    // Add the new flow to the beginning of the array (right after the + button)
+    setFlows([newFlow, ...flows]);
+    
+    // Automatically select the new flow
+    setActiveFlowId(newFlowId);
+  };
+
+  const updateActiveFlow = (updates) => {
+    setFlows(currentFlows => 
+      currentFlows.map(flow => 
+        flow.id === activeFlowId 
+          ? { ...flow, ...updates } 
+          : flow
+      )
+    );
+  };
+
+  const setActivePoints = (newPointsOrUpdater) => {
+    const activeFlow = getActiveFlow();
+    const newPoints = typeof newPointsOrUpdater === 'function'
+      ? newPointsOrUpdater(activeFlow.points)
+      : newPointsOrUpdater;
+      
+    updateActiveFlow({ points: newPoints });
+  };
+
+const setActiveDigitalPoints = (newSetOrUpdater) => {
+  const activeFlow = getActiveFlow();
+  const currentSet = activeFlow.digitalPoints;
+  
+  // Handle functional updates (like when you do setActiveDigitalPoints(prev => {...}))
+  const newSet = typeof newSetOrUpdater === 'function'
+    ? newSetOrUpdater(currentSet)
+    : newSetOrUpdater;
+    
+  updateActiveFlow({ digitalPoints: newSet });
+};
+
+const setActiveBluePoints = (newSetOrUpdater) => {
+  const activeFlow = getActiveFlow();
+  const currentSet = activeFlow.bluePoints;
+  
+  // Handle functional updates
+  const newSet = typeof newSetOrUpdater === 'function'
+    ? newSetOrUpdater(currentSet)
+    : newSetOrUpdater;
+    
+  updateActiveFlow({ bluePoints: newSet });
+};
 
 
 
+  useEffect(() => {
+    // This will trigger when flows or activeFlowId change
+    console.log("Active flow changed:", activeFlowId);
+    // You don't need to do anything here as the local variables
+    // will be re-initialized on each render
+  }, [flows, activeFlowId]);
 
   console.log('Mobile check:', { 
     isMobile, 
@@ -111,29 +850,41 @@ const InteractiveDrawing = () => {
   };
 
   const saveToLocalStorage = () => {
-  // Don't save if we're initializing
-  if (points.length === 0 && filename === '') {
-    return;
-  }
-  
-  const state = {
-    points,
-    digitalPoints: Array.from(digitalPoints),
-    bluePoints: Array.from(bluePoints),
-    filename
+    // Don't save if we're initializing
+    if (flows.length === 0 || (flows.length === 1 && flows[0].points.length === 0 && filename === '')) {
+      return;
+    }
+    
+    // Convert Sets to Arrays for serialization
+    const serializedFlows = flows.map(flow => ({
+      ...flow,
+      digitalPoints: Array.from(flow.digitalPoints),
+      bluePoints: Array.from(flow.bluePoints)
+    }));
+    
+    const state = {
+      flows: serializedFlows,
+      activeFlowId,
+      filename
+    };
+    
+    console.log('Saving state:', state);
+    localStorage.setItem('drawingState', JSON.stringify(state));
   };
-  console.log('Saving state:', state);
-  localStorage.setItem('drawingState', JSON.stringify(state));
-};
 
   const handlePdfExport = async () => {
     console.log('Starting PDF export');
-    const allPoints = getAllPoints();
+
+     // Get the active flow
+    const activeFlow = getActiveFlow();
+    const allPoints = getAllPoints(); // Active flow points for main export
+
     console.log('Points gathered:', allPoints);
+    console.log('Active flow:', activeFlow);
 
     // Add the formatted filename here, right after getting allPoints
-    const formattedFilename = `${filename}_${allPoints.length} Events${
-  cumulativeType !== 'none' ? `_${calculateScores(points).total} Cml Score` : ''
+const formattedFilename = `${filename}_${activeFlow.name}_${allPoints.length} Events${
+  cumulativeType !== 'none' ? `_${calculateScores(activeFlow.points).total} Cml Score` : ''
 }${
   cumulativeType === 'bars' ? '_Bars' : 
   cumulativeType === 'line' ? '_Line' : ''
@@ -349,24 +1100,24 @@ ${showPoints ? `
       `${stats.notCovered} Events Not (${stats.notCoveredPercent}%)` 
       : '';
 
-      // Add title and count right after PDF creation
-      pdf.setFontSize(16);
-      pdf.text(filename, margins, margins);
+// Keep the title as is
+pdf.setFontSize(16);
+pdf.text(filename, margins, margins);
 
-      // Add count below title
+      // Add title and count right after PDF creation
       pdf.setFontSize(12);
-      pdf.text(
-        `${allPoints.length} Events${
-          cumulativeType !== 'none' ? ` | ${calculateScores(points).total} Cml Score` : ''
-        }${
-          cumulativeType === 'bars' ? ' | Bars' : 
-          cumulativeType === 'line' ? ' | Line' : ''
-        }${
-          cutoutType !== 'none' ? ` | ${cutoutText}` : ''
-        }`,
-        margins, 
-        margins + 0.3
-      );
+pdf.text(
+  `${activeFlow.name} | ${allPoints.length} Events${
+    cumulativeType !== 'none' ? ` | ${calculateScores(activeFlow.points).total} Cml Score` : ''
+  }${
+    cumulativeType === 'bars' ? ' | Bars' : 
+    cumulativeType === 'line' ? ' | Line' : ''
+  }${
+    cutoutType !== 'none' ? ` | ${cutoutText}` : ''
+  }`,
+  margins, 
+  margins + 0.3
+);
       const contentStart = margins + 0.5;
 
   // Add aspect ratio calculations
@@ -545,7 +1296,7 @@ pdf.save(`${formattedFilename}.pdf`);
     newPoints.forEach((point, i) => {
       point.x = (i + 1) * G;
     });
-    setPoints(newPoints);
+    setActivePoints(newPoints);
   };
 
 
@@ -555,8 +1306,10 @@ pdf.save(`${formattedFilename}.pdf`);
   const drawingRef = useRef(null);
 
   const getAllPoints = () => {
-    return points;
+    const activeFlow = getActiveFlow();
+    return activeFlow.points;
   };
+
 
   const getNextX = () => {
     const allPoints = getAllPoints();
@@ -620,7 +1373,7 @@ const handleReorder = (from, to) => {
     connectsTo: index > 0 ? newPoints[index - 1].id : undefined
   }));
 
-  setPoints(newPoints);
+  setActivePoints(newPoints);
   setPreviewPositions([]);
 };
 
@@ -696,7 +1449,7 @@ const isNearGridLine = rotated
       containerRef.current.style.width = `${newWidth}px`;
     }
 
-    setPoints(s => [...s, {x, y, isAbove: y < 50, text: '', id: Date.now()}]);
+    setActivePoints(s => [...s, {x, y, isAbove: y < 50, text: '', id: Date.now()}]);
     setUndoStack([]);
     scrollToPoint(x);
   };
@@ -961,25 +1714,51 @@ useEffect(() => {
   return () => window.removeEventListener('resize', handleResize);
 }, []);
 
-  useEffect(() => {
-    const savedState = localStorage.getItem('drawingState');
-    console.log('Loading saved state:', savedState);
-    if (savedState) {
+useEffect(() => {
+  const savedState = localStorage.getItem('drawingState');
+  console.log('Loading saved state:', savedState);
+  
+  if (savedState) {
+    try {
       const state = JSON.parse(savedState);
       console.log('Parsed state:', state);
-      setPoints(state.points);
-      setDigitalPoints(new Set(state.digitalPoints));
-      setBluePoints(new Set(state.bluePoints));
+      
+      // Check if the saved state has the new flows structure
+      if (state.flows) {
+        // Convert arrays back to Sets for digitalPoints and bluePoints
+        const deserializedFlows = state.flows.map(flow => ({
+          ...flow,
+          digitalPoints: new Set(flow.digitalPoints || []),
+          bluePoints: new Set(flow.bluePoints || [])
+        }));
+        
+        setFlows(deserializedFlows);
+        setActiveFlowId(state.activeFlowId || deserializedFlows[0]?.id || "flow-1");
+      } else if (state.points) {
+        // Handle legacy format (before multiple flows)
+        setFlows([{
+          id: "flow-1",
+          name: "Flow 1",
+          points: state.points || [],
+          digitalPoints: new Set(state.digitalPoints || []),
+          bluePoints: new Set(state.bluePoints || [])
+        }]);
+      }
+      
       // Only set filename if it exists and isn't empty
       if (state.filename && state.filename !== '') {
         setFilename(state.filename);
       }
+    } catch (error) {
+      console.error('Error parsing saved state:', error);
     }
-  }, []);
+  }
+}, []);
 
-  useEffect(() => {
-    saveToLocalStorage();
-  }, [points, digitalPoints, bluePoints, filename]);
+// Update the useEffect for saving to localStorage
+useEffect(() => {
+  saveToLocalStorage();
+}, [flows, activeFlowId, filename]);
 
   useEffect(() => {
     if (drawingRef.current) {
@@ -1024,11 +1803,11 @@ useEffect(() => {
 
       if (point) {  // Add null check here
         if (point.isGhost) {
-          setPoints(s => [...s, {...point, y: finalY, isAbove: finalY < 50, isGhost: false, id: point.id}]);
+          setActivePoints(s => [...s, {...point, y: finalY, isAbove: finalY < 50, isGhost: false, id: point.id}]);
           setGhostPoints(s => s.filter(p => p.id !== point.id));
           setUndoStack([]);
         } else {
-          setPoints(s => s.map(p => 
+          setActivePoints(s => s.map(p => 
             p.id === point.id ? {...p, y: finalY, isAbove: finalY < 50} : p
             ));
         }
@@ -1061,7 +1840,7 @@ useEffect(() => {
     const x = getNextX();
 
   // Create a real point (like mobile does)
-    setPoints(s => [...s, {
+    setActivePoints(s => [...s, {
       x,
       y: 50,
       text: '',
@@ -1078,7 +1857,7 @@ useEffect(() => {
         p.id === point.id ? {...p, text} : p
         ));
     } else {
-      setPoints(s => s.map(p => 
+      setActivePoints(s => s.map(p => 
         p.id === point.id ? {...p, text} : p
         ));
     }
@@ -1510,7 +2289,7 @@ useEffect(() => {
           newPoints.forEach((point, index) => {
             point.x = (index + 1) * G;
           });
-          setPoints(newPoints);
+          setActivePoints(newPoints);
         } : undefined}
         onTouchStart={(e) => {
           if (editMode) return;
@@ -1575,11 +2354,11 @@ useEffect(() => {
             const finalY = findClosestPoint(draggedPoint.z);
             
             if (point.isGhost) {
-              setPoints(s => [...s, {...point, y: finalY, isAbove: finalY < 50, isGhost: false, id: point.id}]);
+              setActivePoints(s => [...s, {...point, y: finalY, isAbove: finalY < 50, isGhost: false, id: point.id}]);
               setGhostPoints(s => s.filter(p => p.id !== point.id));
               setUndoStack([]);
             } else {
-              setPoints(s => s.map(p => 
+              setActivePoints(s => s.map(p => 
                 p.id === point.id ? {...p, y: finalY, isAbove: finalY < 50} : p
                 ));
             }
@@ -1624,7 +2403,7 @@ useEffect(() => {
               newPoints.forEach((point, index) => {
                 point.x = (index + 1) * G;
               });
-              setPoints(newPoints);
+              setActivePoints(newPoints);
               }}
               >
               <circle r="8" fill="white" stroke="#ef4444" strokeWidth="1" />
@@ -1846,6 +2625,19 @@ useEffect(() => {
       justifyContent: isMobile ? 'center' : 'start',
       width: '100%'
     }}>
+
+    {/* Add the flow dropdown here for desktop view */}
+{!isMobile && (
+  <DesktopFlowDropdown
+    flows={flows}
+    activeFlowId={activeFlowId}
+    onSelectFlow={setActiveFlowId}
+    onAddFlow={addNewFlow}
+    onDeleteFlow={deleteFlow}
+    onRenameFlow={renameFlow}
+  />
+)}
+
       {/* Rotation buttons */}
       {!isMobile && (
         <>
@@ -1992,9 +2784,9 @@ useEffect(() => {
             size="sm"
             variant="link"
             onClick={() => {
-              setPoints([]);
-              setDigitalPoints(new Set());
-              setBluePoints(new Set());
+              setActivePoints([]);
+              setActiveDigitalPoints(new Set());
+              setActiveBluePoints(new Set());
             }}
             style={{ 
               color: '#ef4444',
@@ -2191,7 +2983,7 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
                }}>
                  <div 
                    onClick={() => {
-                     setDigitalPoints(prev => {
+                     setActiveDigitalPoints(prev => {
                        const next = new Set(prev);
                        if (next.has(point.id)) {
                          next.delete(point.id);
@@ -2213,7 +3005,7 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
                  />
                  <div 
                    onClick={() => {
-                     setBluePoints(prev => {
+                     setActiveBluePoints(prev => {
                        const next = new Set(prev);
                        if (next.has(point.id)) {
                          next.delete(point.id);
@@ -2692,7 +3484,7 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
                   }}>
                     <div 
                       onClick={() => {
-                        setDigitalPoints(prev => {
+                        setActiveDigitalPoints(prev => {
                           const next = new Set(prev);
                           if (next.has(point.id)) {
                             next.delete(point.id);
@@ -2714,7 +3506,7 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
                     />
                     <div 
                       onClick={() => {
-                        setBluePoints(prev => {
+                        setActiveBluePoints(prev => {
                           const next = new Set(prev);
                           if (next.has(point.id)) {
                             next.delete(point.id);
@@ -2821,16 +3613,32 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
       </div>
       )}
       {/* Add the BottomTray only for mobile */}
-    {isMobile && <BottomTray 
-      rotated={rotated} 
-      setRotated={setRotated} 
-      isMobile={isMobile} 
-    />}
+      {isMobile && <BottomTray 
+        rotated={rotated} 
+        setRotated={setRotated} 
+        isMobile={isMobile}
+        flows={flows}
+        activeFlowId={activeFlowId}
+        setActiveFlowId={setActiveFlowId}
+        addNewFlow={addNewFlow}
+        onDeleteFlow={deleteFlow}
+        onRenameFlow={renameFlow}
+      />}
   </div>
   );
 };
 
-const BottomTray = ({ rotated, setRotated, isMobile }) => (
+const BottomTray = ({ 
+  rotated, 
+  setRotated, 
+  isMobile, 
+  flows, 
+  activeFlowId, 
+  setActiveFlowId, 
+  addNewFlow,
+  onDeleteFlow,
+  onRenameFlow  
+}) => (
   <div style={{
     position: 'sticky',
     bottom: 0,
@@ -2838,41 +3646,53 @@ const BottomTray = ({ rotated, setRotated, isMobile }) => (
     right: 0,
     background: 'white',
     borderTop: '1px solid #e2e8f0',
-    padding: '0.5rem',
-    paddingBottom: '2.5rem',  // Adjust bottom padding 'env(safe-area-inset-bottom'??
-    display: 'flex',
-    justifyContent: 'center',  // Changed from space-around to center
-    gap: '0.75rem',  // Controls space between buttons
+    paddingBottom: '2.5rem',
     touchAction: 'none',
     userSelect: 'none',
     zIndex: 50
-
   }}>
-    <Button 
-      size="sm"
-      variant="outline"
-      style={{ 
-        width: '11rem',  // Adjust button width
-        height: '3rem'  // Adjust button height
-      }}
-      onClick={() => setRotated(false)}
-      disabled={!rotated}
-    >
-      Show Chart
-    </Button>
+    {/* Add Flow Pills for mobile */}
+    <MobileFlowPills 
+      flows={flows}
+      activeFlowId={activeFlowId}
+      onSelectFlow={setActiveFlowId}
+      onAddFlow={addNewFlow}
+      onDeleteFlow={onDeleteFlow}
+      onRenameFlow={onRenameFlow}
+    />
+    
+    <div style={{
+      padding: '0.5rem',
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '0.75rem',
+    }}>
+      <Button 
+        size="sm"
+        variant="outline"
+        style={{ 
+          width: '11rem',
+          height: '3rem'
+        }}
+        onClick={() => setRotated(false)}
+        disabled={!rotated}
+      >
+        Show Chart
+      </Button>
 
-    <Button 
-      size="sm"
-      variant="outline"
-      style={{ 
-        width: '11rem',
-        height: '3rem'
-      }}
-      onClick={() => setRotated(true)}
-      disabled={rotated}
-    >
-      Show Descriptions
-    </Button>
+      <Button 
+        size="sm"
+        variant="outline"
+        style={{ 
+          width: '11rem',
+          height: '3rem'
+        }}
+        onClick={() => setRotated(true)}
+        disabled={rotated}
+      >
+        Show Descriptions
+      </Button>
+    </div>
   </div>
 );
 
