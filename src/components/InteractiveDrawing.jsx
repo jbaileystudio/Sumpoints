@@ -36,31 +36,24 @@ const findClosestPoint = y => {
 };
 
 // Mobile Flow Pills Component
-// Simplified debug-focused version of MobileFlowPills
-// Modified MobileFlowPills with proper z-index handling
-// Modified MobileFlowPills with left-positioned Add button
+// Modified MobileFlowPills with improved pill editing experience
 const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
   
-  // Add this useEffect to handle outside clicks for the mobile dropup menus
+  // Add ref and outside click handling for dropup menus
   useEffect(() => {
-    // Only add the listener if a menu is open
     if (openMenuId !== null) {
       const handleClickOutside = (event) => {
-        // Check if the click was on a menu button
         const isMenuButton = event.target.closest('[data-menu-button]');
-        // Check if the click was inside the portal menu
         const isInsideMenu = event.target.closest('.dropup-menu-content');
         
-        // If the click was neither on a menu button nor inside a menu, close all menus
         if (!isMenuButton && !isInsideMenu) {
           setOpenMenuId(null);
         }
       };
       
-      // Add listener with a slight delay to prevent immediate closing
       setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
         document.addEventListener('touchstart', handleClickOutside);
@@ -72,17 +65,15 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
       };
     }
   }, [openMenuId]);
-
+  
   // Menu toggle function
   const handleMenuClick = (e, flowId) => {
     e.stopPropagation();
-    console.log("Menu clicked for flow:", flowId);
     setOpenMenuId(prevId => prevId === flowId ? null : flowId);
   };
   
   // Function to start editing a flow
   const handleEditClick = (flowId, flowName) => {
-    console.log("Starting edit for flow:", flowId, "with name:", flowName);
     setOpenMenuId(null); // Close the menu
     setEditingId(flowId); // Set which flow is being edited
     setEditingName(flowName); // Initialize with current name
@@ -90,7 +81,6 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
   
   // Function to save edited flow name
   const handleSaveEdit = (flowId) => {
-    console.log("Saving edit for flow:", flowId, "with new name:", editingName);
     if (editingName.trim()) {
       onRenameFlow(flowId, editingName.trim());
       setEditingId(null); // Exit edit mode
@@ -99,7 +89,6 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
   
   // Function to cancel editing
   const handleCancelEdit = () => {
-    console.log("Canceling edit");
     setEditingId(null);
   };
 
@@ -111,10 +100,11 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
       gap: '1rem',
       borderBottom: '1px solid #e2e8f0'
     }}>
-      {/* Add Flow Button - Now first in the list */}
+      {/* Add Flow Button - First in the list */}
       <button
         style={{
-          padding: '0.5rem 1rem',
+          padding: '0.5rem 1.25rem',
+          marginLeft: '.5rem',
           borderRadius: '9999px',
           border: '1px solid #e2e8f0',
           backgroundColor: 'white',
@@ -135,17 +125,23 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
       {flows.map(flow => (
         <div key={flow.id} style={{ position: 'relative' }}>
           {editingId === flow.id ? (
-            // EDIT MODE - Complete replacement for the pill
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0.25rem',
-              borderRadius: '9999px',
-              border: '1px solid #3b82f6',
-              backgroundColor: 'white',
-              boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.3)',
-              height: '38px' // Consistent height
-            }}>
+            // EDIT MODE - Transform the pill itself
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: '9999px',
+                border: '1px solid #3b82f6',
+                backgroundColor: 'white',
+                height: '38px',
+                boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.3)',
+                padding: '0 0.25rem 0 0.75rem', // More padding on left for text
+                width: 'auto',
+                minWidth: '150px', // Ensure enough space for editing longer names
+                justifyContent: 'space-between', // Space between input and actions
+                transition: 'all 0.2s ease'
+              }}
+            >
               <input
                 type="text"
                 value={editingName}
@@ -158,50 +154,41 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 style={{
                   border: 'none',
                   outline: 'none',
-                  width: '100px',
-                  padding: '0.5rem',
+                  background: 'transparent',
+                  width: '90px', // Increased width since we removed one button
                   fontSize: '14px',
-                  borderRadius: '0.25rem'
+                  padding: '0',
+                  paddingLeft: '.25rem',
+                  color: '#1f2937'
                 }}
               />
-              <div style={{ display: 'flex', gap: '0.25rem' }}>
+              
+              <div style={{ 
+                display: 'flex',
+                //borderLeft: '1px solid #e2e8f0',
+                paddingLeft: '0.25rem',
+                marginLeft: '0.25rem',
+                marginRight: '0.2rem',
+                height: '100%',
+                alignItems: 'center'
+              }}>
                 <button
                   onClick={() => handleSaveEdit(flow.id)}
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
                     background: '#10b981',
-                    border: 'none',
                     color: 'white',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
+                    border: 'none',
+                    padding: 0
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                     <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  style={{
-                    background: '#ef4444',
-                    border: 'none',
-                    color: 'white',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
                   </svg>
                 </button>
               </div>
@@ -223,7 +210,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
               <div
                 onClick={() => onSelectFlow(flow.id)}
                 style={{
-                  padding: '0.5rem 0.75rem',
+                  padding: '0.5rem 1rem',
                   color: flow.id === activeFlowId ? 'white' : '#1f2937',
                   fontWeight: flow.id === activeFlowId ? '600' : '400',
                   whiteSpace: 'nowrap',
@@ -232,7 +219,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
               >
                 {flow.name}
               </div>
-            
+
               
               {/* Menu button */}
               <div
@@ -265,7 +252,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
           {openMenuId === flow.id && (
             <Portal>
               <div
-                className="dropup-menu-content"  // Add this class
+                className="dropup-menu-content"
                 style={{
                   position: 'absolute',
                   backgroundColor: 'white',
@@ -301,7 +288,6 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                     backgroundColor: 'white'
                   }}
                   onClick={() => {
-                    console.log("Edit button clicked for flow:", flow.id);
                     handleEditClick(flow.id, flow.name);
                   }}
                 >
@@ -324,7 +310,6 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                       backgroundColor: 'white'
                     }}
                     onClick={() => {
-                      console.log("Delete button clicked for flow:", flow.id);
                       if (confirm(`Delete flow "${flow.name}"?`)) {
                         onDeleteFlow(flow.id);
                       }
@@ -383,7 +368,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   
-// Add this useEffect to handle outside clicks
+  // Add this useEffect to handle outside clicks
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -493,7 +478,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
           </button>
 
 
-              {/* Flow items */}
+          {/* Flow items */}
 
           {flows.map(flow => (
             <div
@@ -590,30 +575,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                     </svg>
                   </button>
                 )}
-                
-                {/* Delete button */}
-                {flows.length > 1 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm(`Delete flow "${flow.name}"?`)) {
-                        onDeleteFlow(flow.id);
-                      }
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                      opacity: 0.7,
-                      padding: '4px'
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                    </svg>
-                  </button>
-                )}
+
               </div>
             </div>
           ))}
