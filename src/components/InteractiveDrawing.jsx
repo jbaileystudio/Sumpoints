@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Save, Plus } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -575,6 +575,30 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                     </svg>
                   </button>
                 )}
+            
+                {/* Delete button */}
+                {flows.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Delete flow "${flow.name}"?`)) {
+                        onDeleteFlow(flow.id);
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      opacity: 0.7,
+                      padding: '4px'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                    </svg>
+                  </button>
+                )}
 
               </div>
             </div>
@@ -590,7 +614,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
 
 
 const InteractiveDrawing = () => {
-  // State management
+// State management
  // const [points, setPoints] = useState([]);
   const [ghostPoints, setGhostPoints] = useState([]);
   const [undoStack, setUndoStack] = useState([]);
@@ -770,6 +794,48 @@ const setActiveBluePoints = (newSetOrUpdater) => {
   updateActiveFlow({ bluePoints: newSet });
 };
 
+
+// Add this effect to trigger the marching ants animation when flows change
+const [hideAnts, setHideAnts] = useState(false);
+
+// Then modify your flow change effect
+useEffect(() => {
+  console.log("Flow changed, triggering marching ants invisibly");
+  
+  // Hide the marching ants
+  setHideAnts(true);
+  
+  // Set cursor to center of SVG to trigger animation
+  setCursor({ x: 50, y: 50 });
+  
+  // Multiple triggers at different intervals
+  const timers = [
+    setTimeout(() => setCursor({ x: 51, y: 51 }), 50),
+    setTimeout(() => setCursor({ x: 52, y: 52 }), 100),
+    setTimeout(() => setCursor({ x: 53, y: 53 }), 150),
+    setTimeout(() => setCursor({ x: 54, y: 54 }), 200),
+    
+    // Reset cursor and show ants again
+    setTimeout(() => {
+      setCursor({ x: 0, y: 0 });
+      setHideAnts(false);
+    }, 250)
+  ];
+  
+  // Force width update directly as well
+  if (containerRef.current) {
+    const activePoints = getActiveFlow().points;
+    if (!rotated) {
+      const newWidth = ((activePoints.length + 4) * G);
+      containerRef.current.style.width = `${newWidth}px`;
+    } else {
+      const newHeight = ((activePoints.length + 4) * G);
+      containerRef.current.style.height = `${newHeight}px`;
+    }
+  }
+  
+  return () => timers.forEach(clearTimeout);
+}, [activeFlowId, rotated]);
 
 
   useEffect(() => {
@@ -2035,15 +2101,15 @@ useEffect(() => {
     >
     ☹️
     </text>
-    {!dragging && !hoveredPointId && !hoveredInsertId && isNearNextLine && !isMobile && (
+    {!dragging && !hoveredPointId && !hoveredInsertId && isNearNextLine && !isMobile && !hideAnts && (
       <circle
-      cx={previewPos.x}
-      cy={previewPos.y}
-      r={P}
-      fill="gray"
-      opacity="0.5"
+        cx={previewPos.x}
+        cy={previewPos.y}
+        r={P}
+        fill="gray"
+        opacity="0.5"
       />
-      )}
+    )}
 
     {/* Cumulative Line */}
     {cumulativeType === 'line' && allPoints.length > 0 && (() => {
@@ -2589,16 +2655,16 @@ useEffect(() => {
     }}>
 
     {/* Add the flow dropdown here for desktop view */}
-{!isMobile && (
-  <DesktopFlowDropdown
-    flows={flows}
-    activeFlowId={activeFlowId}
-    onSelectFlow={setActiveFlowId}
-    onAddFlow={addNewFlow}
-    onDeleteFlow={deleteFlow}
-    onRenameFlow={renameFlow}
-  />
-)}
+    {!isMobile && (
+      <DesktopFlowDropdown
+        flows={flows}
+        activeFlowId={activeFlowId}
+        onSelectFlow={setActiveFlowId}
+        onAddFlow={addNewFlow}
+        onDeleteFlow={deleteFlow}
+        onRenameFlow={renameFlow}
+      />
+    )}
 
       {/* Rotation buttons */}
       {!isMobile && (
@@ -2855,17 +2921,17 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
              onClick={() => handleInsertAt(i)}
              >
              <div
-             style={{
-               width: '24px',
-               height: '24px',
-               borderRadius: '50%',
-               backgroundColor: '#fff',
-               border: '2px solid #9ca3af',
-               display: 'flex',
-               alignItems: 'center',
-               justifyContent: 'center',
-               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-             }}
+               style={{
+                 width: '24px',
+                 height: '24px',
+                 borderRadius: '50%',
+                 backgroundColor: '#fff',
+                 border: '2px solid #9ca3af',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+               }}
              >
              <Plus size={16} />
              </div>
@@ -3142,18 +3208,20 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
     onClick={handleClick}
     >
     {renderSVG(true)}
-    {!hoveredPointId && !hoveredInsertId && !isMobile && <div style={{
-      position: 'absolute',
-      pointerEvents: 'none',
-      left: `${cursor.x}%`,
-      top: 0,
-      width: '2px',
-      height: '100%',
-      backgroundImage: 'linear-gradient(to bottom, black 50%, transparent 50%)',
-      backgroundSize: '2px 20px',
-      backgroundRepeat: 'repeat-y',
-      animation: 'v 1s linear infinite'
-    }}/>}
+    {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && (
+      <div style={{
+        position: 'absolute',
+        pointerEvents: 'none',
+        left: `${cursor.x}%`,
+        top: 0,
+        width: '2px',
+        height: '100%',
+        backgroundImage: 'linear-gradient(to bottom, black 50%, transparent 50%)',
+        backgroundSize: '2px 20px',
+        backgroundRepeat: 'repeat-y',
+        animation: 'v 1s linear infinite'
+      }}/>
+    )}
     </div>
     </div>
     </div>
@@ -3199,18 +3267,20 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
         onClick={handleClick}
       >
           {renderSVG(false)}
-          {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && <div style={{
-            position: 'absolute',
-            pointerEvents: 'none',
-            top: `${cursor.y}%`,
-            left: 0,
-            width: '100%',
-            height: '1px',
-            backgroundImage: 'linear-gradient(to right, black 50%, transparent 50%)',
-            backgroundSize: '20px 1px',
-            backgroundRepeat: 'repeat-x',
-            animation: 'm 1s linear infinite'
-          }}/>}
+            {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && (
+              <div style={{
+                position: 'absolute',
+                pointerEvents: 'none',
+                top: `${cursor.y}%`,
+                left: 0,
+                width: '100%',
+                height: '1px',
+                backgroundImage: 'linear-gradient(to right, black 50%, transparent 50%)',
+                backgroundSize: '20px 1px',
+                backgroundRepeat: 'repeat-x',
+                animation: 'm 1s linear infinite'
+              }}/>
+            )}
         </div>
           <div style={{
             position: 'relative',
