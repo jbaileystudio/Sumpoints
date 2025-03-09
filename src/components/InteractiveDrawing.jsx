@@ -575,7 +575,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                     </svg>
                   </button>
                 )}
-            
+
                 {/* Delete button */}
                 {flows.length > 1 && (
                   <button
@@ -654,6 +654,8 @@ const InteractiveDrawing = () => {
   const [cutoutType, setCutoutType] = useState('none');
   const [hasTouchCapability] = useState('ontouchstart' in window);
   const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT || isIPad());
+  const [showTransition, setShowTransition] = useState(false);
+  const [transitionDirection, setTransitionDirection] = useState('right'); // 'right' or 'bottom'
   const [flows, setFlows] = useState([
     {
       id: "flow-1",
@@ -664,6 +666,10 @@ const InteractiveDrawing = () => {
     }
   ]);
   const [activeFlowId, setActiveFlowId] = useState("flow-1");
+  const [svgBounds, setSvgBounds] = useState({ top: 0, left: 0, width: 0, height: 0 });
+  const [hideSvgContent, setHideSvgContent] = useState(false);
+
+
 
 const renameFlow = (flowId, newName) => {
   console.log('renameFlow called with:', flowId, newName);
@@ -798,31 +804,94 @@ const setActiveBluePoints = (newSetOrUpdater) => {
 // Add this effect to trigger the marching ants animation when flows change
 const [hideAnts, setHideAnts] = useState(false);
 
-// Then modify your flow change effect
+// Modify your flow switching effect
+// Add more debug logging to track the sequence
+// In your flow change effect:
 useEffect(() => {
-  console.log("Flow changed, triggering marching ants invisibly");
+  console.log("🔄 FLOW CHANGE DETECTED");
   
-  // Hide the marching ants
-  setHideAnts(true);
+  // 1. Immediately hide the SVG
+  if (drawingRef.current) {
+    drawingRef.current.style.visibility = 'hidden';
+  }
   
-  // Set cursor to center of SVG to trigger animation
+  // 2. Start the white overlay transition
+  setShowTransition(true);
+  setTransitionDirection(rotated ? 'bottom' : 'right');
+  
+  // 3. Update layout (under the hidden SVG)
   setCursor({ x: 50, y: 50 });
   
-  // Multiple triggers at different intervals
+  if (containerRef.current) {
+    const activePoints = getActiveFlow().points;
+    const newDimension = ((activePoints.length + 4) * G);
+    
+    if (!rotated) {
+      containerRef.current.style.width = `${newDimension}px`;
+    } else {
+      containerRef.current.style.height = `${newDimension}px`;
+    }
+  }
+  
+  // 4. Make SVG visible again BEFORE the white overlay starts to pull away
+  setTimeout(() => {
+    if (drawingRef.current) {
+      drawingRef.current.style.visibility = 'visible';
+    }
+  }, 300); // Should be less than the animation delay
+  
+  // 5. Hide transition overlay after animation completes
+  const hideTimer = setTimeout(() => {
+    setShowTransition(false);
+  }, 1000); // Match to animation duration
+  
+  return () => clearTimeout(hideTimer);
+}, [activeFlowId, rotated]);
+
+useEffect(() => {
+  if (drawingRef.current) {
+    const updateSvgBounds = () => {
+      const rect = drawingRef.current.getBoundingClientRect();
+      setSvgBounds({
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height
+      });
+    };
+    
+    updateSvgBounds();
+    window.addEventListener('resize', updateSvgBounds);
+    return () => window.removeEventListener('resize', updateSvgBounds);
+  }
+}, [activeFlowId, rotated]);
+
+//useEffect for flow changes
+useEffect(() => {
+  console.log("Active flow changed:", activeFlowId);
+  
+  // Hide SVG content immediately
+  setHideSvgContent(true);
+  
+  // Trigger layout fixes with invisible marching ants
+  setHideAnts(true);
+  setCursor({ x: 50, y: 50 });
+  
+  // Multiple triggers for desktop
   const timers = [
     setTimeout(() => setCursor({ x: 51, y: 51 }), 50),
     setTimeout(() => setCursor({ x: 52, y: 52 }), 100),
     setTimeout(() => setCursor({ x: 53, y: 53 }), 150),
-    setTimeout(() => setCursor({ x: 54, y: 54 }), 200),
     
-    // Reset cursor and show ants again
+    // Show SVG content again after layout is fixed
     setTimeout(() => {
-      setCursor({ x: 0, y: 0 });
+      setHideSvgContent(false);
       setHideAnts(false);
-    }, 250)
+      setCursor({ x: 0, y: 0 });
+    }, 200)
   ];
   
-  // Force width update directly as well
+  // Force width update directly
   if (containerRef.current) {
     const activePoints = getActiveFlow().points;
     if (!rotated) {
@@ -2574,6 +2643,18 @@ useEffect(() => {
     }}>
 
     <style>{`
+        @keyframes slideRight {
+          0%, 20% { transform: translateX(0); } /* Stay in place for first 20% of animation (down from 30%) */
+          100% { transform: translateX(100%); }
+        }
+
+        @keyframes slideBottom {
+          0%, 20% { transform: translateY(0); } /* Stay in place for first 20% of animation (down from 30%) */
+          100% { transform: translateY(100%); }
+        }
+      `}</style>
+
+    <style>{`
     .toggle-switch {
       position: relative;
       display: inline-block;
@@ -3201,13 +3282,36 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
       position: 'relative',
       overflow: 'hidden',
       flex: 1,
-      display: isMobile ? 'none' : 'block'  // Hide on mobile
+      display: isMobile ? 'none' : 'block',
+      opacity: hideSvgContent ? 0 : 1, // Hide content when flag is true
+      transition: 'opacity 0.1s ease', // Smooth transition when coming back
     }}
     className="drawing-area"
     onMouseMove={handleMouseMove}
     onClick={handleClick}
     >
     {renderSVG(true)}
+
+    {/* Add Transition Overlay Here */}
+      {showTransition && ReactDOM.createPortal(
+        <div 
+          style={{
+            position: 'fixed',
+            top: `${svgBounds.top}px`,
+            left: `${svgBounds.left}px`,
+            width: `${svgBounds.width}px`,
+            height: `${svgBounds.height}px`,
+            backgroundColor: 'white',
+            zIndex: 9999,
+            transformOrigin: transitionDirection === 'right' ? 'left center' : 'center top',
+            animation: `${transitionDirection === 'right' ? 'slideRight' : 'slideBottom'} 1000ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
+            pointerEvents: 'none'
+          }}
+        />,
+        document.body
+      )}
+
+{/* Marching ants code */}
     {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && (
       <div style={{
         position: 'absolute',
@@ -3260,13 +3364,37 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
           overflow: 'hidden',
           height: isMobile ? '100%' : H,
           minHeight: isMobile ? 'initial' : undefined,
-          touchAction: dragging ? 'none' : 'pan-x'
+          touchAction: dragging ? 'none' : 'pan-x',
+          opacity: hideSvgContent ? 0 : 1, // Hide content when flag is true
+          transition: 'opacity 1s ease', // Smooth transition when coming back
         }}
         className="drawing-area"
         onMouseMove={handleMouseMove}
         onClick={handleClick}
       >
           {renderSVG(false)}
+
+{/* Add Transition Overlay Here */}
+  {showTransition && ReactDOM.createPortal(
+    <div 
+      style={{
+        position: 'fixed',
+        top: `${svgBounds.top}px`,
+        left: `${svgBounds.left}px`,
+        width: `${svgBounds.width}px`,
+        height: `${svgBounds.height}px`,
+        backgroundColor: 'white',
+        zIndex: 9999,
+        transformOrigin: transitionDirection === 'right' ? 'left center' : 'center top',
+        animation: `${transitionDirection === 'right' ? 'slideRight' : 'slideBottom'} 1000ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
+        pointerEvents: 'none'
+      }}
+    />,
+    document.body
+  )}
+
+  {/* Marching ants code */}
+
             {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && (
               <div style={{
                 position: 'absolute',
