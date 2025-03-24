@@ -6,8 +6,6 @@ import { GripVertical } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import ReactDOM from 'react-dom';
 
-
-
 // Constants for our grid and layout
 const G = 75;  // Grid size
 const T = 175; // Text width
@@ -36,6 +34,7 @@ const findClosestPoint = y => {
 };
 
 // Mobile Flow Pills Component
+
 // Modified MobileFlowPills with improved pill editing experience
 const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -100,6 +99,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
       gap: '1rem',
       borderBottom: '1px solid #e2e8f0'
     }}>
+      
       {/* Add Flow Button - First in the list */}
       <button
         style={{
@@ -206,6 +206,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 height: '38px',
               }}
             >
+              
               {/* Flow name section */}
               <div
                 onClick={() => onSelectFlow(flow.id)}
@@ -220,7 +221,6 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 {flow.name}
               </div>
 
-              
               {/* Menu button */}
               <div
                 data-menu-button={flow.id}
@@ -477,9 +477,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
             <span>Add new flow</span>
           </button>
 
-
           {/* Flow items */}
-
           {flows.map(flow => (
             <div
               key={flow.id}
@@ -512,6 +510,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                   }}
                 />
               ) : (
+                
                 // View mode
                 <button
                   onClick={() => {
@@ -668,7 +667,6 @@ const InteractiveDrawing = () => {
   const [activeFlowId, setActiveFlowId] = useState("flow-1");
   const [svgBounds, setSvgBounds] = useState({ top: 0, left: 0, width: 0, height: 0 });
   const [hideSvgContent, setHideSvgContent] = useState(false);
-
 
 
 const renameFlow = (flowId, newName) => {
@@ -910,8 +908,7 @@ useEffect(() => {
   useEffect(() => {
     // This will trigger when flows or activeFlowId change
     console.log("Active flow changed:", activeFlowId);
-    // You don't need to do anything here as the local variables
-    // will be re-initialized on each render
+    // Don't need to do anything here as the local variables will be re-initialized on each render
   }, [flows, activeFlowId]);
 
   console.log('Mobile check:', { 
@@ -1180,7 +1177,7 @@ ${showPoints ? `
   </svg>
 `;
 
-    // Inside your try block
+    // Inside the try block
     try {
     console.log('Creating PDF instance');
     const pdf = new jsPDF({
@@ -1189,7 +1186,7 @@ ${showPoints ? `
       format: 'letter'
     });
 
-    // Add these two lines here, before the PDF text gets set
+    // Before the PDF text gets set
     const stats = getCutoutStats(points, digitalPoints, bluePoints, cutoutType);
     const cutoutText = cutoutType !== 'none' && stats ? 
       `${cutoutType === 'yellow' ? 'Yellow' : cutoutType === 'blue' ? 'Blue' : 'Green'} Cutout - ` +
@@ -1197,27 +1194,27 @@ ${showPoints ? `
       `${stats.notCovered} Events Not (${stats.notCoveredPercent}%)` 
       : '';
 
-// Keep the title as is
-pdf.setFontSize(16);
-pdf.text(filename, margins, margins);
+      // Keep the title as is
+      pdf.setFontSize(16);
+      pdf.text(filename, margins, margins);
 
       // Add title and count right after PDF creation
       pdf.setFontSize(12);
-pdf.text(
-  `${activeFlow.name} | ${allPoints.length} Events${
-    cumulativeType !== 'none' ? ` | ${calculateScores(activeFlow.points).total} Cml Score` : ''
-  }${
-    cumulativeType === 'bars' ? ' | Bars' : 
-    cumulativeType === 'line' ? ' | Line' : ''
-  }${
-    cutoutType !== 'none' ? ` | ${cutoutText}` : ''
-  }`,
-  margins, 
-  margins + 0.3
-);
+      pdf.text(
+        `${activeFlow.name} | ${allPoints.length} Events${
+          cumulativeType !== 'none' ? ` | ${calculateScores(activeFlow.points).total} Cml Score` : ''
+        }${
+          cumulativeType === 'bars' ? ' | Bars' : 
+          cumulativeType === 'line' ? ' | Line' : ''
+        }${
+          cutoutType !== 'none' ? ` | ${cutoutText}` : ''
+        }`,
+        margins, 
+        margins + 0.3
+      );
       const contentStart = margins + 0.5;
 
-  // Add aspect ratio calculations
+  // Aspect ratio calculations
       const svgAspectRatio = 600 / totalWidth;
       const pageAspectRatio = (pageHeight - margins * 3) / (pageWidth - margins * 2);
 
@@ -1264,7 +1261,7 @@ pdf.text(
           );
         console.log('Added image to PDF');
 
-// Add vertical descriptions
+  // Add vertical descriptions
         pdf.setFontSize(9);
         const baseCharLimit = 26;
 
@@ -1272,13 +1269,13 @@ pdf.text(
           const x = (point.x * scale / 96) + margins;
 
   // For 15 or fewer points, always use baseCharLimit
-          let charLimit = baseCharLimit;
-          if (allPoints.length > 15) {
-            const pointRatio = allPoints.length / 15;
-            const heightGain = (1 / scale);
-            const additionalChars = Math.floor(baseCharLimit * Math.sqrt(pointRatio) * heightGain * 0.8);
-            charLimit = baseCharLimit + additionalChars;
-          }
+        let charLimit = baseCharLimit;
+        if (allPoints.length > 15) {
+          const pointRatio = allPoints.length / 15;
+          const heightGain = (1 / scale);
+          const additionalChars = Math.floor(baseCharLimit * Math.sqrt(pointRatio) * heightGain * 0.8);
+          charLimit = baseCharLimit + additionalChars;
+        }
 
   //The key factors for adjusting how aggressively the character count increases beyond 15 points are:
   //The 0.8 multiplier at the end - decreasing this will make the character count increase less aggressively, increasing it will allow more characters
@@ -1327,7 +1324,7 @@ pdf.text(
         });
 
         console.log('Saving PDF...');
-pdf.save(`${formattedFilename}.pdf`);
+        pdf.save(`${formattedFilename}.pdf`);
         console.log('PDF saved!');
 
         document.body.removeChild(container);
@@ -1650,8 +1647,6 @@ const isNearGridLine = rotated
       const textLength = point.text.length * fontSize;
       const boxWidth = 60; // Width of our text box
       
-      // In your existing handleExport function, just modify the div style in descriptionsContent:
-
             return `
             <div style="
               position: absolute; 
@@ -1801,7 +1796,7 @@ const isNearGridLine = rotated
     setDragging(true);
   };
 
-  // Update your resize listener to include iPad check:
+  // Update resize listener to include iPad check:
 useEffect(() => {
   const handleResize = () => {
     setIsMobile(window.innerWidth < MOBILE_BREAKPOINT || isIPad());
@@ -2104,69 +2099,69 @@ useEffect(() => {
 
   return (
     <svg 
-    className="absolute top-0 left-0 w-full h-full" 
-    style={{pointerEvents: 'none'}}
-    viewBox={`0 0 ${width} ${rotated ? height : (isMobile ? rect.height : rect.height)}`}
-    preserveAspectRatio={isMobile ? "none" : "xMidYMid meet"}
+      className="absolute top-0 left-0 w-full h-full" 
+      style={{pointerEvents: 'none'}}
+      viewBox={`0 0 ${width} ${rotated ? height : (isMobile ? rect.height : rect.height)}`}
+      preserveAspectRatio={isMobile ? "none" : "xMidYMid meet"}
     >
     <defs>
     <pattern 
-    id={isVertical ? "gv" : "g"}
-    width={isVertical ? "100%" : G}
-    height={isVertical ? G : "100%"}
-    patternUnits="userSpaceOnUse"
+      id={isVertical ? "gv" : "g"}
+      width={isVertical ? "100%" : G}
+      height={isVertical ? G : "100%"}
+      patternUnits="userSpaceOnUse"
     >
     {HASH_POINTS.map((hp, i) => 
       isVertical ? (
-        <line 
-        key={i}
-        x1={`${hp}%`} y1="-6"
-        x2={`${hp}%`} y2="6"
-        stroke="#ddd"
-        strokeWidth="1"
-        />
+          <line 
+            key={i}
+            x1={`${hp}%`} y1="-6"
+            x2={`${hp}%`} y2="6"
+            stroke="#ddd"
+            strokeWidth="1"
+          />
         ) : (
-        <line
-        key={i}
-        x1="-6" y1={`${hp}%`}
-        x2="6" y2={`${hp}%`}
-        stroke="#ddd"
-        strokeWidth="1"
-        />
-        )
+          <line
+            key={i}
+            x1="-6" y1={`${hp}%`}
+            x2="6" y2={`${hp}%`}
+            stroke="#ddd"
+            strokeWidth="1"
+          />
+          )
         )}
     <line 
-    x1={isVertical ? "0" : G}
-    y1={isVertical ? G : "0"}
-    x2={isVertical ? "100%" : G}
-    y2={isVertical ? G : "100%"}
-    stroke="#ddd"
+      x1={isVertical ? "0" : G}
+      y1={isVertical ? G : "0"}
+      x2={isVertical ? "100%" : G}
+      y2={isVertical ? G : "100%"}
+      stroke="#ddd"
     />
     </pattern>
     </defs>
     <rect width="100%" height="100%" fill={`url(#${isVertical ? 'gv' : 'g'})`}/>
     <line
-    x1={isVertical ? "50%" : "0"}
-    y1={isVertical ? "0" : "50%"}
-    x2={isVertical ? "50%" : "100%"}
-    y2={isVertical ? "100%" : "50%"}
-    stroke="black"
+      x1={isVertical ? "50%" : "0"}
+      y1={isVertical ? "0" : "50%"}
+      x2={isVertical ? "50%" : "100%"}
+      y2={isVertical ? "100%" : "50%"}
+      stroke="black"
     />
     <text 
-    x={isVertical ? "90%" : "32"} 
-    y={isVertical ? "32" : "10%"} 
-    textAnchor="middle" 
-    alignmentBaseline="middle" 
-    fontSize="32"
+      x={isVertical ? "90%" : "32"} 
+      y={isVertical ? "32" : "10%"} 
+      textAnchor="middle" 
+      alignmentBaseline="middle" 
+      fontSize="32"
     >
     🙂
     </text>
     <text 
-    x={isVertical ? "10%" : "32"} 
-    y={isVertical ? "32" : "90%"} 
-    textAnchor="middle" 
-    alignmentBaseline="middle" 
-    fontSize="32"
+      x={isVertical ? "10%" : "32"} 
+      y={isVertical ? "32" : "90%"} 
+      textAnchor="middle" 
+      alignmentBaseline="middle" 
+      fontSize="32"
     >
     ☹️
     </text>
@@ -2188,7 +2183,7 @@ useEffect(() => {
       let currentSegment = { points: [], isPositive: scores.cumulative[0] >= 0 };
 
       scores.cumulative.forEach((score, i) => {
-      // NEW: Calculate position based on orientation
+      // Calculate position based on orientation
         let x, y;
         if (isVertical) {
         // Vertical view: x is score-based, y is grid-based
@@ -2203,7 +2198,7 @@ useEffect(() => {
         if (i > 0 && (score >= 0) !== currentSegment.isPositive) {
           const prevScore = scores.cumulative[i - 1];
 
-        // NEW: Calculate previous point based on orientation
+        // Calculate previous point based on orientation
           let prevX, prevY;
           if (isVertical) {
             prevX = fromPercent(50, rect.width) + (prevScore * 5);
@@ -2215,7 +2210,7 @@ useEffect(() => {
 
           const ratio = Math.abs(prevScore) / (Math.abs(prevScore) + Math.abs(score));
 
-        // NEW: Calculate crossing point based on orientation
+        // Calculate crossing point based on orientation
           let crossingX, crossingY;
           if (isVertical) {
             crossingX = fromPercent(50, rect.width);
@@ -2238,7 +2233,6 @@ useEffect(() => {
       });
       segments.push(currentSegment);
 
-    // The rest of your code remains exactly the same
       return (
         <>
         {segments.map((segment, i) => {
@@ -2490,7 +2484,7 @@ useEffect(() => {
           tappedPointId: tappedPoint?.point?.id
         })}
         
-        {/* Your existing edit mode delete button */}
+        {/* Existing edit mode delete button */}
         {editMode && (
           <g 
             transform={`translate(${pos.x}, ${pos.y - 20})`}
@@ -2553,7 +2547,7 @@ useEffect(() => {
         ); 
     })}
 
-    {/* Digital cutout mask */}
+{/* Digital cutout mask */}
 {(showDigitalCutout || showAnalyticsCutout || cutoutType === 'both') && (
 <g>
 <defs>
@@ -2998,7 +2992,7 @@ useEffect(() => {
                pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
              }}
              onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
-onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
+             onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
              onClick={() => handleInsertAt(i)}
              >
              <div
@@ -3265,8 +3259,8 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
                    backgroundColor: draggedDescriptionIndex === i ? '#FFF9C4' : draggedOverIndex === i ? '#f3f4f6' : 'transparent',
                    borderRadius: '0.25rem',
                    touchAction: 'none',        // Prevent default touch actions like scrolling
-    overscrollBehavior: 'none', // Prevent bounce/scroll chaining
-    WebkitOverflowScrolling: 'touch' // Better touch scrolling control
+                   overscrollBehavior: 'none', // Prevent bounce/scroll chaining
+                   WebkitOverflowScrolling: 'touch' // Better touch scrolling control
                  }}
                >
                  <GripVertical size={16} />
@@ -3311,7 +3305,7 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
         document.body
       )}
 
-{/* Marching ants code */}
+    {/* Marching ants code */}
     {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && (
       <div style={{
         position: 'absolute',
@@ -3394,21 +3388,20 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
   )}
 
   {/* Marching ants code */}
-
-            {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && (
-              <div style={{
-                position: 'absolute',
-                pointerEvents: 'none',
-                top: `${cursor.y}%`,
-                left: 0,
-                width: '100%',
-                height: '1px',
-                backgroundImage: 'linear-gradient(to right, black 50%, transparent 50%)',
-                backgroundSize: '20px 1px',
-                backgroundRepeat: 'repeat-x',
-                animation: 'm 1s linear infinite'
-              }}/>
-            )}
+      {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && (
+        <div style={{
+          position: 'absolute',
+          pointerEvents: 'none',
+          top: `${cursor.y}%`,
+          left: 0,
+          width: '100%',
+          height: '1px',
+          backgroundImage: 'linear-gradient(to right, black 50%, transparent 50%)',
+          backgroundSize: '20px 1px',
+          backgroundRepeat: 'repeat-x',
+          animation: 'm 1s linear infinite'
+        }}/>
+      )}
         </div>
           <div style={{
             position: 'relative',
@@ -3470,7 +3463,7 @@ onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
                         pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
                       }}
                       onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
-onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
+                      onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
                       onClick={() => handleInsertAt(i)}
                       >
                       <div
@@ -3820,7 +3813,6 @@ const BottomTray = ({
       onDeleteFlow={onDeleteFlow}
       onRenameFlow={onRenameFlow}
     />
-    
     <div style={{
       padding: '0.5rem',
       display: 'flex',
@@ -3839,7 +3831,6 @@ const BottomTray = ({
       >
         Show Chart
       </Button>
-
       <Button 
         size="sm"
         variant="outline"
