@@ -166,8 +166,8 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
               <div style={{ 
                 display: 'flex',
                 //borderLeft: '1px solid #e2e8f0',
-                paddingLeft: '0.25rem',
-                marginLeft: '0.25rem',
+                paddingLeft: '0.75rem',
+                marginLeft: '0.50rem',
                 marginRight: '0.2rem',
                 height: '100%',
                 alignItems: 'center'
@@ -506,7 +506,9 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                     width: '70%',
                     padding: '0.25rem',
                     border: '1px solid #e2e8f0',
-                    borderRadius: '0.25rem'
+                    borderRadius: '0.25rem',
+                            marginRight: '0.75rem' // Add this line to create more spacing
+
                   }}
                 />
               ) : (
