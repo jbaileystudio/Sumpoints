@@ -2890,6 +2890,9 @@ useEffect(() => {
               setActivePoints([]);
               setActiveDigitalPoints(new Set());
               setActiveBluePoints(new Set());
+
+              // Turn off delete mode since there are no more points
+              setEditMode(false);
             }}
             style={{ 
               color: '#ef4444',
