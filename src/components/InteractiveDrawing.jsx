@@ -3779,111 +3779,136 @@ useEffect(() => {
   </div>
   )}
 
-  {modalOpen && (
+{modalOpen && (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    maxHeight: 'none',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    overflow: 'hidden'
+  }}
+  onKeyDown={(e) => {
+    if (e.key === 'Escape') {
+      setModalOpen(false);
+    }
+  }}
+  >
     <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',  // Use vh instead of percentage or dvh
-      maxHeight: 'none',
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: 'white',
+      padding: '2rem',
+      borderRadius: '0.5rem',
+      width: '90%',
+      maxWidth: '500px',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      overflow: 'hidden'  // Prevent any scrolling
-    }}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          setModalOpen(false);
-        } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      flexDirection: 'column',
+      gap: '1rem'
+    }}>
+      <h2 style={{ margin: 0 }}>Edit Description</h2>
+      
+      <form 
+        id="descriptionForm"
+        onSubmit={(e) => {
+          e.preventDefault();
           handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
           setModalOpen(false);
-        }
-      }}
-      >
-      <div style={{
-        backgroundColor: 'white',
-        padding: '2rem',
-        borderRadius: '0.5rem',
-        width: '90%',
-        maxWidth: '500px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem'
-      }}>
-      <h2 style={{ margin: 0 }}>Edit Description</h2>
-        <textarea
-        ref={textareaRef}
-        value={editText}
-        onChange={(e) => setEditText(e.target.value)}
-        style={{
-          width: '100%',
-          height: '150px',
-          padding: '0.5rem',
-          borderRadius: '0.25rem',
-          border: '1px solid #e2e8f0'
         }}
+        style={{ 
+          width: '100%', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '1rem' 
+        }}
+      >
+        <textarea
+          ref={textareaRef}
+          value={editText}
+          onChange={(e) => setEditText(e.target.value)}
+          autoFocus={true}
+          enterKeyHint="done"
+          autoCapitalize="sentences"
+          autoCorrect="on"
+          onKeyPress={(e) => {
+            // This catches the Enter key press from the keyboard
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              // Directly call the save function instead of trying to submit the form
+              handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
+              setModalOpen(false);
+            }
+          }}
+          style={{
+            width: '100%',
+            height: isMobile ? '200px' : '150px',
+            padding: '0.5rem',
+            borderRadius: '0.25rem',
+            border: '1px solid #e2e8f0',
+            fontSize: isMobile ? '1.1rem' : 'inherit'
+          }}
         />
-      <div style={{
-        display: 'flex',
-        gap: '0.5rem',
-        justifyContent: 'flex-end'
-      }}>
-    <Button 
-      size="sm"
-      variant="outline" 
-      onClick={() => setModalOpen(false)}
-      style={{
-        // Double the height on mobile
-        height: isMobile ? '3rem' : 'auto',
-        // Make buttons full width on mobile
-        width: isMobile ? '100%' : 'auto',
-        fontSize: isMobile ? '1.1rem' : 'inherit', // Larger text on mobile
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-    >
-      Cancel{!isMobile && " (Esc)"}
-    </Button>
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() => {
-        handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
-        setModalOpen(false);
-      }}
-      style={{
-        // Double the height on mobile
-        height: isMobile ? '3rem' : 'auto',
-        // Make buttons full width on mobile
-        width: isMobile ? '100%' : 'auto',
-        fontSize: isMobile ? '1.1rem' : 'inherit', // Larger text on mobile
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-    >
-      Save{!isMobile && " (⌘ + Enter)"}
-    </Button>
+        
+        <div style={{
+          display: 'flex',
+          gap: '0.5rem',
+          justifyContent: 'space-between', // Changed from flex-end to space-between
+          width: '100%'
+        }}>
+          <Button 
+            type="button"
+            size="sm"
+            variant="outline" 
+            onClick={() => setModalOpen(false)}
+            style={{
+              height: isMobile ? '3rem' : 'auto',
+              width: 'calc(50% - 0.25rem)', // 50% minus half the gap
+              fontSize: isMobile ? '1.1rem' : 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            Cancel{!isMobile && " (Esc)"}
+          </Button>
+          
+          <Button
+            type="submit"
+            size="sm"
+            variant="outline"
+            style={{
+              height: isMobile ? '3rem' : 'auto',
+              width: 'calc(50% - 0.25rem)', // 50% minus half the gap
+              fontSize: isMobile ? '1.1rem' : 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            Save{!isMobile && " (⌘ + Enter)"}
+          </Button>
+        </div>
+      </form>
+    </div>
   </div>
-      </div>
-      </div>
-      )}
-      {/* Add the BottomTray only for mobile */}
-      {isMobile && <BottomTray 
-        rotated={rotated} 
-        setRotated={setRotated} 
-        isMobile={isMobile}
-        flows={flows}
-        activeFlowId={activeFlowId}
-        setActiveFlowId={setActiveFlowId}
-        addNewFlow={addNewFlow}
-        onDeleteFlow={deleteFlow}
-        onRenameFlow={renameFlow}
-      />}
+)}
+
+    {/* Add the BottomTray only for mobile */}
+    {isMobile && <BottomTray 
+      rotated={rotated} 
+      setRotated={setRotated} 
+      isMobile={isMobile}
+      flows={flows}
+      activeFlowId={activeFlowId}
+      setActiveFlowId={setActiveFlowId}
+      addNewFlow={addNewFlow}
+      onDeleteFlow={deleteFlow}
+      onRenameFlow={renameFlow}
+    />}
   </div>
   );
 };
