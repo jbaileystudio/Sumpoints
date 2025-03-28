@@ -2015,6 +2015,21 @@ useEffect(() => {
   }
 }, [modalOpen, points]);
 
+// Add this as a new useEffect in your component
+useEffect(() => {
+  if (modalOpen && textareaRef.current) {
+    // Delay focus to ensure keyboard appears on mobile
+    const focusTimer = setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 300); // 300ms delay
+    
+    // Clean up the timer if component unmounts or modal closes
+    return () => clearTimeout(focusTimer);
+  }
+}, [modalOpen]); // Only run when modal open state changes
+
   const handleTextInput = (index, text, isGhost) => {
     const point = getAllPoints()[index];
     if (isGhost) {
@@ -3838,7 +3853,7 @@ useEffect(() => {
             // This catches the Enter key press from the keyboard
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              // Directly call the save function instead of trying to submit the form
+              // Always save and close, even if the field is empty
               handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
               setModalOpen(false);
             }
@@ -3865,7 +3880,8 @@ useEffect(() => {
             variant="outline" 
             onClick={() => setModalOpen(false)}
             style={{
-              height: isMobile ? '3rem' : 'auto',
+                    height: isMobile ? '3rem' : undefined, // Use default height on desktop
+
               width: 'calc(50% - 0.25rem)', // 50% minus half the gap
               fontSize: isMobile ? '1.1rem' : 'inherit',
               display: 'flex',
@@ -3881,7 +3897,8 @@ useEffect(() => {
             size="sm"
             variant="outline"
             style={{
-              height: isMobile ? '3rem' : 'auto',
+                    height: isMobile ? '3rem' : undefined, // Use default height on desktop
+
               width: 'calc(50% - 0.25rem)', // 50% minus half the gap
               fontSize: isMobile ? '1.1rem' : 'inherit',
               display: 'flex',
