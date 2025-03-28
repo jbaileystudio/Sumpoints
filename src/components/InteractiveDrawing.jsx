@@ -3846,18 +3846,9 @@ useEffect(() => {
           value={editText}
           onChange={(e) => setEditText(e.target.value)}
           autoFocus={true}
-          enterKeyHint="done"
           autoCapitalize="sentences"
           autoCorrect="on"
-          onKeyPress={(e) => {
-            // This catches the Enter key press from the keyboard
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              // Always save and close, even if the field is empty
-              handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
-              setModalOpen(false);
-            }
-          }}
+
           style={{
             width: '100%',
             height: isMobile ? '200px' : '150px',
@@ -3880,8 +3871,7 @@ useEffect(() => {
             variant="outline" 
             onClick={() => setModalOpen(false)}
             style={{
-                    height: isMobile ? '3rem' : undefined, // Use default height on desktop
-
+              height: isMobile ? '3rem' : undefined, // Use default height on desktop
               width: 'calc(50% - 0.25rem)', // 50% minus half the gap
               fontSize: isMobile ? '1.1rem' : 'inherit',
               display: 'flex',
@@ -3897,13 +3887,14 @@ useEffect(() => {
             size="sm"
             variant="outline"
             style={{
-                    height: isMobile ? '3rem' : undefined, // Use default height on desktop
-
+              height: isMobile ? '3rem' : undefined, // Use default height on desktop
               width: 'calc(50% - 0.25rem)', // 50% minus half the gap
               fontSize: isMobile ? '1.1rem' : 'inherit',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              backgroundColor: '#007AFF',
+              color: 'white'
             }}
           >
             Save{!isMobile && " (⌘ + Enter)"}
