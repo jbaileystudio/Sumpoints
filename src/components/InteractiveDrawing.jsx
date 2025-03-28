@@ -368,7 +368,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   
-  // Add this useEffect to handle outside clicks
+  // UeEffect to handle outside clicks
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -1461,10 +1461,11 @@ const handleReorder = (from, to) => {
   const [movedPoint] = newPoints.splice(from, 1);
   newPoints.splice(to, 0, movedPoint);
 
-  // Recalculate x positions and ensure points are connected in sequential order
+  // Recalculate x positions with proper spacing
   newPoints = newPoints.map((point, index) => ({
     ...point,
-    x: (index + 1) * G,  // Keep the x-coordinates in order
+    // Apply increased spacing in rotated mobile view
+    x: (isMobile && rotated) ? (index + 1) * (G * 1.5) : (index + 1) * G,
     // Each point should connect to the previous point
     connectsTo: index > 0 ? newPoints[index - 1].id : undefined
   }));
@@ -1854,12 +1855,29 @@ useEffect(() => {
   saveToLocalStorage();
 }, [flows, activeFlowId, filename]);
 
+  // UseEffect to maintain proper spacing at all times
   useEffect(() => {
-    if (drawingRef.current) {
-      const rect = drawingRef.current.getBoundingClientRect();
-      setCursor(rotated ? {x: cursor.y, y: cursor.y} : {x: cursor.x, y: cursor.x});
+    // Only do something if we're in the rotated view on mobile
+    if (rotated && isMobile) {
+      console.log("In rotated mobile view - updating spacing");
+      
+      // Apply increased spacing to all points
+      setActivePoints(prevPoints => 
+        prevPoints.map((point, index) => ({
+          ...point,
+          x: (index + 1) * (G * 1.5) // 50% more space between points
+        }))
+      );
+    } else {
+      // In horizontal view, ensure normal spacing
+      setActivePoints(prevPoints => 
+        prevPoints.map((point, index) => ({
+          ...point,
+          x: (index + 1) * G // Normal spacing
+        }))
+      );
     }
-  }, [rotated]);
+  }, [rotated, isMobile, activeFlowId]);
 
   useEffect(() => {
     if (modalOpen && textareaRef.current) {
@@ -1930,19 +1948,72 @@ useEffect(() => {
   };
 }, []);
 
-  const addGhostPoint = () => {
-    const x = getNextX();
+const increaseDescriptionSpacing = () => {
+  if (isMobile && rotated) {
+    setActivePoints(prevPoints => 
+      prevPoints.map((point, index) => ({
+        ...point,
+        x: (index + 1) * (G * 1.5) // Increase spacing by 50%
+      }))
+    );
+  }
+};
 
-  // Create a real point (like mobile does)
-    setActivePoints(s => [...s, {
-      x,
+const isFirstPointRef = useRef(true);
+
+
+
+const addGhostPoint = () => {
+  const x = getNextX();
+  
+  // Check if this is the first point
+  const isFirstPoint = points.length === 0;
+  
+  // If it's the first point, set the ref
+  if (isFirstPoint) {
+    isFirstPointRef.current = true;
+  }
+  
+  // Create a new point
+  setActivePoints(prevPoints => {
+    const newPoints = [...prevPoints, {
+      x: isMobile && rotated ? 
+        (prevPoints.length + 1) * (G * 1.5) : 
+        x,
       y: 50,
       text: '',
       id: Date.now()
-    }]);
+    }];
+    return newPoints;
+  });
+  
+  scrollToPoint(x);
+  
+  // For mobile, direct approach
+  if (isMobile) {
+    // Longer delay for first point
+    setTimeout(() => {
+      // Force open the modal for all points including first
+      setEditingPoint({
+        point: { id: Date.now(), text: '' }, // Dummy point, will be replaced
+        index: points.length // This will be the index of the new point
+      });
+      setEditText('');
+      setModalOpen(true);
+    }, isFirstPoint ? 300 : 200);
+  }
+};
 
-    scrollToPoint(x);
-  };
+useEffect(() => {
+  if (modalOpen && isFirstPointRef.current && points.length > 0) {
+    // This runs after the modal is opened for the first point
+    setEditingPoint({
+      point: points[0],
+      index: 0
+    });
+    isFirstPointRef.current = false; // Reset for next time
+  }
+}, [modalOpen, points]);
 
   const handleTextInput = (index, text, isGhost) => {
     const point = getAllPoints()[index];
@@ -2938,7 +3009,10 @@ useEffect(() => {
         width: '100%',
         minHeight: '100%',
         display: 'flex',
-        height: `${(points.length + ghostPoints.length + 4) * G}px`
+        // Less extra space - just enough for the plus button and one more description
+        height: isMobile && rotated ? 
+          `${(points.length + 2) * (G * 1.5)}px` : 
+          `${(points.length + ghostPoints.length + 4) * G}px`
 
       }}
     >
@@ -2947,33 +3021,42 @@ useEffect(() => {
         background: 'white',
         borderRight: '1px solid #e2e8f0',
         flexShrink: 0,
-        width: isMobile ? '100%' : `calc(100% - ${H})`  // Full width on mobile
+        width: isMobile ? '100%' : `calc(100% - ${H})`,
+  // More precise height calculation - just enough for one extra description
+  minHeight: isMobile && rotated ? 
+    `${(points.length + 2) * (G * 1.5)}px` : 
+    'auto'
       }}>
         <div style={{
           position: 'absolute',
-          top: `${getNextX()}px`,
+          top: isMobile && rotated ? 
+            `${(points.length + 1) * (G * 1.5) + (G * 0.2)}px` : // Add extra spacing
+            `${getNextX()}px`,
           left: isMobile ? '50%' : '60%',  // Use 50% on mobile, 60% otherwise on vertical
           transform: 'translate(-50%,-50%) rotate(90deg)',
-          width: '2.5rem',
-          height: '5rem', // Vertical Plus Button Width
+          width: isMobile ? '5rem' : '2.5rem', //Vertical Plus Button Height
+          height: isMobile ? '20rem' : '5rem', // Vertical Plus Button Width
           border: '1px solid #e2e8f0',
-          borderRadius: '.375rem'
+          borderRadius: '.375rem',
+          backgroundColor: 'white', // Ensure white background
+          zIndex: 5 // Keep above other elements
         }}>
 
-        <Button  
-        size="sm"
-        variant="ghost"
-        onClick={addGhostPoint}
-        style={{ 
-          width: '100%', 
-          height: '100%', 
-          borderRadius: 0,
-          transition: 'background-color 0.2s'
-        }}
-        className="hover:bg-gray-100"
-        >
-        <Plus className="w-4 h-4"/>
-        </Button>
+          <Button  
+            size="sm"
+            variant="ghost"
+            onClick={addGhostPoint}
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              borderRadius: 0,
+              transition: 'background-color 0.2s',
+              fontSize: isMobile ? '1.25rem' : 'inherit'
+            }}
+            className="hover:bg-gray-100"
+            >
+            <Plus className="w-4 h-4"/>
+          </Button>
         </div>
 
         {getAllPoints().map((point, i) => (
@@ -3145,7 +3228,7 @@ useEffect(() => {
                  placeholder={`Description ${i + 1}`}
                  style={{
                    width: '200px',
-                   height: '2.5rem',
+                   height: isMobile ? '5rem' : '2.5rem',
                    border: '1px solid #e2e8f0',
                    borderRadius: '0.375rem'
                  }}
@@ -3697,21 +3780,20 @@ useEffect(() => {
   )}
 
   {modalOpen && (
-    <div 
-    style={{
+    <div style={{
       position: 'fixed',
       top: 0,
       left: 0,
       width: '100vw',
-        height: '100vh',  // Use vh instead of percentage or dvh
-        maxHeight: 'none',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        overflow: 'hidden'  // Prevent any scrolling
-      }}
+      height: '100vh',  // Use vh instead of percentage or dvh
+      maxHeight: 'none',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      overflow: 'hidden'  // Prevent any scrolling
+    }}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
           setModalOpen(false);
@@ -3732,41 +3814,61 @@ useEffect(() => {
         gap: '1rem'
       }}>
       <h2 style={{ margin: 0 }}>Edit Description</h2>
-      <textarea
-      ref={textareaRef}
-      value={editText}
-      onChange={(e) => setEditText(e.target.value)}
-      style={{
-        width: '100%',
-        height: '150px',
-        padding: '0.5rem',
-        borderRadius: '0.25rem',
-        border: '1px solid #e2e8f0'
-      }}
-      />
+        <textarea
+        ref={textareaRef}
+        value={editText}
+        onChange={(e) => setEditText(e.target.value)}
+        style={{
+          width: '100%',
+          height: '150px',
+          padding: '0.5rem',
+          borderRadius: '0.25rem',
+          border: '1px solid #e2e8f0'
+        }}
+        />
       <div style={{
         display: 'flex',
         gap: '0.5rem',
         justifyContent: 'flex-end'
       }}>
-      <Button 
+    <Button 
       size="sm"
       variant="outline" 
       onClick={() => setModalOpen(false)}
-      >
+      style={{
+        // Double the height on mobile
+        height: isMobile ? '3rem' : 'auto',
+        // Make buttons full width on mobile
+        width: isMobile ? '100%' : 'auto',
+        fontSize: isMobile ? '1.1rem' : 'inherit', // Larger text on mobile
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
       Cancel{!isMobile && " (Esc)"}
-      </Button>
-      <Button
+    </Button>
+    <Button
       size="sm"
       variant="outline"
       onClick={() => {
         handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
         setModalOpen(false);
       }}
-      >
+      style={{
+        // Double the height on mobile
+        height: isMobile ? '3rem' : 'auto',
+        // Make buttons full width on mobile
+        width: isMobile ? '100%' : 'auto',
+        fontSize: isMobile ? '1.1rem' : 'inherit', // Larger text on mobile
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
       Save{!isMobile && " (⌘ + Enter)"}
-      </Button>
-      </div>
+    </Button>
+  </div>
       </div>
       </div>
       )}
