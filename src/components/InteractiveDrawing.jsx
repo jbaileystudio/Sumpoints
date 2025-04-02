@@ -3812,6 +3812,10 @@ useEffect(() => {
   onKeyDown={(e) => {
     if (e.key === 'Escape') {
       setModalOpen(false);
+    } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      // Restore the Cmd+Enter shortcut
+      handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
+      setModalOpen(false);
     }
   }}
   >
