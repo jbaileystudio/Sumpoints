@@ -3852,6 +3852,15 @@ useEffect(() => {
           autoFocus={true}
           autoCapitalize="sentences"
           autoCorrect="on"
+          onKeyPress={(e) => {
+            // Only handle plain Enter, not with modifiers (to avoid conflict with Cmd+Enter)
+            if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+              e.preventDefault();
+              // Save and close
+              handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
+              setModalOpen(false);
+            }
+          }}
 
           style={{
             width: '100%',
