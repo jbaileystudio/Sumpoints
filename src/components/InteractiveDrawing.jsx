@@ -979,16 +979,16 @@ useEffect(() => {
     console.log('Active flow:', activeFlow);
 
     // Add the formatted filename here, right after getting allPoints
-const formattedFilename = `${filename}_${activeFlow.name}_${allPoints.length} Events${
-  cumulativeType !== 'none' ? `_${calculateScores(activeFlow.points).total} Cml Score` : ''
-}${
-  cumulativeType === 'bars' ? '_Bars' : 
-  cumulativeType === 'line' ? '_Line' : ''
-}${
-  cutoutType === 'yellow' ? '_Yellow Cutout' :
-  cutoutType === 'blue' ? '_Blue Cutout' :
-  cutoutType === 'both' ? '_Green Cutout' : ''
-}`;
+    const formattedFilename = `${filename}_${activeFlow.name}_${allPoints.length} Events${
+      cumulativeType !== 'none' ? `_${calculateScores(activeFlow.points).total} Cml Score` : ''
+    }${
+      cumulativeType === 'bars' ? '_Bars' : 
+      cumulativeType === 'line' ? '_Line' : ''
+    }${
+      cutoutType === 'yellow' ? '_Yellow Cutout' :
+      cutoutType === 'blue' ? '_Blue Cutout' :
+      cutoutType === 'both' ? '_Green Cutout' : ''
+    }`;
     // Calculate minimum width for 15 points
     const minWidth = 16 * G;  // 15 points + 1 extra space
     const totalWidth = Math.max(minWidth, (allPoints.length + 1) * G);
@@ -1139,27 +1139,14 @@ ${showPoints ? `
 
 
     <!-- Add cumulative visualization if selected -->
-    ${cumulativeType === 'bars' ? 
-      scores.cumulative.map((score, i) => {
-        const scale = 2;
-        const barHeight = Math.abs(score * 5) * scale;
-        const y = score >= 0 ? 300 - barHeight : 300;
-        return `
-          <rect
-            x="${(i + 1) * G - (G * 0.4)}"
-            y="${y}"
-            width="${G * 0.8}"
-            height="${barHeight}"
-            fill="#666666"
-          />
-        `;
-      }).join('')
-    : cumulativeType === 'line' ?
+    ${cumulativeType === 'line' ? 
       (() => {
-        const scale = 2;
+        const scale = 2; // PDF scale factor
+        const gridFactor = 5; // Grid hash mark scale
+        
         const points = scores.cumulative.map((score, i) => ({
           x: (i + 1) * G,
-          y: 300 - (score * 5 * scale)
+          y: 300 - (score * gridFactor * 6) // Use 6 for PDF scaling
         }));
         
         const pathData = points.reduce((path, point, index) => 
@@ -1175,6 +1162,23 @@ ${showPoints ? `
           />
         `;
       })()
+    : cumulativeType === 'bars' ?
+      scores.cumulative.map((score, i) => {
+        const gridFactor = 5; // Grid hash mark scale
+        const offsetPercent = score * gridFactor;
+        const barHeight = Math.abs(offsetPercent * 6); // Use 6 for PDF scaling
+        const y = score >= 0 ? 300 - barHeight : 300;
+        
+        return `
+          <rect
+            x="${(i + 1) * G - (G * 0.4)}"
+            y="${y}"
+            width="${G * 0.8}"
+            height="${barHeight}"
+            fill="#666666"
+          />
+        `;
+      }).join('')
     : ''}
   </svg>
 `;
@@ -2118,12 +2122,10 @@ useEffect(() => {
 // Score calculation function
   const calculateScores = (points) => {
     let runningScores = points.map(point => {
-      console.log('Raw y-value:', point.y);
-    // Divide by 5 to convert y-units to hash marks
+      // This calculation determines how many hash marks away from center
       const distanceFromCenter = point.y > 50 ? 
-      -Math.round((point.y - 50) / 5) : 
-      Math.round((50 - point.y) / 5);
-      console.log('Calculated hash distance:', distanceFromCenter);
+        -Math.round((point.y - 50) / 5) : 
+        Math.round((50 - point.y) / 5);
       return distanceFromCenter;
     });
 
@@ -2266,39 +2268,46 @@ useEffect(() => {
     {/* Cumulative Line */}
     {cumulativeType === 'line' && allPoints.length > 0 && (() => {
       const scores = calculateScores(allPoints);
+      
+      // Define a grid factor based on hash marks (each hash mark is 5 units)
+      const gridFactor = 5; // 5 units per hash mark
 
       let segments = [];
       let currentSegment = { points: [], isPositive: scores.cumulative[0] >= 0 };
 
       scores.cumulative.forEach((score, i) => {
-      // Calculate position based on orientation
+        // Calculate position based on orientation and grid factor
         let x, y;
         if (isVertical) {
-        // Vertical view: x is score-based, y is grid-based
-          x = fromPercent(50, rect.width) + (score * 5);
+          // For vertical, calculate percentage first then convert to pixels
+          const offsetPercent = score * gridFactor;
+          x = fromPercent(50 + offsetPercent, rect.width);
           y = (i + 1) * G;
         } else {
-        // Horizontal view: original calculation
+          // For horizontal, calculate percentage first then convert to pixels
+          const offsetPercent = score * gridFactor;
           x = (i + 1) * G;
-          y = fromPercent(50, rect.height) - (score * 5);
+          y = fromPercent(50 - offsetPercent, rect.height);
         }
 
         if (i > 0 && (score >= 0) !== currentSegment.isPositive) {
           const prevScore = scores.cumulative[i - 1];
 
-        // Calculate previous point based on orientation
+          // Calculate previous point based on orientation
           let prevX, prevY;
           if (isVertical) {
-            prevX = fromPercent(50, rect.width) + (prevScore * 5);
+            const prevOffsetPercent = prevScore * gridFactor;
+            prevX = fromPercent(50 + prevOffsetPercent, rect.width);
             prevY = i * G;
           } else {
+            const prevOffsetPercent = prevScore * gridFactor;
             prevX = i * G;
-            prevY = fromPercent(50, rect.height) - (prevScore * 5);
+            prevY = fromPercent(50 - prevOffsetPercent, rect.height);
           }
 
           const ratio = Math.abs(prevScore) / (Math.abs(prevScore) + Math.abs(score));
 
-        // Calculate crossing point based on orientation
+          // Calculate crossing point based on orientation
           let crossingX, crossingY;
           if (isVertical) {
             crossingX = fromPercent(50, rect.width);
@@ -2323,79 +2332,89 @@ useEffect(() => {
 
       return (
         <>
-        {segments.map((segment, i) => {
-          const points = segment.points;
-          let d = `M ${points[0].x} ${points[0].y}`;
-          
-          for (let i = 1; i < points.length; i++) {
-            d += ` S ${points[i].x} ${points[i].y} ${points[i].x} ${points[i].y}`;
-          }
+          {segments.map((segment, i) => {
+            const points = segment.points;
+            let d = `M ${points[0].x} ${points[0].y}`;
+            
+            for (let i = 1; i < points.length; i++) {
+              d += ` L ${points[i].x} ${points[i].y}`;
+            }
 
-          return (
-            <path
-            key={`segment-${i}`}
-            d={d}
-            stroke={editMode ? 
-                (segment.isPositive ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") : // Faded in edit mode
-                (segment.isPositive ? "rgba(52, 211, 153, 1)" : "rgba(248, 113, 113, 1)")}      // Normal colors
+            return (
+              <path
+                key={`segment-${i}`}
+                d={d}
+                stroke={editMode ? 
+                  (segment.isPositive ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") : 
+                  (segment.isPositive ? "rgba(52, 211, 153, 1)" : "rgba(248, 113, 113, 1)")}
                 strokeWidth="2"
                 fill="none"
                 style={{
                   transition: 'stroke 0.2s ease'
                 }}
-                />
-                );
-        })}
+              />
+            );
+          })}
         </>
-        );
+      );
     })()}
 
     {/* Score Bars */}
     {cumulativeType === 'bars' && allPoints.length > 0 && (() => {
       const scores = calculateScores(allPoints);
+      
+      // Define a grid factor based on hash marks (each hash mark is 5 units)
+      // This will scale the bars to match exactly with grid lines
+      const gridFactor = 5; // 5 units per hash mark
+      
       return scores.cumulative.map((score, i) => {
-        const barHeight = Math.abs(score * 5);
-
+        // Calculate height in grid units
+        const barHeight = Math.abs(score * gridFactor);
+        
         if (isVertical) {
+          // Vertical orientation (bars extend left/right)
           const x = score >= 0 ? 
-          fromPercent(50, rect.width) : 
-          fromPercent(50, rect.width) - barHeight;
+            fromPercent(50, rect.width) : 
+            fromPercent(50, rect.width) - fromPercent(barHeight, rect.width);
+          
           return (
             <rect
-            key={`bar-${i}`}
-            x={x}
-            y={(i + 1) * G - (G * 0.4)}
-            height={G * 0.8}
-            width={barHeight}
-            fill={editMode ?
-            (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
-            (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
-            rx={2}
-            style={{
-              transition: 'fill 0.2s ease'
-            }}
+              key={`bar-${i}`}
+              x={x}
+              y={(i + 1) * G - (G * 0.4)}
+              height={G * 0.8}
+              width={fromPercent(barHeight, rect.width)}
+              fill={editMode ?
+                (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
+                (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
+              rx={2}
+              style={{
+                transition: 'fill 0.2s ease'
+              }}
             />
-            );
+          );
         } else {
+          // Horizontal orientation (bars extend up/down)
           const y = score >= 0 ? 
-          fromPercent(50, rect.height) - barHeight : 
-          fromPercent(50, rect.height);
+            fromPercent(50, rect.height) - fromPercent(barHeight, rect.height) : 
+            fromPercent(50, rect.height);
+          
           return (
             <rect
-            key={`bar-${i}`}
-            x={(i + 1) * G - (G * 0.4)}
-            y={y}
-            width={G * 0.8}
-            height={barHeight}
-            fill={editMode ?
-            (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
-            (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
-            rx={2}
-            style={{
-              transition: 'fill 0.2s ease'
-            }}
+              key={`bar-${i}`}
+              x={(i + 1) * G - (G * 0.4)}
+              y={y}
+              width={G * 0.8}
+              height={fromPercent(barHeight, rect.height)}
+              fill={editMode ?
+                (score >= 0 ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)") :
+                (score >= 0 ? "rgba(52, 211, 153, 0.4)" : "rgba(248, 113, 113, 0.4)")}
+              rx={2}
+              style={{
+                transition: 'fill 0.2s ease'
+              }}
             />
-            );
+          );
         }
       });
     })()}
