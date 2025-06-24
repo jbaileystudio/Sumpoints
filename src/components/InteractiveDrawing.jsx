@@ -3010,54 +3010,16 @@ useEffect(() => {
     </div>
   )}
 
-  {/* Center - Points Mode + Cumulative + Color Cutout */}
+  {/* Center - Cumulative + Color Cutout */}
   <div style={{ 
     display: 'flex', 
     alignItems: 'center', 
     gap: '0.75rem', 
-    flex: isMobile ? 'none' : 1,
-    justifyContent: 'center'
+    flex: isMobile ? 'none' : 1,  // Takes remaining space on desktop
+    justifyContent: 'center',     // Centers the content within that space
+    width: isMobile ? 'auto' : '100%'  // Ensure full width usage on desktop
   }}>
     
-    {/* Points Mode dropdown - only render on desktop */}
-    {!isMobile && (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '0.5rem', 
-        height: '2.25rem' 
-      }}>
-        <select 
-          value={pointsMode}
-          onChange={(e) => {
-            const value = e.target.value;
-            setPointsMode(value);
-            
-            if (value === 'show') {
-              setShowPoints(true);
-              setEditMode(false);
-            } else if (value === 'hide') {
-              setShowPoints(false);
-              setEditMode(false);
-            } else if (value === 'delete') {
-              setShowPoints(true);
-              setEditMode(true);
-            }
-          }}
-          style={{
-            padding: '0.25rem',
-            borderRadius: '0.25rem',
-            border: '1px solid #e2e8f0',
-            height: '1.75rem'
-          }}
-        >
-          <option value="show">Show Points</option>
-          <option value="hide">Hide Points</option>
-          <option value="delete">Delete Points</option>
-        </select>
-      </div>
-    )}
-
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
       <select 
         value={cumulativeType} 
@@ -3099,7 +3061,7 @@ useEffect(() => {
     </div>
   </div>
 
-  {/* Right - Delete All (only render on desktop) */}
+  {/* Right - Delete All + Show Points (only render on desktop) */}
   {!isMobile && (
     <div style={{ 
       display: 'flex',
@@ -3122,6 +3084,7 @@ useEffect(() => {
             color: '#ef4444',
             padding: 0,
             margin: 0,
+            marginRight: '0.75rem',
             height: 'auto',
             minHeight: 'unset',
             lineHeight: '1',
@@ -3132,6 +3095,43 @@ useEffect(() => {
           Delete All
         </Button>
       )}
+
+      {/* Move the Show Points dropdown inside this container */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.5rem', 
+        height: '2.25rem' 
+      }}>
+        <select 
+          value={pointsMode}
+          onChange={(e) => {
+            const value = e.target.value;
+            setPointsMode(value);
+            
+            if (value === 'show') {
+              setShowPoints(true);
+              setEditMode(false);
+            } else if (value === 'hide') {
+              setShowPoints(false);
+              setEditMode(false);
+            } else if (value === 'delete') {
+              setShowPoints(true);
+              setEditMode(true);
+            }
+          }}
+          style={{
+            padding: '0.25rem',
+            borderRadius: '0.25rem',
+            border: '1px solid #e2e8f0',
+            height: '1.75rem'
+          }}
+        >
+          <option value="show">Show Points</option>
+          <option value="hide">Hide Points</option>
+          <option value="delete">Delete Points</option>
+        </select>
+      </div>
     </div>
   )}
 </div>
