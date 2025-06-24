@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Save, Plus } from 'lucide-react';
+import { Save, Plus, RotateCwSquare, RotateCcwSquare } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { GripVertical } from 'lucide-react';
@@ -418,21 +418,20 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
           backgroundColor: 'white',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',  // Add this line
           gap: '0.5rem',
           fontSize: '0.875rem',
-          height: '2.25rem'
+          height: '2.25rem',
+          width: '240px'
         }}
       >
-        <span>Flow: {activeFlow?.name}</span>
-        <span style={{ 
-          borderLeft: '1px solid #e2e8f0', 
-          height: '1rem',
-          marginLeft: '0.25rem'
-        }}></span>
-        <span style={{ 
-          transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
-          transition: 'transform 0.2s'
-        }}>▼</span>
+        <span>{activeFlow?.name}</span>
+        <div style={{ display: 'flex', alignItems: 'center' }}>  {/* Wrap arrow */}
+          <span style={{ 
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
+            transition: 'transform 0.2s'
+          }}>▼</span>
+        </div>
       </button>
       
       {isOpen && (
@@ -445,7 +444,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
           border: '1px solid #e2e8f0',
           borderRadius: '0.375rem',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          width: '200px',
+          width: '240px',
           maxHeight: '300px',
           overflowY: 'auto'
         }}>
@@ -669,6 +668,7 @@ const InteractiveDrawing = () => {
   const [activeFlowId, setActiveFlowId] = useState("flow-1");
   const [svgBounds, setSvgBounds] = useState({ top: 0, left: 0, width: 0, height: 0 });
   const [hideSvgContent, setHideSvgContent] = useState(false);
+  const [pointsMode, setPointsMode] = useState('show'); // 'show', 'hide', or 'delete'
 
 
 const renameFlow = (flowId, newName) => {
@@ -2753,6 +2753,64 @@ useEffect(() => {
           0%, 20% { transform: translateY(0); } /* Stay in place for first 20% of animation (down from 30%) */
           100% { transform: translateY(100%); }
         }
+
+        .rotating-cw-icon {
+          transition: transform 0.3s ease;
+          transform: rotate(0deg);
+        }
+
+        .icon-button:hover .rotating-cw-icon {
+          transform: rotate(45deg);
+        }
+
+        .rotating-ccw-icon {
+          transition: transform 0.3s ease;
+          transform: rotate(0deg);
+        }
+
+        .icon-button:hover .rotating-ccw-icon {
+          transform: rotate(-45deg);
+        }
+
+        .icon-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          background-color: white;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+          margin: 0px;
+          width: 36px;
+          height: 36px;
+        }
+
+        .icon-button:hover {
+          background-color: #f8fafc;
+        }
+
+        .icon-button:active {
+          background-color: #e2e8f0;
+        }
+
+        .rotation-icon {
+          width: 16px;
+          height: 16px;
+        }
+
+        .icon-button:disabled:hover .rotating-cw-icon {
+          transform: rotate(0deg);
+        }
+
+        .icon-button:disabled:hover .rotating-ccw-icon {
+          transform: rotate(0deg);
+        }
+
+        .icon-button:disabled {
+          cursor: default;
+        }
       `}</style>
 
     <style>{`
@@ -2813,72 +2871,59 @@ useEffect(() => {
   background: 'white',
   borderBottom: '1px solid #e2e8f0',
   display: 'flex',
+  flexDirection: 'column',
   justifyContent: 'center',
   width: '100%',
   touchAction: 'none',
   userSelect: 'none',
 }}>
-  {/* Main content container */}
+  
+  {/* FIRST ROW */}
   <div style={{
-    padding: '.667rem',
+    padding: '.667rem 2rem .334rem 2rem',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: isMobile ? 'center' : 'space-between',
     width: '100%',
   }}>
-    {/* Single flex container for all items */}
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.75rem',
-      flexWrap: 'wrap',
-      justifyContent: isMobile ? 'center' : 'start',
-      width: '100%'
+    
+    {/* Left - Flow selector */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '0.5rem',
+      width: '300px',
+      justifyContent: 'flex-start'
     }}>
-
-    {/* Add the flow dropdown here for desktop view */}
-    {!isMobile && (
-      <DesktopFlowDropdown
-        flows={flows}
-        activeFlowId={activeFlowId}
-        onSelectFlow={setActiveFlowId}
-        onAddFlow={addNewFlow}
-        onDeleteFlow={deleteFlow}
-        onRenameFlow={renameFlow}
-      />
-    )}
-
-      {/* Rotation buttons */}
       {!isMobile && (
         <>
-          <Button 
-            size="sm"
-            variant="outline"
-            style={{ width: '7rem' }}
-            onClick={() => setRotated(false)}
-            disabled={!rotated}
-          >
-            Turn Left
-          </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            style={{ width: '7rem' }}
-            onClick={() => setRotated(true)}
-            disabled={rotated}
-          >
-            Turn Right
-          </Button>
+          <span style={{ fontSize: '14px', lineHeight: '1' }}>Flow:</span>
+          <DesktopFlowDropdown
+            flows={flows}
+            activeFlowId={activeFlowId}
+            onSelectFlow={setActiveFlowId}
+            onAddFlow={addNewFlow}
+            onDeleteFlow={deleteFlow}
+            onRenameFlow={renameFlow}
+          />
         </>
       )}
+    </div>
 
-      {/* Document name input */}
+    {/* Center - Document name + Export */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '0.75rem',
+      flex: isMobile ? 'none' : 1,
+      justifyContent: 'center'
+    }}>
       <Input 
         type="text"
         value={filename}
         onChange={(e) => setFilename(e.target.value)}
         placeholder="Drawing Name"
-        autoComplete="off"  // Add this line
+        autoComplete="off"
         style={{
           minWidth: '200px',
           maxWidth: '14rem',
@@ -2891,7 +2936,6 @@ useEffect(() => {
         }}
       />
 
-      {/* Export button */}
       <Button 
         size="sm" 
         variant="outline" 
@@ -2900,67 +2944,105 @@ useEffect(() => {
           display: 'flex', 
           alignItems: 'center', 
           gap: '0.5rem',
-          height: '2.25rem'
+          height: '2.25rem',
+          minWidth: '130px'
         }}
       >
         <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
       </Button>
+    </div>
 
-      {/* Delete Mode Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={editMode}
-            onChange={handleEditModeToggle}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-        <span style={{ fontSize: '14px', lineHeight: '1' }}>Delete Points</span>
-      </div>
+    {/* Right - Rotation buttons */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '0.75rem',
+      width: '300px',
+      justifyContent: 'flex-end'
+    }}>
+      {!isMobile && (
+        <>
+          <button 
+            className="icon-button"
+            onClick={() => setRotated(false)}
+            disabled={!rotated}
+            style={{ opacity: !rotated ? 0.5 : 1 }}
+          >
+            <RotateCcwSquare className="rotating-ccw-icon rotation-icon" />
+          </button>
+          <button 
+            className="icon-button"
+            onClick={() => setRotated(true)}
+            disabled={rotated}
+            style={{ opacity: rotated ? 0.5 : 1 }}
+          >
+            <RotateCwSquare className="rotating-cw-icon rotation-icon" />
+          </button>
+        </>
+      )}
+    </div>
+  </div>
 
-      {/* Show Points Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={showPoints}
-            onChange={(e) => setShowPoints(e.target.checked)}
-          />
-          <span className="toggle-slider"></span>
-        </label>
-        <span style={{ fontSize: '14px', lineHeight: '1' }}>Show Points</span>
-      </div>
+  {/* SECOND ROW */}
+<div style={{
+  padding: '.334rem 2rem .667rem 2rem',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: isMobile ? 'center' : 'space-between',
+  width: '100%',
+}}>
+  
+  {/* Left - Dot/Description count (only render on desktop) */}
+  {!isMobile && (
+    <div style={{ 
+      display: 'flex',
+      alignItems: 'center',
+      width: '300px',
+      justifyContent: 'flex-start'
+    }}>
+      <span style={{ fontSize: '14px', lineHeight: '1' }}>
+        {rotated ? (
+          `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+        ) : (
+          `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+        )}
+      </span>
+    </div>
+  )}
 
-      {/* Cumulative dropdown */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
-        <span style={{ fontSize: '14px', lineHeight: '1' }}>Cumulative:</span>
+  {/* Center - Points Mode + Cumulative + Color Cutout */}
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.75rem', 
+    flex: isMobile ? 'none' : 1,
+    justifyContent: 'center'
+  }}>
+    
+    {/* Points Mode dropdown - only render on desktop */}
+    {!isMobile && (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.5rem', 
+        height: '2.25rem' 
+      }}>
         <select 
-          value={cumulativeType} 
-          onChange={(e) => setCumulativeType(e.target.value)}
-          style={{
-            padding: '0.25rem',
-            borderRadius: '0.25rem',
-            border: '1px solid #e2e8f0',
-            height: '1.75rem'
-          }}
-        >
-          <option value="none">None</option>
-          <option value="bars">Bars</option>
-          <option value="line">Line</option>
-        </select>
-      </div>
-
-      {/* Color Cutout dropdown */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
-        <span style={{ fontSize: '14px', lineHeight: '1' }}>Color Cutout:</span>
-        <select 
-          value={cutoutType}
+          value={pointsMode}
           onChange={(e) => {
             const value = e.target.value;
-            setCutoutType(value);
-            setShowDigitalCutout(value === 'yellow');
-            setShowAnalyticsCutout(value === 'blue');
+            setPointsMode(value);
+            
+            if (value === 'show') {
+              setShowPoints(true);
+              setEditMode(false);
+            } else if (value === 'hide') {
+              setShowPoints(false);
+              setEditMode(false);
+            } else if (value === 'delete') {
+              setShowPoints(true);
+              setEditMode(true);
+            }
           }}
           style={{
             padding: '0.25rem',
@@ -2969,27 +3051,109 @@ useEffect(() => {
             height: '1.75rem'
           }}
         >
-          <option value="none">None</option>
-          <option value="yellow">Yellow</option>
-          <option value="blue">Blue</option>
-          <option value="both">Both</option>
+          <option value="show">Show Points</option>
+          <option value="hide">Hide Points</option>
+          <option value="delete">Delete Points</option>
         </select>
       </div>
+    )}
 
-      {/* Dot count */}
-      <div style={{ display: 'flex', alignItems: 'center', height: '2.25rem' }}>
-        <span style={{ fontSize: '14px', lineHeight: '1' }}>
-          {rotated ? (
-            `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
-          ) : (
-            `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
-          )}
-        </span>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
+      <select 
+        value={cumulativeType} 
+        onChange={(e) => setCumulativeType(e.target.value)}
+        style={{
+          padding: '0.25rem',
+          borderRadius: '0.25rem',
+          border: '1px solid #e2e8f0',
+          height: '1.75rem'
+        }}
+      >
+        <option value="none">Cumulative Control</option>
+        <option value="bars">Bars</option>
+        <option value="line">Line</option>
+      </select>
+    </div>
 
-      {/* Delete All button */}
-      {editMode && (
-        <div style={{ display: 'flex', alignItems: 'center', height: '2.25rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
+      <select 
+        value={cutoutType}
+        onChange={(e) => {
+          const value = e.target.value;
+          setCutoutType(value);
+          setShowDigitalCutout(value === 'yellow');
+          setShowAnalyticsCutout(value === 'blue');
+        }}
+        style={{
+          padding: '0.25rem',
+          borderRadius: '0.25rem',
+          border: '1px solid #e2e8f0',
+          height: '1.75rem'
+        }}
+      >
+        <option value="none">Color Control</option>
+        <option value="yellow">Yellow</option>
+        <option value="blue">Blue</option>
+        <option value="both">Both</option>
+      </select>
+    </div>
+  </div>
+
+  {/* Right - Delete All (only render on desktop) */}
+  {!isMobile && (
+    <div style={{ 
+      display: 'flex',
+      alignItems: 'center', 
+      gap: '0.75rem',
+      width: '300px',
+      justifyContent: 'flex-end'
+    }}>
+      {pointsMode === 'delete' && (
+        <Button 
+          size="sm"
+          variant="link"
+          onClick={() => {
+            setActivePoints([]);
+            setActiveDigitalPoints(new Set());
+            setActiveBluePoints(new Set());
+            setPointsMode('show');
+          }}
+          style={{ 
+            color: '#ef4444',
+            padding: 0,
+            margin: 0,
+            height: 'auto',
+            minHeight: 'unset',
+            lineHeight: '1',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          Delete All
+        </Button>
+      )}
+    </div>
+  )}
+</div>
+
+  {/* THIRD ROW - Mobile only */}
+  {isMobile && (
+    <div style={{
+      padding: '0 2rem .667rem 2rem',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '1.5rem',
+      width: '100%',
+    }}>
+      
+      {/* Left side - Points Mode dropdown */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.75rem',
+      }}>
+        {pointsMode === 'delete' && (
           <Button 
             size="sm"
             variant="link"
@@ -2997,9 +3161,7 @@ useEffect(() => {
               setActivePoints([]);
               setActiveDigitalPoints(new Set());
               setActiveBluePoints(new Set());
-
-              // Turn off delete mode since there are no more points
-              setEditMode(false);
+              setPointsMode('show');
             }}
             style={{ 
               color: '#ef4444',
@@ -3014,10 +3176,53 @@ useEffect(() => {
           >
             Delete All
           </Button>
-        </div>
-      )}
+        )}
+
+        <select 
+          value={pointsMode}
+          onChange={(e) => {
+            const value = e.target.value;
+            setPointsMode(value);
+            
+            if (value === 'show') {
+              setShowPoints(true);
+              setEditMode(false);
+            } else if (value === 'hide') {
+              setShowPoints(false);
+              setEditMode(false);
+            } else if (value === 'delete') {
+              setShowPoints(true);
+              setEditMode(true);
+            }
+          }}
+          style={{
+            padding: '0.25rem',
+            borderRadius: '0.25rem',
+            border: '1px solid #e2e8f0',
+            height: '1.75rem'
+          }}
+        >
+          <option value="show">Show Points</option>
+          <option value="hide">Hide Points</option>
+          <option value="delete">Delete Points</option>
+        </select>
+      </div>
+
+      {/* Right side - Dot/Description count */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center',
+      }}>
+        <span style={{ fontSize: '14px', lineHeight: '1' }}>
+          {rotated ? (
+            `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumul Score: ${calculateScores(points).total}` : ''}`
+          ) : (
+            `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumul Score: ${calculateScores(points).total}` : ''}`
+          )}
+        </span>
+      </div>
     </div>
-  </div>
+  )}
 </div>
               
 {rotated ? (
