@@ -980,7 +980,7 @@ useEffect(() => {
 
     // Add the formatted filename here, right after getting allPoints
     const formattedFilename = `${filename}_${activeFlow.name}_${allPoints.length} Events${
-      cumulativeType !== 'none' ? `_${calculateScores(activeFlow.points).total} Cml Score` : ''
+      cumulativeType !== 'none' ? `_Cumulative Score ${calculateScores(activeFlow.points).total}` : ''
     }${
       cumulativeType === 'bars' ? '_Bars' : 
       cumulativeType === 'line' ? '_Line' : ''
@@ -1195,9 +1195,9 @@ ${showPoints ? `
     // Before the PDF text gets set
     const stats = getCutoutStats(points, digitalPoints, bluePoints, cutoutType);
     const cutoutText = cutoutType !== 'none' && stats ? 
-      `${cutoutType === 'yellow' ? 'Yellow' : cutoutType === 'blue' ? 'Blue' : 'Green'} Cutout - ` +
+      `${cutoutType === 'yellow' ? 'Yellow' : cutoutType === 'blue' ? 'Blue' : 'Green'} Cutout: ` +
       `${stats.covered} Events Covered (${stats.coveredPercent}%), ` +
-      `${stats.notCovered} Events Not (${stats.notCoveredPercent}%)` 
+      `${stats.notCovered} Events Not Covered (${stats.notCoveredPercent}%)` 
       : '';
 
       // Keep the title as is
@@ -1207,13 +1207,13 @@ ${showPoints ? `
       // Add title and count right after PDF creation
       pdf.setFontSize(12);
       pdf.text(
-        `${activeFlow.name} | ${allPoints.length} Events${
-          cumulativeType !== 'none' ? ` | ${calculateScores(activeFlow.points).total} Cml Score` : ''
+        `${activeFlow.name} / ${allPoints.length} Events${
+          cumulativeType !== 'none' ? ` / Cumulative Score ${calculateScores(activeFlow.points).total}` : '' 
         }${
-          cumulativeType === 'bars' ? ' | Bars' : 
-          cumulativeType === 'line' ? ' | Line' : ''
+          cumulativeType === 'bars' ? ' / Bars' : 
+          cumulativeType === 'line' ? ' / Line' : ''
         }${
-          cutoutType !== 'none' ? ` | ${cutoutText}` : ''
+          cutoutType !== 'none' ? ` / ${cutoutText}` : ''
         }`,
         margins, 
         margins + 0.3
@@ -3002,9 +3002,9 @@ useEffect(() => {
     }}>
       <span style={{ fontSize: '14px', lineHeight: '1' }}>
         {rotated ? (
-          `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+          `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
         ) : (
-          `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumulative Score: ${calculateScores(points).total}` : ''}`
+          `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
         )}
       </span>
     </div>
@@ -3031,7 +3031,7 @@ useEffect(() => {
           height: '1.75rem'
         }}
       >
-        <option value="none">Cumulative Control</option>
+        <option value="none">Cumulative</option>
         <option value="bars">Bars</option>
         <option value="line">Line</option>
       </select>
@@ -3053,10 +3053,10 @@ useEffect(() => {
           height: '1.75rem'
         }}
       >
-        <option value="none">Color Control</option>
+        <option value="none">Colors</option>
         <option value="yellow">Yellow</option>
         <option value="blue">Blue</option>
-        <option value="both">Both</option>
+        <option value="both">Green</option>
       </select>
     </div>
   </div>
@@ -3127,9 +3127,9 @@ useEffect(() => {
             height: '1.75rem'
           }}
         >
-          <option value="show">Show Points</option>
-          <option value="hide">Hide Points</option>
-          <option value="delete">Delete Points</option>
+          <option value="show">Points</option>
+          <option value="hide">Hide</option>
+          <option value="delete">Delete</option>
         </select>
       </div>
     </div>
@@ -3202,9 +3202,9 @@ useEffect(() => {
             height: '1.75rem'
           }}
         >
-          <option value="show">Show Points</option>
-          <option value="hide">Hide Points</option>
-          <option value="delete">Delete Points</option>
+          <option value="show">Points</option>
+          <option value="hide">Hide</option>
+          <option value="delete">Delete</option>
         </select>
       </div>
 
@@ -3215,9 +3215,9 @@ useEffect(() => {
       }}>
         <span style={{ fontSize: '14px', lineHeight: '1' }}>
           {rotated ? (
-            `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumul Score: ${calculateScores(points).total}` : ''}`
+            `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
           ) : (
-            `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • Cumul Score: ${calculateScores(points).total}` : ''}`
+            `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
           )}
         </span>
       </div>
@@ -4053,7 +4053,7 @@ useEffect(() => {
       flexDirection: 'column',
       gap: '1rem'
     }}>
-      <h2 style={{ margin: 0 }}>Edit Description</h2>
+      <h2 style={{ margin: 0 }}>Event Description</h2>
       
       <form 
         id="descriptionForm"
@@ -4088,7 +4088,7 @@ useEffect(() => {
 
           style={{
             width: '100%',
-            height: isMobile ? '200px' : '150px',
+            height: isMobile ? '100px' : '150px',
             padding: '0.5rem',
             borderRadius: '0.25rem',
             border: '1px solid #e2e8f0',
@@ -4176,7 +4176,7 @@ const BottomTray = ({
     right: 0,
     background: 'white',
     borderTop: '1px solid #e2e8f0',
-    paddingBottom: '2.5rem',
+    paddingBottom: '1.5rem',
     touchAction: 'none',
     userSelect: 'none',
     zIndex: 50
@@ -4191,10 +4191,10 @@ const BottomTray = ({
       onRenameFlow={onRenameFlow}
     />
     <div style={{
-      padding: '0.5rem',
+      paddingTop: '0.5rem',
       display: 'flex',
       justifyContent: 'center',
-      gap: '0.75rem',
+      gap: '0.5rem',
     }}>
       <Button 
         size="sm"
