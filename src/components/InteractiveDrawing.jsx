@@ -420,7 +420,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
           alignItems: 'center',
           justifyContent: 'space-between',  // Add this line
           gap: '0.5rem',
-          fontSize: '0.875rem',
+          fontSize: '1rem',
           height: '2.25rem',
           width: '240px'
         }}
