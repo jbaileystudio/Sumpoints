@@ -3423,6 +3423,16 @@ useEffect(() => {
                        return next;
                      });
                    }}
+                   onMouseEnter={(e) => {
+                    if (!digitalPoints.has(point.id)) {
+                      e.target.style.backgroundColor = 'rgba(252, 212, 77, 0.3)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!digitalPoints.has(point.id)) {
+                      e.target.style.backgroundColor = 'transparent';
+                    }
+                  }}
                    style={{
                      width: '24px',
                      height: '24px',
@@ -3445,6 +3455,16 @@ useEffect(() => {
                        return next;
                      });
                    }}
+                   onMouseEnter={(e) => {
+                    if (!bluePoints.has(point.id)) {
+                      e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!bluePoints.has(point.id)) {
+                      e.target.style.backgroundColor = 'transparent';
+                    }
+                  }}
                    style={{
                      width: '24px',
                      height: '24px',
@@ -3974,6 +3994,16 @@ useEffect(() => {
                           return next;
                         });
                       }}
+                      onMouseEnter={(e) => {
+                        if (!digitalPoints.has(point.id)) {
+                          e.target.style.backgroundColor = 'rgba(252, 212, 77, 0.3)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!digitalPoints.has(point.id)) {
+                          e.target.style.backgroundColor = 'transparent';
+                        }
+                      }}
                       style={{
                         width: '24px',
                         height: '24px',
@@ -3995,6 +4025,16 @@ useEffect(() => {
                           }
                           return next;
                         });
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!bluePoints.has(point.id)) {
+                          e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!bluePoints.has(point.id)) {
+                          e.target.style.backgroundColor = 'transparent';
+                        }
                       }}
                       style={{
                         width: '24px',
