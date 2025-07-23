@@ -1,10 +1,16 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Save, Plus, RotateCwSquare, RotateCcwSquare } from 'lucide-react';
+import { Save, Plus, RotateCwSquare, RotateCcwSquare, Download, Settings, Share } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { GripVertical } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import ReactDOM from 'react-dom';
+import { PiListDashesBold } from "react-icons/pi";
+import { TbChartDots3 } from "react-icons/tb";
+import { MdOutlineAutoGraph, MdHideSource, MdOutlineSsidChart } from "react-icons/md";
+import { IoMdColorPalette } from "react-icons/io";
+
+
 
 // Constants for our grid and layout
 const G = 75;  // Grid size
@@ -19,6 +25,8 @@ const isIPad = () => {
   const isIpadMac = navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 0;
   return isIpadOS || isIpadMac;
 };
+
+
 
 // Generate hash points for our grid
 const HASH_COUNT = 10;
@@ -670,6 +678,24 @@ const InteractiveDrawing = () => {
   const [hideSvgContent, setHideSvgContent] = useState(false);
   const [pointsMode, setPointsMode] = useState('show'); // 'show', 'hide', or 'delete'
 
+  const [isPWA, setIsPWA] = useState(false);
+
+  useEffect(() => {
+  // More strict PWA detection - need BOTH conditions to be true
+  const matchesStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const isStandaloneModern = window.navigator.standalone === true;
+  
+  // Additional check: PWAs typically don't have browser UI
+  const hasMinimalUI = window.outerHeight - window.innerHeight < 100; // Less browser chrome
+  
+  // Only consider it a PWA if multiple indicators agree
+  const detectedPWA = (matchesStandalone || isStandaloneModern) && hasMinimalUI;
+  
+  setIsPWA(detectedPWA);
+}, []);
+
+
+const [recentTouch, setRecentTouch] = useState(false);
 
 const renameFlow = (flowId, newName) => {
   console.log('renameFlow called with:', flowId, newName);
@@ -1490,6 +1516,11 @@ const handleMouseMove = e => {
 };
 
 const handleClick = e => {
+  if (recentTouch) return; // Prevent handleClick after recent touch
+  
+  setTappedPoint(null);
+  // ... rest of your handleClick code
+  
   console.log('Click event:', {
     editMode,
     dragging,
@@ -1498,6 +1529,7 @@ const handleClick = e => {
     justDropped,
     target: e.target.closest('.drawing-area')
   });
+  
 
   if (!drawingRef.current || dragging || hoveredPointId || hoveredInsertId || justDropped || 
     !e.target.closest('.drawing-area')) {
@@ -2502,6 +2534,8 @@ useEffect(() => {
           }
 
           setTouchedPointId(point.id);
+          setRecentTouch(true);
+
         }}
 
         onTouchMove={(e) => {
@@ -2519,6 +2553,9 @@ useEffect(() => {
         }}
 
         onTouchEnd={(e) => {
+          e.stopPropagation();
+          // Clear the flag after a delay
+          setTimeout(() => setRecentTouch(false), 100);
           // Check if this was a quick tap (less than 200ms)
           const touchDuration = Date.now() - touchStartTime;
           console.log('Touch end:', {
@@ -2536,7 +2573,7 @@ useEffect(() => {
                 index: i + 1,
                 point: point
               }
-              );
+            );
           } else {
             setTappedPoint(null);
           }
@@ -2618,41 +2655,147 @@ useEffect(() => {
           })}
 
     {/* Popup - moved outside and after points */}
-    {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
-      const pos = getPos(point, i);
-      return isMobile && tappedPoint && (point.id === tappedPoint.point.id) && (
-        <g style={{ pointerEvents: 'none' }}>
-          <rect
-            x={pos.x + 20}
-            y={pos.y - 40}
-            width="120"
-            height="60"
-            rx="4"
-            fill="white"
-            stroke="#ddd"
-            filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.1))"
-          />
-          <text
-            x={pos.x + 30}
-            y={pos.y - 20}
-            fontSize="12"
-            fill="black"
-          >
-            Point {i + 1}
-            </text>
-            <text
-            x={pos.x + 30}
-            y={pos.y}
-            fontSize="12"
-            fill="gray"
-          >
-            {(point.text || 'No description').length > 18 
-            ? `${(point.text || 'No description').substring(0, 18)}...`
-            : (point.text || 'No description')}
-          </text>
-        </g>
-        ); 
-    })}
+{showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
+  const pos = getPos(point, i);
+  return isMobile && tappedPoint && (point.id === tappedPoint.point.id) && (
+    <g style={{ pointerEvents: 'none' }}>
+      <rect
+        x={pos.x + 20}
+        y={(() => {
+          const text = point.text || 'No description';
+          const LINE_LENGTH = 15;
+          
+          if (text.length <= LINE_LENGTH) {
+            return pos.y - 40;  // Higher position for shorter box
+          } else {
+            return pos.y - 50;  // Current position for taller box
+          }
+        })()}
+        width="120"
+        height={(() => {
+          const text = point.text || 'No description';
+          const LINE_LENGTH = 15;
+          
+          if (text.length <= LINE_LENGTH) {
+            return "80";   // Shorter height for single line
+          } else {
+            return "100";  // Current height for two lines
+          }
+        })()}
+        rx="4"
+        fill="white"
+        stroke="#ddd"
+        filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.1))"
+      />
+      
+      {/* Point number */}
+      <text
+        x={pos.x + 30}
+        y={(() => {
+          const text = point.text || 'No description';
+          const LINE_LENGTH = 15;
+          
+          if (text.length <= LINE_LENGTH) {
+            return pos.y - 15;  // Adjusted for shorter box
+          } else {
+            return pos.y - 25;  // Current position for taller box
+          }
+        })()}
+        fontSize="16"
+        fill="black"
+      >
+        Point {i + 1}
+      </text>
+      
+      {/* Description */}
+      <text
+        x={pos.x + 30}
+        y={(() => {
+          const text = point.text || 'No description';
+          const LINE_LENGTH = 15;
+          
+          if (text.length <= LINE_LENGTH) {
+            return pos.y + 5;   // Adjusted for shorter box
+          } else {
+            return pos.y - 5;   // Current position for taller box
+          }
+        })()}
+        fontSize="14"
+        fill="gray"
+      >
+        {/* Your existing text logic stays the same */}
+        {(() => {
+          const text = point.text || 'No description';
+          const LINE_LENGTH = 15;
+          const MAX_TOTAL = LINE_LENGTH * 2;
+          const TRUNCATE_AT = LINE_LENGTH + 9;
+          if (text.length <= LINE_LENGTH) {
+            return text;
+          } else if (text.length <= MAX_TOTAL) {
+            const firstLine = text.substring(0, LINE_LENGTH);
+            const secondLine = text.substring(LINE_LENGTH, MAX_TOTAL);
+            return (
+              <>
+                <tspan x={pos.x + 30} dy="0">{firstLine}</tspan>
+                <tspan x={pos.x + 30} dy="18">{secondLine}</tspan>
+              </>
+            );
+          } else {
+            const firstLine = text.substring(0, LINE_LENGTH);
+            const secondLine = text.substring(LINE_LENGTH, TRUNCATE_AT) + '...';
+            return (
+              <>
+                <tspan x={pos.x + 30} dy="0">{firstLine}</tspan>
+                <tspan x={pos.x + 30} dy="18">{secondLine}</tspan>
+              </>
+            );
+          }
+        })()}
+      </text>
+      
+      {/* Color status circles */}
+      <g>
+        {/* Yellow circle */}
+        <circle
+          cx={pos.x + 38}
+          cy={(() => {
+            const text = point.text || 'No description';
+            const LINE_LENGTH = 15;
+            
+            if (text.length <= LINE_LENGTH) {
+              return pos.y + 22;  // Higher position for single line
+            } else {
+              return pos.y + 32;  // Current position for two lines
+            }
+          })()}
+          r="8"
+          fill={digitalPoints.has(point.id) ? '#FCD34D' : 'transparent'}
+          stroke="#666"
+          strokeWidth="1"
+        />
+        
+        {/* Blue circle */}
+        <circle
+          cx={pos.x + 65}
+          cy={(() => {
+            const text = point.text || 'No description';
+            const LINE_LENGTH = 15;
+            
+            if (text.length <= LINE_LENGTH) {
+              return pos.y + 22;  // Higher position for single line
+            } else {
+              return pos.y + 32;  // Current position for two lines
+            }
+          })()}
+          r="8"
+          fill={bluePoints.has(point.id) ? '#3B82F6' : 'transparent'}
+          stroke="#666"
+          strokeWidth="1"
+        />
+      </g>
+    </g>
+  );
+})}
 
 {/* Digital cutout mask */}
 {(showDigitalCutout || showAnalyticsCutout || cutoutType === 'both') && (
@@ -2811,6 +2954,32 @@ useEffect(() => {
         .icon-button:disabled {
           cursor: default;
         }
+
+        .bottom-button {
+          height: 60px !important;
+          min-width: 0 !important;
+          flex: 1 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          font-size: 0.65rem !important;
+          padding: 0.25rem !important;
+        }
+
+        .bottom-button-circle {
+          width: 60px !important;
+          height: 60px !important;
+          border-radius: 50% !important;  /* This makes it circular */
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          font-size: 0.65rem !important;
+          padding: 0.25rem !important;
+          flex: 1 !important;
+          min-width: 0 !important;
+        }
       `}</style>
 
     <style>{`
@@ -2865,6 +3034,87 @@ useEffect(() => {
         @keyframes v{0%{background-position:0 0}100%{background-position:0 20px}}
         .r{writing-mode:vertical-rl;transform:rotate(180deg)}
     `}</style>
+
+   
+    <style>{`
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  
+  .action-sheet-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+  }
+  
+  .action-sheet {
+    background-color: white;
+    width: 100%;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    animation: slideUp 0.3s ease-out;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  
+  .action-sheet-header {
+    text-align: center;
+    padding: 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    position: relative;
+  }
+  
+  .action-sheet-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  .action-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background-color: #d1d5db;
+    border-radius: 2px;
+    margin: 0 auto 12px auto;
+  }
+  
+  .action-sheet-option {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border: none;
+    background-color: white;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 16px;
+    color: #1f2937;
+    transition: background-color 0.2s;
+  }
+  
+  .action-sheet-option:active {
+    background-color: #f9fafb;
+  }
+  
+  .action-sheet-option.selected {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 500;
+  }
+  
+  .action-sheet-option:last-child {
+    border-bottom: none;
+  }
+`}</style>
 
 {/* Outer white container */}
 <div style={{
@@ -2945,10 +3195,9 @@ useEffect(() => {
           alignItems: 'center', 
           gap: '0.5rem',
           height: '2.25rem',
-          minWidth: '130px'
         }}
       >
-        <Save style={{ width: '1rem', height: '1rem' }}/>Export PDF
+        <Download style={{ width: '1rem', height: '1rem' }}/>
       </Button>
     </div>
 
@@ -2983,17 +3232,17 @@ useEffect(() => {
     </div>
   </div>
 
-  {/* SECOND ROW */}
-<div style={{
-  padding: '.334rem 2rem .667rem 2rem',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: isMobile ? 'center' : 'space-between',
-  width: '100%',
-}}>
+  {/* SECOND ROW - Hide entirely on mobile */}
+{!isMobile && (
+  <div style={{
+    padding: '.334rem 2rem .667rem 2rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  }}>
   
-  {/* Left - Dot/Description count (only render on desktop) */}
-  {!isMobile && (
+    {/* Left - Dot/Description count */}
     <div style={{ 
       display: 'flex',
       alignItems: 'center',
@@ -3002,67 +3251,64 @@ useEffect(() => {
     }}>
       <span style={{ fontSize: '14px', lineHeight: '1' }}>
         {rotated ? (
-          `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
+          `${points.length} events${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
         ) : (
-          `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
+          `${points.length} events${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
         )}
       </span>
     </div>
-  )}
 
-  {/* Center - Cumulative + Color Cutout */}
-  <div style={{ 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '0.75rem', 
-    flex: isMobile ? 'none' : 1,  // Takes remaining space on desktop
-    justifyContent: 'center',     // Centers the content within that space
-    width: isMobile ? 'auto' : '100%'  // Ensure full width usage on desktop
-  }}>
-    
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
-      <select 
-        value={cumulativeType} 
-        onChange={(e) => setCumulativeType(e.target.value)}
-        style={{
-          padding: '0.25rem',
-          borderRadius: '0.25rem',
-          border: '1px solid #e2e8f0',
-          height: '1.75rem'
-        }}
-      >
-        <option value="none">Cumulative</option>
-        <option value="bars">Bars</option>
-        <option value="line">Line</option>
-      </select>
+    {/* Center - Cumulative + Color Cutout */}
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '0.75rem', 
+      flex: 1,
+      justifyContent: 'center'
+    }}>
+      
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
+        <select 
+          value={cumulativeType} 
+          onChange={(e) => setCumulativeType(e.target.value)}
+          style={{
+            padding: '0.25rem',
+            borderRadius: '0.25rem',
+            border: '1px solid #e2e8f0',
+            height: '1.75rem'
+          }}
+        >
+          <option value="none">Cumulative Sum</option>
+          <option value="bars">Bars</option>
+          <option value="line">Line</option>
+        </select>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
+        <select 
+          value={cutoutType}
+          onChange={(e) => {
+            const value = e.target.value;
+            setCutoutType(value);
+            setShowDigitalCutout(value === 'yellow');
+            setShowAnalyticsCutout(value === 'blue');
+          }}
+          style={{
+            padding: '0.25rem',
+            borderRadius: '0.25rem',
+            border: '1px solid #e2e8f0',
+            height: '1.75rem'
+          }}
+        >
+          <option value="none">Colors</option>
+          <option value="yellow">Yellow</option>
+          <option value="blue">Blue</option>
+          <option value="both">Green</option>
+        </select>
+      </div>
     </div>
 
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '2.25rem' }}>
-      <select 
-        value={cutoutType}
-        onChange={(e) => {
-          const value = e.target.value;
-          setCutoutType(value);
-          setShowDigitalCutout(value === 'yellow');
-          setShowAnalyticsCutout(value === 'blue');
-        }}
-        style={{
-          padding: '0.25rem',
-          borderRadius: '0.25rem',
-          border: '1px solid #e2e8f0',
-          height: '1.75rem'
-        }}
-      >
-        <option value="none">Colors</option>
-        <option value="yellow">Yellow</option>
-        <option value="blue">Blue</option>
-        <option value="both">Green</option>
-      </select>
-    </div>
-  </div>
-
-  {/* Right - Delete All + Show Points (only render on desktop) */}
-  {!isMobile && (
+    {/* Right - Delete All + Show Points */}
     <div style={{ 
       display: 'flex',
       alignItems: 'center', 
@@ -3079,6 +3325,7 @@ useEffect(() => {
             setActiveDigitalPoints(new Set());
             setActiveBluePoints(new Set());
             setPointsMode('show');
+            setEditMode(false);
           }}
           style={{ 
             color: '#ef4444',
@@ -3096,7 +3343,6 @@ useEffect(() => {
         </Button>
       )}
 
-      {/* Move the Show Points dropdown inside this container */}
       <div style={{ 
         display: 'flex', 
         alignItems: 'center', 
@@ -3133,96 +3379,77 @@ useEffect(() => {
         </select>
       </div>
     </div>
-  )}
-</div>
+  </div>
+)}
 
-  {/* THIRD ROW - Mobile only */}
-  {isMobile && (
-    <div style={{
-      padding: '0 2rem .667rem 2rem',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '1.5rem',
-      width: '100%',
+{/* THIRD ROW - Mobile only */}
+{isMobile && (
+  <div style={{
+    padding: '.5rem 2rem .667rem 2rem',  // Increased top padding from 0 to .5rem
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',     // Changed from center to space-between
+    width: '100%',
+    minHeight: '2.5rem'                    // Ensures consistent height even when Delete All is hidden
+  }}>
+    
+    {/* Left side - Delete All (only show when in delete mode) */}
+    <div style={{ 
+      width: '80px',        // Fixed width to prevent layout shift
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'flex-start'
     }}>
-      
-      {/* Left side - Points Mode dropdown */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '0.75rem',
-      }}>
-        {pointsMode === 'delete' && (
-          <Button 
-            size="sm"
-            variant="link"
-            onClick={() => {
-              setActivePoints([]);
-              setActiveDigitalPoints(new Set());
-              setActiveBluePoints(new Set());
-              setPointsMode('show');
-            }}
-            style={{ 
-              color: '#ef4444',
-              padding: 0,
-              margin: 0,
-              height: 'auto',
-              minHeight: 'unset',
-              lineHeight: '1',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            Delete All
-          </Button>
-        )}
-
-        <select 
-          value={pointsMode}
-          onChange={(e) => {
-            const value = e.target.value;
-            setPointsMode(value);
-            
-            if (value === 'show') {
-              setShowPoints(true);
-              setEditMode(false);
-            } else if (value === 'hide') {
-              setShowPoints(false);
-              setEditMode(false);
-            } else if (value === 'delete') {
-              setShowPoints(true);
-              setEditMode(true);
-            }
+      {pointsMode === 'delete' && (
+        <Button 
+          size="sm"
+          variant="link"
+          onClick={() => {
+            setActivePoints([]);
+            setActiveDigitalPoints(new Set());
+            setActiveBluePoints(new Set());
+            setPointsMode('show');
+            setEditMode(false);
           }}
-          style={{
-            padding: '0.25rem',
-            borderRadius: '0.25rem',
-            border: '1px solid #e2e8f0',
-            height: '1.75rem'
+          style={{ 
+            color: '#ef4444',
+            padding: 0,
+            margin: 0,
+            height: 'auto',
+            minHeight: 'unset',
+            lineHeight: '1',
+            display: 'flex',
+            alignItems: 'center'
           }}
         >
-          <option value="show">Points</option>
-          <option value="hide">Hide</option>
-          <option value="delete">Delete</option>
-        </select>
-      </div>
-
-      {/* Right side - Dot/Description count */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center',
-      }}>
-        <span style={{ fontSize: '14px', lineHeight: '1' }}>
-          {rotated ? (
-            `${points.length} descriptions${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
-          ) : (
-            `${points.length} dots${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
-          )}
-        </span>
-      </div>
+          Delete All
+        </Button>
+      )}
     </div>
-  )}
+
+    {/* Center - Dot/Description count */}
+    <div style={{ 
+      flex: 1,              // Takes remaining space
+      display: 'flex', 
+      alignItems: 'center',
+      justifyContent: 'center'  // Centers the text
+    }}>
+      <span style={{ fontSize: '14px', lineHeight: '1' }}>
+        {rotated ? (
+          `${points.length} events${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
+        ) : (
+          `${points.length} events${ghostPoints.length > 0 ? `, ${ghostPoints.length} grey dots` : ''} ${cumulativeType !== 'none' ? ` • \u03A3: ${calculateScores(points).total}` : ''}`
+        )}
+      </span>
+    </div>
+
+    {/* Right side - Spacer to balance layout */}
+    <div style={{ 
+      width: '80px'         // Same width as left side for balance
+    }}>
+    </div>
+  </div>
+)}
 </div>
               
 {rotated ? (
@@ -3484,7 +3711,7 @@ useEffect(() => {
                  readOnly
                  onClick={() => handleInputClick(point, i)}
                  onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
-                 placeholder={`Description ${i + 1}`}
+                 placeholder={`Event ${i + 1}`}
                  style={{
                    width: '200px',
                    height: isMobile ? '5rem' : '2.5rem',
@@ -3969,7 +4196,7 @@ useEffect(() => {
                     readOnly
                     onClick={() => handleInputClick(point, i)}
                     onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
-                    placeholder={`Description ${i + 1}`}
+                    placeholder={`Event ${i + 1}`}
                     className="r text-center"
                     style={{ 
                       height: '175px',
@@ -4174,7 +4401,7 @@ useEffect(() => {
               color: 'white'
             }}
           >
-            Save{!isMobile && " (⌘ + Enter)"}
+            Save
           </Button>
         </div>
       </form>
@@ -4182,17 +4409,29 @@ useEffect(() => {
   </div>
 )}
 
-    {/* Add the BottomTray only for mobile */}
+  {/* Add the BottomTray only for mobile */}
     {isMobile && <BottomTray 
       rotated={rotated} 
       setRotated={setRotated} 
       isMobile={isMobile}
+      isPWA={isPWA}  // Add this line
       flows={flows}
       activeFlowId={activeFlowId}
       setActiveFlowId={setActiveFlowId}
       addNewFlow={addNewFlow}
       onDeleteFlow={deleteFlow}
       onRenameFlow={renameFlow}
+      // Add these new props:
+      cumulativeType={cumulativeType}
+      setCumulativeType={setCumulativeType}
+      pointsMode={pointsMode}
+      setPointsMode={setPointsMode}
+      cutoutType={cutoutType}
+      setCutoutType={setCutoutType}
+      setShowPoints={setShowPoints}
+      setEditMode={setEditMode}
+      setShowDigitalCutout={setShowDigitalCutout}
+      setShowAnalyticsCutout={setShowAnalyticsCutout}
     />}
   </div>
   );
@@ -4202,66 +4441,290 @@ const BottomTray = ({
   rotated, 
   setRotated, 
   isMobile, 
+  isPWA,  // Add this line
   flows, 
   activeFlowId, 
   setActiveFlowId, 
   addNewFlow,
   onDeleteFlow,
-  onRenameFlow  
-}) => (
-  <div style={{
-    position: 'sticky',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    background: 'white',
-    borderTop: '1px solid #e2e8f0',
-    paddingBottom: '1.5rem',
-    touchAction: 'none',
-    userSelect: 'none',
-    zIndex: 50
-  }}>
-    {/* Add Flow Pills for mobile */}
-    <MobileFlowPills 
-      flows={flows}
-      activeFlowId={activeFlowId}
-      onSelectFlow={setActiveFlowId}
-      onAddFlow={addNewFlow}
-      onDeleteFlow={onDeleteFlow}
-      onRenameFlow={onRenameFlow}
-    />
-    <div style={{
-      paddingTop: '0.5rem',
-      display: 'flex',
-      justifyContent: 'center',
-      gap: '0.5rem',
-    }}>
-      <Button 
-        size="sm"
-        variant="outline"
-        style={{ 
-          width: '11rem',
-          height: '3rem'
-        }}
-        onClick={() => setRotated(false)}
-        disabled={!rotated}
-      >
-        Show Chart
-      </Button>
-      <Button 
-        size="sm"
-        variant="outline"
-        style={{ 
-          width: '11rem',
-          height: '3rem'
-        }}
-        onClick={() => setRotated(true)}
-        disabled={rotated}
-      >
-        Show Descriptions
-      </Button>
-    </div>
-  </div>
-);
+  onRenameFlow,
+  cumulativeType,
+  setCumulativeType,
+  pointsMode,
+  setPointsMode,
+  cutoutType,
+  setCutoutType,
+  setShowPoints,
+  setEditMode,
+  setShowDigitalCutout,
+  setShowAnalyticsCutout
+}) => {
+  const [showActionSheet, setShowActionSheet] = useState(null);
+
+  const handleCumulativeClick = () => {
+    setShowActionSheet('cumulative');
+  };
+
+  const handlePointsClick = () => {
+    setShowActionSheet('points');
+  };
+
+  const handleColorsClick = () => {
+    setShowActionSheet('colors');
+  };
+
+  const closeActionSheet = () => {
+    setShowActionSheet(null);
+  };
+
+  const handleCumulativeSelect = (value) => {
+    setCumulativeType(value);
+    closeActionSheet();
+  };
+
+  const handlePointsSelect = (value) => {
+    setPointsMode(value);
+    if (value === 'show') {
+      setShowPoints(true);
+      setEditMode(false);
+    } else if (value === 'hide') {
+      setShowPoints(false);
+      setEditMode(false);
+    } else if (value === 'delete') {
+      setShowPoints(true);
+      setEditMode(true);
+    }
+    closeActionSheet();
+  };
+
+  const handleColorsSelect = (value) => {
+    setCutoutType(value);
+    setShowDigitalCutout(value === 'yellow');
+    setShowAnalyticsCutout(value === 'blue');
+    closeActionSheet();
+  };
+
+  return (
+    <>
+      <div style={{
+        position: 'sticky',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: 'white',
+        borderTop: '1px solid #e2e8f0',
+        paddingBottom: isPWA ? '2.5rem' : '0.75rem', // PWA gets extra padding, everything else gets minimal
+        backgroundColor: 'white',
+        //backgroundColor: isPWA ? 'lightblue' : 'lightgreen', // Temporary visual indicator
+        touchAction: 'none',
+        userSelect: 'none',
+        zIndex: 50
+      }}>
+        <MobileFlowPills 
+          flows={flows}
+          activeFlowId={activeFlowId}
+          onSelectFlow={setActiveFlowId}
+          onAddFlow={addNewFlow}
+          onDeleteFlow={onDeleteFlow}
+          onRenameFlow={onRenameFlow}
+        />
+        
+        <div style={{
+          padding: '0.5rem 1rem',
+          display: 'flex',
+          gap: '0.5rem',
+          width: '100%',
+          alignItems: 'stretch'  // Ensures divider stretches to full height
+        }}>
+          
+          {/* First group - State toggles */}
+          <Button 
+            size="sm"
+            variant="outline"
+            className="bottom-button"
+            onClick={() => setRotated(true)}
+            style={{
+              backgroundColor: rotated ? '#3b82f6' : 'white',
+              color: rotated ? 'white' : '#1f2937',
+              borderColor: rotated ? '#3b82f6' : '#e2e8f0'
+            }}
+          >
+            <PiListDashesBold style={{ 
+              width: '20px', 
+              height: '20px', 
+              marginBottom: '4px',
+              color: rotated ? 'white' : 'inherit'
+            }}/>
+            Events
+          </Button>
+          
+          <Button 
+            size="sm"
+            variant="outline"
+            className="bottom-button"
+            onClick={() => setRotated(false)}
+            style={{
+              backgroundColor: !rotated ? '#3b82f6' : 'white',
+              color: !rotated ? 'white' : '#1f2937',
+              borderColor: !rotated ? '#3b82f6' : '#e2e8f0'
+            }}
+          >
+            <TbChartDots3 style={{ 
+              width: '20px', 
+              height: '20px', 
+              marginBottom: '4px',
+              transform: 'rotate(90deg)',
+              color: !rotated ? 'white' : 'inherit'
+            }}/>
+            Chart
+          </Button>
+
+          {/* Second group - Action buttons */}
+          <Button 
+            size="sm"
+            variant="outline"
+            className="bottom-button"
+            onClick={handleCumulativeClick}
+            style={{
+              border: 'none'  // Add this to remove the stroke
+            }}
+          >
+            <MdOutlineAutoGraph style={{ width: '20px', height: '20px', marginBottom: '4px' }}/>
+            Sum
+          </Button>
+
+          <Button 
+            size="sm"
+            variant="outline"
+            className="bottom-button"
+            onClick={handlePointsClick}
+            style={{
+              border: 'none'  // Add this to remove the stroke
+            }}
+          >
+            <MdHideSource style={{ width: '20px', height: '20px', marginBottom: '4px' }}/>
+            Points
+          </Button>
+
+          <Button 
+            size="sm"
+            variant="outline"
+            className="bottom-button"
+            onClick={handleColorsClick}
+            style={{
+              border: 'none'  // Add this to remove the stroke
+            }}
+          >
+            <IoMdColorPalette style={{ width: '20px', height: '20px', marginBottom: '4px' }}/>
+            Colors
+          </Button>
+
+          <Button 
+            size="sm"
+            variant="outline"
+            className="bottom-button"
+            disabled={true}
+            style={{ opacity: 0.5, border: 'none' }}
+          >
+            <MdOutlineSsidChart style={{ width: '20px', height: '20px', marginBottom: '4px' }}/>
+            Compare
+          </Button>
+        </div>
+      </div>
+
+      {/* Action Sheet */}
+      {showActionSheet && (
+        <div className="action-sheet-backdrop" onClick={closeActionSheet}>
+          <div className="action-sheet" onClick={(e) => e.stopPropagation()}
+              style={{ paddingBottom: isPWA ? '2.5rem' : '0.75rem' }}>
+            <div className="action-sheet-header">
+              <div className="action-sheet-handle"></div>
+              <div className="action-sheet-title">
+                {showActionSheet === 'cumulative' && 'Cumulative Sum Control'}
+                {showActionSheet === 'points' && 'Points Control'}
+                {showActionSheet === 'colors' && 'Color Control'}
+              </div>
+            </div>
+
+            {showActionSheet === 'cumulative' && (
+              <div>
+                <button 
+                  className={`action-sheet-option ${cumulativeType === 'none' ? 'selected' : ''}`}
+                  onClick={() => handleCumulativeSelect('none')}
+                >
+                  Hide Cumulative Sum
+                </button>
+                <button 
+                  className={`action-sheet-option ${cumulativeType === 'bars' ? 'selected' : ''}`}
+                  onClick={() => handleCumulativeSelect('bars')}
+                >
+                  Bars
+                </button>
+                <button 
+                  className={`action-sheet-option ${cumulativeType === 'line' ? 'selected' : ''}`}
+                  onClick={() => handleCumulativeSelect('line')}
+                >
+                  Line
+                </button>
+              </div>
+            )}
+
+            {showActionSheet === 'points' && (
+              <div>
+                <button 
+                  className={`action-sheet-option ${pointsMode === 'show' ? 'selected' : ''}`}
+                  onClick={() => handlePointsSelect('show')}
+                >
+                  Show Points
+                </button>
+                <button 
+                  className={`action-sheet-option ${pointsMode === 'hide' ? 'selected' : ''}`}
+                  onClick={() => handlePointsSelect('hide')}
+                >
+                  Hide Points
+                </button>
+                <button 
+                  className={`action-sheet-option ${pointsMode === 'delete' ? 'selected' : ''}`}
+                  onClick={() => handlePointsSelect('delete')}
+                >
+                  Delete Points
+                </button>
+              </div>
+            )}
+
+            {showActionSheet === 'colors' && (
+              <div>
+                <button 
+                  className={`action-sheet-option ${cutoutType === 'none' ? 'selected' : ''}`}
+                  onClick={() => handleColorsSelect('none')}
+                >
+                  Hide Colors
+                </button>
+                <button 
+                  className={`action-sheet-option ${cutoutType === 'yellow' ? 'selected' : ''}`}
+                  onClick={() => handleColorsSelect('yellow')}
+                >
+                  Yellow
+                </button>
+                <button 
+                  className={`action-sheet-option ${cutoutType === 'blue' ? 'selected' : ''}`}
+                  onClick={() => handleColorsSelect('blue')}
+                >
+                  Blue
+                </button>
+                <button 
+                  className={`action-sheet-option ${cutoutType === 'both' ? 'selected' : ''}`}
+                  onClick={() => handleColorsSelect('both')}
+                >
+                  Both
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
 export default InteractiveDrawing;
