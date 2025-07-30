@@ -9,6 +9,7 @@ import { PiListDashesBold } from "react-icons/pi";
 import { TbChartDots3 } from "react-icons/tb";
 import { MdOutlineAutoGraph, MdHideSource, MdOutlineSsidChart } from "react-icons/md";
 import { IoMdColorPalette } from "react-icons/io";
+import { MdContentCopy } from "react-icons/md";
 
 
 
@@ -44,7 +45,7 @@ const findClosestPoint = y => {
 // Mobile Flow Pills Component
 
 // Modified MobileFlowPills with improved pill editing experience
-const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow }) => {
+const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onDuplicateFlow }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
@@ -105,7 +106,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
       overflowX: 'auto',
       padding: '0.5rem',
       gap: '1rem',
-      borderBottom: '1px solid #e2e8f0'
+      borderBottom: '1px solid #848484ff'
     }}>
       
       {/* Add Flow Button - First in the list */}
@@ -114,7 +115,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
           padding: '0.5rem 1.25rem',
           marginLeft: '.5rem',
           borderRadius: '9999px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #848484ff',
           backgroundColor: 'white',
           color: '#1f2937',
           display: 'flex',
@@ -143,11 +144,11 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 backgroundColor: 'white',
                 height: '38px',
                 boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.3)',
-                padding: '0 0.25rem 0 0.75rem', // More padding on left for text
+                padding: '0 0.25rem 0 0.75rem',
                 width: 'auto',
-                minWidth: '150px', // Ensure enough space for editing longer names
-                justifyContent: 'space-between', // Space between input and actions
-                transition: 'all 0.2s ease'
+                maxWidth: '250px',
+                justifyContent: 'flex-start', // Changed from 'space-between'
+                transition: 'none'
               }}
             >
               <input
@@ -163,7 +164,8 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                   border: 'none',
                   outline: 'none',
                   background: 'transparent',
-                  width: '90px', // Increased width since we removed one button
+                  width: `${Math.max(editingName.length * 9 + 20, 100)}px`, // Back to dynamic sizing
+                  maxWidth: '160px', // But cap it so button stays visible
                   fontSize: '14px',
                   padding: '0',
                   paddingLeft: '.25rem',
@@ -173,10 +175,8 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
               
               <div style={{ 
                 display: 'flex',
-                //borderLeft: '1px solid #e2e8f0',
-                paddingLeft: '0.75rem',
-                marginLeft: '0.50rem',
-                marginRight: '0.2rem',
+                paddingLeft: '0.563rem',   // 9px total - matches the 9px per character
+                marginLeft: '0',           // Remove margin entirely
                 height: '100%',
                 alignItems: 'center'
               }}>
@@ -208,7 +208,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 display: 'flex',
                 alignItems: 'center',
                 borderRadius: '9999px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #848484ff',
                 backgroundColor: flow.id === activeFlowId ? '#3b82f6' : 'white',
                 overflow: 'hidden',
                 height: '38px',
@@ -221,7 +221,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 style={{
                   padding: '0.5rem 1rem',
                   color: flow.id === activeFlowId ? 'white' : '#1f2937',
-                  fontWeight: flow.id === activeFlowId ? '600' : '400',
+                  fontWeight: flow.id === activeFlowId ? '700' : '400',
                   whiteSpace: 'nowrap',
                   cursor: 'pointer',
                 }}
@@ -264,12 +264,13 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 style={{
                   position: 'absolute',
                   backgroundColor: 'white',
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid #848484ff',
                   borderRadius: '0.375rem',
                   boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  width: '120px',
+                  width: '150px',
                   pointerEvents: 'auto',
-                  zIndex: 9999
+                  zIndex: 9999,
+                  overflow: 'hidden'
                 }}
                 ref={el => {
                   if (el) {
@@ -292,7 +293,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                     padding: '0.75rem 1rem',
                     width: '100%',
                     textAlign: 'left',
-                    borderBottom: '1px solid #e2e8f0',
+                    borderBottom: '1px solid #848484ff',
                     backgroundColor: 'white'
                   }}
                   onClick={() => {
@@ -304,6 +305,30 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                   <span>Edit</span>
+                </button>
+                
+                <button
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    width: '100%',
+                    textAlign: 'left',
+                    borderBottom: '1px solid #848484ff',
+                    backgroundColor: 'white'
+                  }}
+                  onClick={() => {
+                    console.log('Duplicate clicked for flow:', flow);
+                    onDuplicateFlow(flow);
+                    setOpenMenuId(null);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
+                    <rect x="9" y="9" width="14" height="14" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span>Duplicate</span>
                 </button>
                 
                 {flows.length > 1 && (
@@ -421,7 +446,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
         onClick={() => setIsOpen(!isOpen)}
         style={{
           padding: '0.5rem 1rem',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #848484ff',
           borderRadius: '0.375rem',
           backgroundColor: 'white',
           display: 'flex',
@@ -449,7 +474,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
           left: 0,
           zIndex: 10,
           backgroundColor: 'white',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #848484ff',
           borderRadius: '0.375rem',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           width: '240px',
@@ -495,7 +520,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                 padding: '0.5rem 1rem',
                 width: '100%',
                 backgroundColor: flow.id === activeFlowId ? '#f3f4f6' : 'white',
-                borderBottom: '1px solid #e2e8f0'
+                borderBottom: '1px solid #848484ff'
               }}
             >
               {editingFlowId === flow.id ? (
@@ -512,7 +537,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                   style={{
                     width: '70%',
                     padding: '0.25rem',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid #848484ff',
                     borderRadius: '0.25rem',
                             marginRight: '0.75rem' // Add this line to create more spacing
 
@@ -677,6 +702,7 @@ const InteractiveDrawing = () => {
   const [svgBounds, setSvgBounds] = useState({ top: 0, left: 0, width: 0, height: 0 });
   const [hideSvgContent, setHideSvgContent] = useState(false);
   const [pointsMode, setPointsMode] = useState('show'); // 'show', 'hide', or 'delete'
+  const [hoveredButton, setHoveredButton] = useState(null);
 
   const [isPWA, setIsPWA] = useState(false);
 
@@ -693,6 +719,54 @@ const InteractiveDrawing = () => {
   
   setIsPWA(detectedPWA);
 }, []);
+
+const handleSaveAndAddAnother = () => {
+  console.log('Before save - Current points:', points);
+  console.log('Trying to save:', { index: editingPoint.index, text: editText });
+  
+  // Save the current point AND create new point in one state update
+  setActivePoints(prevPoints => {
+    // First, save the current point's text
+    const updatedPoints = prevPoints.map(p => 
+      p.id === editingPoint.point.id ? {...p, text: editText} : p
+    );
+    
+    console.log('Updated points after save:', updatedPoints);
+    
+    // Then insert the new point after the current one
+    const currentIndex = editingPoint.index;
+    const newPoint = {
+      x: (currentIndex + 2) * G,
+      y: 50,
+      text: '',
+      id: Date.now()
+    };
+    
+    const newPoints = [...updatedPoints];
+    newPoints.splice(currentIndex + 1, 0, newPoint);
+    
+    // Recalculate x positions for all points WITH proper mobile spacing
+    return newPoints.map((point, index) => ({
+      ...point,
+      x: (isMobile && rotated) ? (index + 1) * (G * 1.5) : (index + 1) * G
+    }));
+  });
+  
+  // Create the new point object for editing
+  const newPoint = {
+    x: 0, // Will be recalculated above
+    y: 50,
+    text: '',
+    id: Date.now()
+  };
+  
+  // Open modal for the new point
+  setEditingPoint({
+    point: newPoint,
+    index: editingPoint.index + 1
+  });
+  setEditText('');
+};
 
 
 const [recentTouch, setRecentTouch] = useState(false);
@@ -780,6 +854,32 @@ const deleteFlow = (flowId) => {
     setFlows([newFlow, ...flows]);
     
     // Automatically select the new flow
+    setActiveFlowId(newFlowId);
+  };
+
+  // Add this new function next to your addNewFlow function
+  const duplicateFlow = (flowToDuplicate) => {
+    const newFlowId = `flow-${Date.now()}`;
+    
+    const newFlow = {
+      id: newFlowId,
+      name: `${flowToDuplicate.name} Copy`,
+      points: [...flowToDuplicate.points],
+      digitalPoints: new Set(flowToDuplicate.digitalPoints),
+      bluePoints: new Set(flowToDuplicate.bluePoints)
+    };
+    
+    // Find the index of the original flow
+    const originalIndex = flows.findIndex(f => f.id === flowToDuplicate.id);
+    
+    // Insert the duplicate right after the original
+    setFlows(prevFlows => {
+      const newFlows = [...prevFlows];
+      newFlows.splice(originalIndex + 1, 0, newFlow);
+      return newFlows;
+    });
+    
+    // Switch to the new flow
     setActiveFlowId(newFlowId);
   };
 
@@ -2574,7 +2674,8 @@ useEffect(() => {
                 point: point
               }
             );
-          } else {
+          } else if (touchDuration >= 200 && !touchMoved) {
+            // Only close on long press (not drag)
             setTappedPoint(null);
           }
 
@@ -2704,7 +2805,7 @@ useEffect(() => {
         fontSize="16"
         fill="black"
       >
-        Point {i + 1}
+        Event {i + 1}
       </text>
       
       {/* Description */}
@@ -2723,30 +2824,45 @@ useEffect(() => {
         fontSize="14"
         fill="gray"
       >
-        {/* Your existing text logic stays the same */}
         {(() => {
           const text = point.text || 'No description';
-          const LINE_LENGTH = 15;
-          const MAX_TOTAL = LINE_LENGTH * 2;
-          const TRUNCATE_AT = LINE_LENGTH + 9;
-          if (text.length <= LINE_LENGTH) {
-            return text;
-          } else if (text.length <= MAX_TOTAL) {
-            const firstLine = text.substring(0, LINE_LENGTH);
-            const secondLine = text.substring(LINE_LENGTH, MAX_TOTAL);
-            return (
-              <>
-                <tspan x={pos.x + 30} dy="0">{firstLine}</tspan>
-                <tspan x={pos.x + 30} dy="18">{secondLine}</tspan>
-              </>
-            );
+          const words = text.split(' ');
+          const MAX_LINE_LENGTH = 15;
+          
+          // Helper function to fit words into a line
+          const fitWordsInLine = (words, maxLength) => {
+            let line = '';
+            let remainingWords = [...words];
+            
+            while (remainingWords.length > 0) {
+              const nextWord = remainingWords[0];
+              const testLine = line ? `${line} ${nextWord}` : nextWord;
+              
+              if (testLine.length <= maxLength) {
+                line = testLine;
+                remainingWords.shift();
+              } else {
+                break;
+              }
+            }
+            
+            return { line, remainingWords };
+          };
+          
+          const { line: firstLine, remainingWords } = fitWordsInLine(words, MAX_LINE_LENGTH);
+          
+          if (remainingWords.length === 0) {
+            // All words fit on first line
+            return firstLine;
           } else {
-            const firstLine = text.substring(0, LINE_LENGTH);
-            const secondLine = text.substring(LINE_LENGTH, TRUNCATE_AT) + '...';
+            // Need second line
+            const { line: secondLine, remainingWords: leftover } = fitWordsInLine(remainingWords, MAX_LINE_LENGTH);
+            const finalSecondLine = leftover.length > 0 ? `${secondLine}...` : secondLine;
+            
             return (
               <>
                 <tspan x={pos.x + 30} dy="0">{firstLine}</tspan>
-                <tspan x={pos.x + 30} dy="18">{secondLine}</tspan>
+                <tspan x={pos.x + 30} dy="18">{finalSecondLine}</tspan>
               </>
             );
           }
@@ -2920,7 +3036,7 @@ useEffect(() => {
           align-items: center;
           justify-content: center;
           padding: 8px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #848484ff;
           border-radius: 6px;
           background-color: white;
           cursor: pointer;
@@ -2935,7 +3051,7 @@ useEffect(() => {
         }
 
         .icon-button:active {
-          background-color: #e2e8f0;
+          background-color: #848484ff;
         }
 
         .rotation-icon {
@@ -3119,7 +3235,7 @@ useEffect(() => {
 {/* Outer white container */}
 <div style={{
   background: 'white',
-  borderBottom: '1px solid #e2e8f0',
+  borderBottom: '1px solid #848484ff',
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'center',
@@ -3182,7 +3298,8 @@ useEffect(() => {
           fontSize: '1rem',
           fontWeight: 600,
           height: '2.25rem',
-          padding: '0.25rem'
+          padding: '0.25rem',
+          borderColor: '#848484ff',
         }}
       />
 
@@ -3195,6 +3312,7 @@ useEffect(() => {
           alignItems: 'center', 
           gap: '0.5rem',
           height: '2.25rem',
+          borderColor: '#848484ff',
         }}
       >
         <Download style={{ width: '1rem', height: '1rem' }}/>
@@ -3274,7 +3392,7 @@ useEffect(() => {
           style={{
             padding: '0.25rem',
             borderRadius: '0.25rem',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #848484ff',
             height: '1.75rem'
           }}
         >
@@ -3296,7 +3414,7 @@ useEffect(() => {
           style={{
             padding: '0.25rem',
             borderRadius: '0.25rem',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #848484ff',
             height: '1.75rem'
           }}
         >
@@ -3369,7 +3487,7 @@ useEffect(() => {
           style={{
             padding: '0.25rem',
             borderRadius: '0.25rem',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #848484ff',
             height: '1.75rem'
           }}
         >
@@ -3485,7 +3603,7 @@ useEffect(() => {
       <div style={{
         position: 'relative',
         background: 'white',
-        borderRight: '1px solid #e2e8f0',
+        borderRight: '1px solid #848484ff',
         flexShrink: 0,
         width: isMobile ? '100%' : `calc(100% - ${H})`,
   // More precise height calculation - just enough for one extra description
@@ -3498,11 +3616,11 @@ useEffect(() => {
           top: isMobile && rotated ? 
             `${(points.length + 1) * (G * 1.5) + (G * 0.2)}px` : // Add extra spacing
             `${getNextX()}px`,
-          left: isMobile ? '50%' : '60%',  // Use 50% on mobile, 60% otherwise on vertical
+          left: isMobile ? '50%' : '55%',  // Use 50% on mobile, 50% otherwise on vertical
           transform: 'translate(-50%,-50%) rotate(90deg)',
           width: isMobile ? '5rem' : '2.5rem', //Vertical Plus Button Height
           height: isMobile ? '20rem' : '5rem', // Vertical Plus Button Width
-          border: '1px solid #e2e8f0',
+          border: '1px solid #848484ff',
           borderRadius: '.375rem',
           backgroundColor: 'white', // Ensure white background
           zIndex: 5 // Keep above other elements
@@ -3515,7 +3633,7 @@ useEffect(() => {
             style={{ 
               width: '100%', 
               height: '100%', 
-              borderRadius: 0,
+              borderRadius: '0.375rem', // Add this to match the container's border radius
               transition: 'background-color 0.2s',
               fontSize: isMobile ? '1.25rem' : 'inherit'
             }}
@@ -3532,7 +3650,7 @@ useEffect(() => {
              <div
              style={{
                position: 'absolute',
-               left: rotated ? '60%' : `${point.x - G/2}px`,
+               left: rotated ? '55%' : `${point.x - G/2}px`,
                top: rotated ? `${point.x - G/2}px` : '50%',
                transform: 'translate(-50%, -50%)',
                width: rotated ? '30%' : '40px',
@@ -3609,7 +3727,7 @@ useEffect(() => {
              }}
              style={{
                position: 'absolute',
-               left: isMobile ? '50%' : '60%',  // Use 50% on mobile, 60% otherwise on vertical
+               left: isMobile ? '50%' : '50%',  // Use 50% on mobile, 50% otherwise on vertical
                top: `${point.x}px`,
                transform: 'translate(-50%,-50%)',
                opacity: draggedDescriptionIndex === i ? 0.5 : 1,  // Fade the dragged item
@@ -3631,13 +3749,13 @@ useEffect(() => {
                flexDirection: 'row',
                gap: '.75rem', //Gap between all divs inside vertical descriptions section
              }}>
-               {/* SECTION 1: Color Dots */}
+          {/* SECTION 1: Color Dots */}
                <div style={{
-                 display: 'flex',
-                 flexDirection: 'row',
-                 gap: '.85rem', //Gap between two colored dots vertical
-                 paddingRight: '.25rem' //Padding between two colored dots and description box vertical
-               }}>
+                  display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row', // Column on mobile, row on desktop
+                  gap: isMobile ? '.79rem' : '.85rem', // Tighter gap on mobile
+                  paddingRight: '.6rem' //Padding between two colored dots and description box vertical
+                }}>
                  <div 
                    onClick={() => {
                      setActiveDigitalPoints(prev => {
@@ -3661,8 +3779,8 @@ useEffect(() => {
                     }
                   }}
                    style={{
-                     width: '24px',
-                     height: '24px',
+                     width: isMobile ? '32px' : '24px',    // Bigger on mobile
+                     height: isMobile ? '32px' : '24px',   // Bigger on mobile
                      borderRadius: '50%',
                      border: '1px solid #666',
                      backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
@@ -3693,8 +3811,8 @@ useEffect(() => {
                     }
                   }}
                    style={{
-                     width: '24px',
-                     height: '24px',
+                     width: isMobile ? '32px' : '24px',    // Bigger on mobile
+                     height: isMobile ? '32px' : '24px',   // Bigger on mobile
                      borderRadius: '50%',
                      border: '1px solid #666',
                      backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
@@ -3713,10 +3831,10 @@ useEffect(() => {
                  onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
                  placeholder={`Event ${i + 1}`}
                  style={{
-                   width: '200px',
+                   width: '270px',
                    height: isMobile ? '5rem' : '2.5rem',
-                   border: '1px solid #e2e8f0',
-                   borderRadius: '0.375rem'
+                   border: '1px solid #848484ff',
+                   borderRadius: '.8rem'
                  }}
                />
 
@@ -3826,18 +3944,18 @@ useEffect(() => {
                  }}
                  style={{
                    cursor: 'grab',
-                   padding: '0.25rem', //Gap between drag handle and the other divs inside vertical section
-                   color: '#666',
+                   padding: '0rem', //Gap between drag handle and the other divs inside vertical section
+                   color: '#222222ff',
                    transition: 'transform 0.2s, background-color 0.2s',
                    transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
                    backgroundColor: draggedDescriptionIndex === i ? '#FFF9C4' : draggedOverIndex === i ? '#f3f4f6' : 'transparent',
-                   borderRadius: '0.25rem',
+                   borderRadius: '0.2rem',
                    touchAction: 'none',        // Prevent default touch actions like scrolling
                    overscrollBehavior: 'none', // Prevent bounce/scroll chaining
                    WebkitOverflowScrolling: 'touch' // Better touch scrolling control
                  }}
                >
-                 <GripVertical size={16} />
+                <GripVertical size={isMobile ? 20 : 16} /> {/* Bigger icon on mobile */}
                </div>
             </div>
         </div>
@@ -3980,7 +4098,7 @@ useEffect(() => {
           <div style={{
             position: 'relative',
             background: 'white',
-            borderTop: '1px solid #e2e8f0',
+            borderTop: '1px solid #848484ff',
             height: `calc(100% - ${H})`,  // This should take remaining space after SVG
             display: isMobile ? 'none' : 'block'
           }}>
@@ -3997,7 +4115,7 @@ useEffect(() => {
                 transform: 'translate(-50%,-50%) rotate(-90deg)',
                 width: '5rem', // Horizontal Plus Button Height
                 height: '2.5rem',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #848484ff',
                 borderRadius: '0.375rem'
               }}>
                 <Button  
@@ -4007,7 +4125,7 @@ useEffect(() => {
                 style={{ 
                   width: '100%', 
                   height: '100%', 
-                  borderRadius: 0,
+                  borderRadius: '0.375rem', // Add this to match the container's border radius
                   transition: 'background-color 0.2s'
                 }}
                 className="hover:bg-gray-100"
@@ -4175,7 +4293,7 @@ useEffect(() => {
                         color: '#666',
                         transition: 'transform 0.2s',
                         transform: draggedDescriptionIndex === i ? 'scale(0.95)' : draggedOverIndex === i ? 'scale(1.05)' : 'scale(1)',
-                        backgroundColor: draggedDescriptionIndex === i ? '#e5e7eb' : 'transparent',
+                        backgroundColor: draggedDescriptionIndex === i ? '#FFF9C4' : 'transparent',
                         borderRadius: '0.25rem',
 
                       }}
@@ -4201,7 +4319,7 @@ useEffect(() => {
                     style={{ 
                       height: '175px',
                       width: '2.5rem',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid #848484ff',
                       borderRadius: '0.375rem'
                     }}
                   />
@@ -4320,7 +4438,40 @@ useEffect(() => {
       flexDirection: 'column',
       gap: '1rem'
     }}>
-      <h2 style={{ margin: 0 }}>Event Description</h2>
+      {/* Header with title and delete button */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        margin: 0
+      }}>
+        <h2 style={{ margin: 0 }}>Event {editingPoint.index + 1}</h2>
+        <button
+          onClick={() => {
+            // Delete the current point
+            const newPoints = points.filter((_, index) => index !== editingPoint.index);
+            // Recalculate x positions
+            const updatedPoints = newPoints.map((point, index) => ({
+              ...point,
+              x: (isMobile && rotated) ? (index + 1) * (G * 1.5) : (index + 1) * G
+            }));
+            setActivePoints(updatedPoints);
+            setModalOpen(false);
+          }}
+          style={{
+            background: 'none',
+            border: '1px solid #ef4444',
+            color: '#ef4444',
+            fontSize: '14px',
+            cursor: 'pointer',
+            padding: '6px 12px',
+            borderRadius: '4px',
+            fontWeight: '500'
+          }}
+        >
+          Delete Event
+        </button>
+      </div>
       
       <form 
         id="descriptionForm"
@@ -4358,50 +4509,80 @@ useEffect(() => {
             height: isMobile ? '100px' : '150px',
             padding: '0.5rem',
             borderRadius: '0.25rem',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #848484ff',
             fontSize: isMobile ? '1.1rem' : 'inherit'
           }}
         />
         
         <div style={{
           display: 'flex',
+          flexDirection: 'column',
           gap: '0.5rem',
-          justifyContent: 'space-between', // Changed from flex-end to space-between
           width: '100%'
         }}>
-          <Button 
+          {/* Top row - Cancel and Save */}
+          <div style={{
+            display: 'flex',
+            gap: '0.5rem',
+            justifyContent: 'space-between',
+            width: '100%'
+          }}>
+            <Button 
+              type="button"
+              size="sm"
+              variant="outline" 
+              onClick={() => setModalOpen(false)}
+              onMouseEnter={() => setHoveredButton('cancel')}
+              onMouseLeave={() => setHoveredButton(null)}
+              style={{
+                height: isMobile ? '3rem' : undefined,
+                width: 'calc(50% - 0.25rem)',
+                fontSize: isMobile ? '1.1rem' : 'inherit',
+                backgroundColor: hoveredButton === 'cancel' ? '#f3f4f6' : 'white', // Light gray on hover
+                borderColor: hoveredButton === 'cancel' ? '#d1d5db' : '#e2e8f0', // Darker border on hover
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Cancel{!isMobile && " (Esc)"}
+            </Button>
+            
+            <Button
+              type="submit"
+              size="sm"
+              variant="outline"
+              onMouseEnter={() => setHoveredButton('save')}
+              onMouseLeave={() => setHoveredButton(null)}
+              style={{
+                height: isMobile ? '3rem' : undefined,
+                width: 'calc(50% - 0.25rem)',
+                fontSize: isMobile ? '1.1rem' : 'inherit',
+                backgroundColor: hoveredButton === 'save' ? '#0056b3' : '#007AFF', // Darker on hover
+                color: 'white',
+                transition: 'background-color 0.2s ease' // Smooth transition
+              }}
+            >
+              Save
+            </Button>
+          </div>
+
+          {/* Bottom row - Save & Add Another */}
+          <Button
             type="button"
             size="sm"
-            variant="outline" 
-            onClick={() => setModalOpen(false)}
-            style={{
-              height: isMobile ? '3rem' : undefined, // Use default height on desktop
-              width: 'calc(50% - 0.25rem)', // 50% minus half the gap
-              fontSize: isMobile ? '1.1rem' : 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            Cancel{!isMobile && " (Esc)"}
-          </Button>
-          
-          <Button
-            type="submit"
-            size="sm"
             variant="outline"
+            onClick={handleSaveAndAddAnother}
+            onMouseEnter={() => setHoveredButton('saveAdd')}
+            onMouseLeave={() => setHoveredButton(null)}
             style={{
-              height: isMobile ? '3rem' : undefined, // Use default height on desktop
-              width: 'calc(50% - 0.25rem)', // 50% minus half the gap
+              height: isMobile ? '3rem' : undefined,
+              width: '100%',
               fontSize: isMobile ? '1.1rem' : 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#007AFF',
-              color: 'white'
+              backgroundColor: hoveredButton === 'saveAdd' ? '#e6800e' : '#FFA500', // Darker on hover
+              color: 'white',
+              transition: 'background-color 0.2s ease' // Smooth transition
             }}
           >
-            Save
+            Save & Add Another
           </Button>
         </div>
       </form>
@@ -4432,6 +4613,7 @@ useEffect(() => {
       setEditMode={setEditMode}
       setShowDigitalCutout={setShowDigitalCutout}
       setShowAnalyticsCutout={setShowAnalyticsCutout}
+      onDuplicateFlow={duplicateFlow}  // Add this line
     />}
   </div>
   );
@@ -4457,7 +4639,8 @@ const BottomTray = ({
   setShowPoints,
   setEditMode,
   setShowDigitalCutout,
-  setShowAnalyticsCutout
+  setShowAnalyticsCutout,
+  onDuplicateFlow,
 }) => {
   const [showActionSheet, setShowActionSheet] = useState(null);
 
@@ -4512,7 +4695,7 @@ const BottomTray = ({
         left: 0,
         right: 0,
         background: 'white',
-        borderTop: '1px solid #e2e8f0',
+        borderTop: '1px solid #848484ff',
         paddingBottom: isPWA ? '2.5rem' : '0.75rem', // PWA gets extra padding, everything else gets minimal
         backgroundColor: 'white',
         //backgroundColor: isPWA ? 'lightblue' : 'lightgreen', // Temporary visual indicator
@@ -4527,6 +4710,7 @@ const BottomTray = ({
           onAddFlow={addNewFlow}
           onDeleteFlow={onDeleteFlow}
           onRenameFlow={onRenameFlow}
+          onDuplicateFlow={onDuplicateFlow}
         />
         
         <div style={{
@@ -4546,7 +4730,7 @@ const BottomTray = ({
             style={{
               backgroundColor: rotated ? '#3b82f6' : 'white',
               color: rotated ? 'white' : '#1f2937',
-              borderColor: rotated ? '#3b82f6' : '#e2e8f0'
+              borderColor: rotated ? '#3b82f6' : '#848484ff'
             }}
           >
             <PiListDashesBold style={{ 
@@ -4566,7 +4750,7 @@ const BottomTray = ({
             style={{
               backgroundColor: !rotated ? '#3b82f6' : 'white',
               color: !rotated ? 'white' : '#1f2937',
-              borderColor: !rotated ? '#3b82f6' : '#e2e8f0'
+              borderColor: !rotated ? '#3b82f6' : '#848484ff'
             }}
           >
             <TbChartDots3 style={{ 
