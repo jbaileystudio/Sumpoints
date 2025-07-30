@@ -221,7 +221,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 style={{
                   padding: '0.5rem 1rem',
                   color: flow.id === activeFlowId ? 'white' : '#1f2937',
-                  fontWeight: flow.id === activeFlowId ? '700' : '400',
+                  fontWeight: flow.id === activeFlowId ? '400' : '400',
                   whiteSpace: 'nowrap',
                   cursor: 'pointer',
                 }}
@@ -246,11 +246,12 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                   minWidth: '44px',
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+                <svg width="18" height="18" viewBox="0 0 24 24" 
+                  fill={flow.id === activeFlowId ? "white" : "#6b7280"}  // Remove fill="none", set actual fill
                   stroke={flow.id === activeFlowId ? "white" : "#6b7280"} strokeWidth="2.5">
-                  <circle cx="12" cy="12" r="1.5" fill="currentColor"></circle>
-                  <circle cx="12" cy="5" r="1.5" fill="currentColor"></circle>
-                  <circle cx="12" cy="19" r="1.5" fill="currentColor"></circle>
+                  <circle cx="12" cy="12" r="1.5"></circle>  {/* Remove fill="currentColor" */}
+                  <circle cx="12" cy="5" r="1.5"></circle>
+                  <circle cx="12" cy="19" r="1.5"></circle>
                 </svg>
               </div>
             </div>
@@ -703,6 +704,18 @@ const InteractiveDrawing = () => {
   const [hideSvgContent, setHideSvgContent] = useState(false);
   const [pointsMode, setPointsMode] = useState('show'); // 'show', 'hide', or 'delete'
   const [hoveredButton, setHoveredButton] = useState(null);
+  
+  const getHoverHandlers = (buttonName) => {
+    if (isMobile) {
+      return {};
+    }
+    return {
+      onMouseEnter: () => setHoveredButton(buttonName),
+      onMouseLeave: () => setHoveredButton(null)
+    };
+  };
+
+  const [isHoveringChart, setIsHoveringChart] = useState(false);
 
   const [isPWA, setIsPWA] = useState(false);
 
@@ -2100,6 +2113,7 @@ const isFirstPointRef = useRef(true);
 
 
 const addGhostPoint = () => {
+    console.log('addGhostPoint called'); // Add this
   const x = getNextX();
   
   // Check if this is the first point
@@ -2307,7 +2321,7 @@ useEffect(() => {
 
     const isNearNextLine = rotated
       ? Math.abs(mouseX - (75 * Math.round(mouseX / 75))) < G/2  // Check if near any grid line
-      : Math.abs(mouseX - nextX) < G/2;  // Keep horizontal the same
+      : Math.abs(mouseX - nextX) < G/6;  // Keep horizontal the same
 
       // Debug log
       if (rotated) {
@@ -3083,6 +3097,17 @@ useEffect(() => {
           padding: 0.25rem !important;
         }
 
+        /* Add this new class */
+        .add-event-button:hover {
+          background-color: #f3f4f6;
+        }
+
+        @media (hover: none) {
+          .add-event-button:hover {
+            background-color: white !important;
+          }
+        }
+
         .bottom-button-circle {
           width: 60px !important;
           height: 60px !important;
@@ -3606,7 +3631,7 @@ useEffect(() => {
         borderRight: '1px solid #848484ff',
         flexShrink: 0,
         width: isMobile ? '100%' : `calc(100% - ${H})`,
-  // More precise height calculation - just enough for one extra description
+      // More precise height calculation - just enough for one extra description
   minHeight: isMobile && rotated ? 
     `${(points.length + 2) * (G * 1.5)}px` : 
     'auto'
@@ -3621,7 +3646,7 @@ useEffect(() => {
           width: isMobile ? '5rem' : '2.5rem', //Vertical Plus Button Height
           height: isMobile ? '20rem' : '5rem', // Vertical Plus Button Width
           border: '1px solid #848484ff',
-          borderRadius: '.375rem',
+          borderRadius: '0.375rem',
           backgroundColor: 'white', // Ensure white background
           zIndex: 5 // Keep above other elements
         }}>
@@ -3630,15 +3655,16 @@ useEffect(() => {
             size="sm"
             variant="ghost"
             onClick={addGhostPoint}
+            {...getHoverHandlers('addEvent')}
             style={{ 
               width: '100%', 
               height: '100%', 
-              borderRadius: '0.375rem', // Add this to match the container's border radius
+              borderRadius: '0.375rem',
               transition: 'background-color 0.2s',
-              fontSize: isMobile ? '1.25rem' : 'inherit'
+              fontSize: isMobile ? '1.25rem' : 'inherit',
+              backgroundColor: (!isMobile && hoveredButton === 'addEvent') ? '#f3f4f6' : 'white',
             }}
-            className="hover:bg-gray-100"
-            >
+          >
             <Plus className="w-4 h-4"/>
           </Button>
         </div>
@@ -3646,27 +3672,29 @@ useEffect(() => {
         {getAllPoints().map((point, i) => (
          <React.Fragment key={`group-${point.id}`}>
            {/* Insert hover zone before each point (except the first one) */}
-           {i > 0 && !isMobile && (
-             <div
-             style={{
-               position: 'absolute',
-               left: rotated ? '55%' : `${point.x - G/2}px`,
-               top: rotated ? `${point.x - G/2}px` : '50%',
-               transform: 'translate(-50%, -50%)',
-               width: rotated ? '30%' : '40px',
-               height: rotated ? '40px' : '50%',
-               display: 'flex',
-               alignItems: 'center',
-               justifyContent: 'center',
-               opacity: hoveredInsertId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
-               transition: 'opacity 0.2s',
-               cursor: 'pointer',
-               pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
-             }}
-             onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
-             onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
-             onClick={() => handleInsertAt(i)}
-             >
+            {i > 0 && !isMobile && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: rotated ? '55%' : `${point.x - G/2}px`,
+                  top: rotated ? `${point.x - G/2}px` : '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: rotated ? '30%' : '40px',
+                  height: rotated ? '30px' : '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: hoveredInsertId === point.id ? 1 : 0,
+                  cursor: 'pointer',
+                  pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto',
+                  backgroundColor: 'rgba(59, 130, 246, 1)', // Light soft blue
+  borderRadius: '8px', // Rounded corners
+  border: '1px solid rgba(59, 130, 246, 0.2)' // Subtle blue border
+                }}
+                onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
+                onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
+                onClick={() => handleInsertAt(i)}
+              >
              <div
                style={{
                  width: '24px',
@@ -3975,6 +4003,8 @@ useEffect(() => {
     className="drawing-area"
     onMouseMove={handleMouseMove}
     onClick={handleClick}
+    onMouseEnter={() => setIsHoveringChart(true)}  // Add this
+  onMouseLeave={() => setIsHoveringChart(false)} // Add this
     >
     {renderSVG(true)}
 
@@ -3998,7 +4028,7 @@ useEffect(() => {
       )}
 
     {/* Marching ants code */}
-    {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && (
+    {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && isHoveringChart && (
       <div style={{
         position: 'absolute',
         pointerEvents: 'none',
@@ -4057,6 +4087,8 @@ useEffect(() => {
         className="drawing-area"
         onMouseMove={handleMouseMove}
         onClick={handleClick}
+        onMouseEnter={() => setIsHoveringChart(true)}  // Add this
+  onMouseLeave={() => setIsHoveringChart(false)} // Add this
       >
           {renderSVG(false)}
 
@@ -4080,7 +4112,7 @@ useEffect(() => {
   )}
 
   {/* Marching ants code */}
-      {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && (
+      {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && isHoveringChart && (
         <div style={{
           position: 'absolute',
           pointerEvents: 'none',
@@ -4119,18 +4151,18 @@ useEffect(() => {
                 borderRadius: '0.375rem'
               }}>
                 <Button  
-                size="sm"
-                variant="ghost"
-                onClick={addGhostPoint}
-                style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  borderRadius: '0.375rem', // Add this to match the container's border radius
-                  transition: 'background-color 0.2s'
-                }}
-                className="hover:bg-gray-100"
-                >
-                <Plus className="w-4 h-4"/>
+                  size="sm"
+                  variant="ghost"
+                  onClick={addGhostPoint}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: '0.375rem', // Add this to match the container's border radius
+                    transition: 'background-color 0.2s'
+                  }}
+                  className="hover:bg-gray-100"
+                  >
+                  <Plus className="w-4 h-4"/>
                 </Button>
               </div>
             
@@ -4144,20 +4176,22 @@ useEffect(() => {
                         left: rotated ? '50%' : `${point.x - G/2}px`,
                         top: rotated ? `${point.x - G/2}px` : '50%',
                         transform: 'translate(-50%, -50%)',
-                        width: rotated ? '30%' : '40px',
+                        width: rotated ? '30%' : '30px',
                         height: rotated ? '40px' : '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        opacity: hoveredInsertId === point.id ? 1 : 0,  // Changed from hoverInsertIndex
-                        transition: 'opacity 0.2s',
+                        opacity: hoveredInsertId === point.id ? 1 : 0,
                         cursor: 'pointer',
-                        pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto'
+                        pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto',
+                        backgroundColor: 'rgba(59, 130, 246, 1)', // Light soft blue
+  borderRadius: '8px', // Rounded corners
+  border: '1px solid rgba(59, 130, 246, 0.2)' // Subtle blue border
                       }}
                       onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
                       onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
                       onClick={() => handleInsertAt(i)}
-                      >
+                    >
                       <div
                         style={{
                           width: '24px',
@@ -4532,15 +4566,16 @@ useEffect(() => {
               size="sm"
               variant="outline" 
               onClick={() => setModalOpen(false)}
-              onMouseEnter={() => setHoveredButton('cancel')}
-              onMouseLeave={() => setHoveredButton(null)}
+              {...getHoverHandlers('cancel')}
               style={{
                 height: isMobile ? '3rem' : undefined,
                 width: 'calc(50% - 0.25rem)',
                 fontSize: isMobile ? '1.1rem' : 'inherit',
                 backgroundColor: hoveredButton === 'cancel' ? '#f3f4f6' : 'white', // Light gray on hover
                 borderColor: hoveredButton === 'cancel' ? '#d1d5db' : '#e2e8f0', // Darker border on hover
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                  transition: isMobile ? 'none' : 'background-color 0.2s ease' // No transition on mobile
+
               }}
             >
               Cancel{!isMobile && " (Esc)"}
@@ -4550,15 +4585,15 @@ useEffect(() => {
               type="submit"
               size="sm"
               variant="outline"
-              onMouseEnter={() => setHoveredButton('save')}
-              onMouseLeave={() => setHoveredButton(null)}
+              {...getHoverHandlers('save')}
               style={{
                 height: isMobile ? '3rem' : undefined,
                 width: 'calc(50% - 0.25rem)',
                 fontSize: isMobile ? '1.1rem' : 'inherit',
                 backgroundColor: hoveredButton === 'save' ? '#0056b3' : '#007AFF', // Darker on hover
                 color: 'white',
-                transition: 'background-color 0.2s ease' // Smooth transition
+                 transition: isMobile ? 'none' : 'background-color 0.2s ease' // No transition on mobile
+                
               }}
             >
               Save
@@ -4571,15 +4606,15 @@ useEffect(() => {
             size="sm"
             variant="outline"
             onClick={handleSaveAndAddAnother}
-            onMouseEnter={() => setHoveredButton('saveAdd')}
-            onMouseLeave={() => setHoveredButton(null)}
+            {...getHoverHandlers('saveAdd')}
             style={{
               height: isMobile ? '3rem' : undefined,
               width: '100%',
               fontSize: isMobile ? '1.1rem' : 'inherit',
               backgroundColor: hoveredButton === 'saveAdd' ? '#e6800e' : '#FFA500', // Darker on hover
               color: 'white',
-              transition: 'background-color 0.2s ease' // Smooth transition
+                transition: isMobile ? 'none' : 'background-color 0.2s ease' // No transition on mobile
+
             }}
           >
             Save & Add Another
@@ -4643,6 +4678,17 @@ const BottomTray = ({
   onDuplicateFlow,
 }) => {
   const [showActionSheet, setShowActionSheet] = useState(null);
+  const [hoveredButton, setHoveredButton] = useState(null); // Add this
+
+  const getHoverHandlers = (buttonName) => {  // Add this
+    if (isMobile) {
+      return {};
+    }
+    return {
+      onMouseEnter: () => setHoveredButton(buttonName),
+      onMouseLeave: () => setHoveredButton(null)
+    };
+  };
 
   const handleCumulativeClick = () => {
     setShowActionSheet('cumulative');
@@ -4764,14 +4810,22 @@ const BottomTray = ({
           </Button>
 
           {/* Second group - Action buttons */}
+          
+          {/* // Sum button */}
           <Button 
             size="sm"
             variant="outline"
             className="bottom-button"
             onClick={handleCumulativeClick}
             style={{
-              border: 'none'  // Add this to remove the stroke
+              border: 'none',
+              backgroundColor: 'white',
+              ':hover': 'none',
+              borderBottom: cumulativeType !== 'none' ? '3px solid #3b82f6' : 'none',
+              borderRadius: cumulativeType !== 'none' ? '6px 6px 0 0' : '6px', // Keep top corners rounded
             }}
+            onMouseEnter={isMobile ? undefined : () => {}}
+            onMouseLeave={isMobile ? undefined : () => {}}
           >
             <MdOutlineAutoGraph style={{ width: '20px', height: '20px', marginBottom: '4px' }}/>
             Sum
@@ -4783,8 +4837,14 @@ const BottomTray = ({
             className="bottom-button"
             onClick={handlePointsClick}
             style={{
-              border: 'none'  // Add this to remove the stroke
+              border: 'none',
+              backgroundColor: 'white',
+              ':hover': 'none',
+              borderBottom: pointsMode !== 'show' ? '3px solid #3b82f6' : 'none',
+              borderRadius: pointsMode !== 'show' ? '6px 6px 0 0' : '6px',
             }}
+            onMouseEnter={isMobile ? undefined : () => {}}
+            onMouseLeave={isMobile ? undefined : () => {}}
           >
             <MdHideSource style={{ width: '20px', height: '20px', marginBottom: '4px' }}/>
             Points
@@ -4796,8 +4856,14 @@ const BottomTray = ({
             className="bottom-button"
             onClick={handleColorsClick}
             style={{
-              border: 'none'  // Add this to remove the stroke
+              border: 'none',
+              backgroundColor: 'white',
+              ':hover': 'none',
+              borderBottom: cutoutType !== 'none' ? '3px solid #3b82f6' : 'none',
+              borderRadius: cutoutType !== 'none' ? '6px 6px 0 0' : '6px',
             }}
+            onMouseEnter={isMobile ? undefined : () => {}}
+            onMouseLeave={isMobile ? undefined : () => {}}
           >
             <IoMdColorPalette style={{ width: '20px', height: '20px', marginBottom: '4px' }}/>
             Colors
@@ -4808,7 +4874,16 @@ const BottomTray = ({
             variant="outline"
             className="bottom-button"
             disabled={true}
-            style={{ opacity: 0.5, border: 'none' }}
+            style={{
+              border: 'none',
+              backgroundColor: 'white',
+              ':hover': 'none',
+              opacity: 0.5,
+              borderBottom: '1px solid transparent', // Change from 'none' to transparent border
+              borderRadius: '6px',
+            }}
+            onMouseEnter={isMobile ? undefined : () => {}}
+            onMouseLeave={isMobile ? undefined : () => {}}
           >
             <MdOutlineSsidChart style={{ width: '20px', height: '20px', marginBottom: '4px' }}/>
             Compare
