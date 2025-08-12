@@ -781,6 +781,20 @@ const handleSaveAndAddAnother = () => {
   setEditText('');
 };
 
+// Add this function inside your component (before the return statement)
+const getAdjacentEventNames = () => {
+  const currentIndex = editingPoint.index;
+  const allPoints = getAllPoints();
+  
+  const previousEvent = currentIndex > 0 ? allPoints[currentIndex - 1] : null;
+  const nextEvent = currentIndex < allPoints.length - 1 ? allPoints[currentIndex + 1] : null;
+  
+  const previousName = previousEvent?.text || `Event ${currentIndex}`;
+  const nextName = nextEvent?.text || `Event ${currentIndex + 2}`;
+  
+  return { previousName, nextName };
+};
+
 
 const [recentTouch, setRecentTouch] = useState(false);
 
@@ -945,46 +959,67 @@ const [hideAnts, setHideAnts] = useState(false);
 
 // Modify your flow switching effect
 // Add more debug logging to track the sequence
-// In your flow change effect:
+// In your flow change effect, before setting the transition
 useEffect(() => {
-  console.log("🔄 FLOW CHANGE DETECTED");
-  
-  // 1. Immediately hide the SVG
-  if (drawingRef.current) {
-    drawingRef.current.style.visibility = 'hidden';
-  }
-  
-  // 2. Start the white overlay transition
-  setShowTransition(true);
-  setTransitionDirection(rotated ? 'bottom' : 'right');
-  
-  // 3. Update layout (under the hidden SVG)
-  setCursor({ x: 50, y: 50 });
-  
-  if (containerRef.current) {
-    const activePoints = getActiveFlow().points;
-    const newDimension = ((activePoints.length + 4) * G);
-    
-    if (!rotated) {
-      containerRef.current.style.width = `${newDimension}px`;
-    } else {
-      containerRef.current.style.height = `${newDimension}px`;
-    }
-  }
-  
-  // 4. Make SVG visible again BEFORE the white overlay starts to pull away
-  setTimeout(() => {
-    if (drawingRef.current) {
-      drawingRef.current.style.visibility = 'visible';
-    }
-  }, 300); // Should be less than the animation delay
-  
-  // 5. Hide transition overlay after animation completes
-  const hideTimer = setTimeout(() => {
-    setShowTransition(false);
-  }, 1000); // Match to animation duration
-  
-  return () => clearTimeout(hideTimer);
+ console.log("🔄 FLOW CHANGE DETECTED");
+ 
+ // 1. Set white background on ALL potential gray containers
+ if (drawingRef.current) {
+   drawingRef.current.style.backgroundColor = 'white';
+   drawingRef.current.style.visibility = 'hidden';
+ }
+ 
+ if (containerRef.current) {
+   containerRef.current.style.backgroundColor = 'white';
+ }
+ 
+ if (scrollRef.current) {
+   scrollRef.current.style.backgroundColor = 'white';
+ }
+ 
+ // Force repaint
+ if (drawingRef.current) {
+   drawingRef.current.offsetHeight;
+ }
+ 
+ // 2. Start the white overlay transition
+ setShowTransition(true);
+ setTransitionDirection(rotated ? 'bottom' : 'right');
+ 
+ // 3. Update layout (under the hidden SVG)
+ setCursor({ x: 50, y: 50 });
+ 
+ if (containerRef.current) {
+   const activePoints = getActiveFlow().points;
+   const newDimension = ((activePoints.length + 4) * G);
+   
+   if (!rotated) {
+     containerRef.current.style.width = `${newDimension}px`;
+   } else {
+     containerRef.current.style.height = `${newDimension}px`;
+   }
+ }
+ 
+ // 4. Make SVG visible again BEFORE the white overlay starts to pull away
+ setTimeout(() => {
+   if (drawingRef.current) {
+     drawingRef.current.style.visibility = 'visible';
+     drawingRef.current.style.backgroundColor = '#f9fafb';
+   }
+   if (containerRef.current) {
+     containerRef.current.style.backgroundColor = '#f9fafb';
+   }
+   if (scrollRef.current) {
+     scrollRef.current.style.backgroundColor = '#f9fafb';
+   }
+ }, 300);
+ 
+ // 5. Hide transition overlay after animation completes
+ const hideTimer = setTimeout(() => {
+   setShowTransition(false);
+ }, 1000);
+ 
+ return () => clearTimeout(hideTimer);
 }, [activeFlowId, rotated]);
 
 useEffect(() => {
@@ -3267,6 +3302,7 @@ useEffect(() => {
   width: '100%',
   touchAction: 'none',
   userSelect: 'none',
+  zIndex: 100, // Add this line
 }}>
   
   {/* FIRST ROW */}
@@ -4009,23 +4045,23 @@ useEffect(() => {
     {renderSVG(true)}
 
     {/* Add Transition Overlay Here */}
-      {showTransition && ReactDOM.createPortal(
-        <div 
-          style={{
-            position: 'fixed',
-            top: `${svgBounds.top}px`,
-            left: `${svgBounds.left}px`,
-            width: `${svgBounds.width}px`,
-            height: `${svgBounds.height}px`,
-            backgroundColor: 'white',
-            zIndex: 9999,
-            transformOrigin: transitionDirection === 'right' ? 'left center' : 'center top',
-            animation: `${transitionDirection === 'right' ? 'slideRight' : 'slideBottom'} 1000ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
-            pointerEvents: 'none'
-          }}
-        />,
-        document.body
-      )}
+      {showTransition && drawingRef.current && ReactDOM.createPortal(
+  <div 
+    style={{
+      position: 'absolute', // Changed from fixed
+      top: 0,               // Relative to drawing container
+      left: 0,
+      width: '100%',        // Full width of drawing container
+      height: '100%',       // Full height of drawing container
+      backgroundColor: 'white',
+      zIndex: 10,           // Just above drawing content
+      transformOrigin: transitionDirection === 'right' ? 'left center' : 'center top',
+      animation: `${transitionDirection === 'right' ? 'slideRight' : 'slideBottom'} 1000ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
+      pointerEvents: 'none'
+    }}
+  />,
+  drawingRef.current // Portal into drawing container, not document.body
+)}
 
     {/* Marching ants code */}
     {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && isHoveringChart && (
@@ -4093,23 +4129,23 @@ useEffect(() => {
           {renderSVG(false)}
 
 {/* Add Transition Overlay Here */}
-  {showTransition && ReactDOM.createPortal(
-    <div 
-      style={{
-        position: 'fixed',
-        top: `${svgBounds.top}px`,
-        left: `${svgBounds.left}px`,
-        width: `${svgBounds.width}px`,
-        height: `${svgBounds.height}px`,
-        backgroundColor: 'white',
-        zIndex: 9999,
-        transformOrigin: transitionDirection === 'right' ? 'left center' : 'center top',
-        animation: `${transitionDirection === 'right' ? 'slideRight' : 'slideBottom'} 1000ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
-        pointerEvents: 'none'
-      }}
-    />,
-    document.body
-  )}
+  {showTransition && drawingRef.current && ReactDOM.createPortal(
+  <div 
+    style={{
+      position: 'absolute', // Changed from fixed
+      top: 0,               // Relative to drawing container
+      left: 0,
+      width: '100%',        // Full width of drawing container
+      height: '100%',       // Full height of drawing container
+      backgroundColor: 'white',
+      zIndex: 10,           // Just above drawing content
+      transformOrigin: transitionDirection === 'right' ? 'left center' : 'center top',
+      animation: `${transitionDirection === 'right' ? 'slideRight' : 'slideBottom'} 1000ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
+      pointerEvents: 'none'
+    }}
+  />,
+  drawingRef.current // Portal into drawing container, not document.body
+)}
 
   {/* Marching ants code */}
       {!hoveredPointId && !hoveredInsertId && !dragging && !isMobile && !hideAnts && isHoveringChart && (
@@ -4472,38 +4508,39 @@ useEffect(() => {
       flexDirection: 'column',
       gap: '1rem'
     }}>
-      {/* Header with title and delete button */}
+      {/* Header with title and close button */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         margin: 0
       }}>
-        <h2 style={{ margin: 0 }}>Event {editingPoint.index + 1}</h2>
+        <h2 style={{ 
+          margin: 0, 
+          fontSize: '2rem' // Changed from default to 2x larger
+        }}>
+          Event {editingPoint.index + 1}
+        </h2>
+        
+        {/* Simple X close button */}
         <button
-          onClick={() => {
-            // Delete the current point
-            const newPoints = points.filter((_, index) => index !== editingPoint.index);
-            // Recalculate x positions
-            const updatedPoints = newPoints.map((point, index) => ({
-              ...point,
-              x: (isMobile && rotated) ? (index + 1) * (G * 1.5) : (index + 1) * G
-            }));
-            setActivePoints(updatedPoints);
-            setModalOpen(false);
-          }}
+          onClick={() => setModalOpen(false)} // Same as Cancel button
           style={{
             background: 'none',
-            border: '1px solid #ef4444',
-            color: '#ef4444',
-            fontSize: '14px',
+            border: 'none',
+            color: '#000000ff',
+            fontSize: '24px',
             cursor: 'pointer',
-            padding: '6px 12px',
+            padding: '4px',
             borderRadius: '4px',
-            fontWeight: '500'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '32px',
+            height: '32px'
           }}
         >
-          Delete Event
+          ×
         </button>
       </div>
       
@@ -4529,24 +4566,37 @@ useEffect(() => {
           autoCapitalize="sentences"
           autoCorrect="on"
           onKeyPress={(e) => {
-            // Only handle plain Enter, not with modifiers (to avoid conflict with Cmd+Enter)
             if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
               e.preventDefault();
-              // Save and close
               handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
               setModalOpen(false);
             }
           }}
-
           style={{
             width: '100%',
-            height: isMobile ? '100px' : '150px',
+            height: isMobile ? '75px' : '100px', 
             padding: '0.5rem',
             borderRadius: '0.25rem',
-            border: '1px solid #848484ff',
+            border: '1px solid #e2e8f0',
             fontSize: isMobile ? '1.1rem' : 'inherit'
           }}
         />
+
+        {/* Previous/Next section */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: '14px',
+          color: '#000000ff'
+        }}>
+          <div>
+            <strong>Previous:</strong> {getAdjacentEventNames().previousName}
+          </div>
+          <div>
+            <strong>Next:</strong> {getAdjacentEventNames().nextName}
+          </div>
+        </div>
         
         <div style={{
           display: 'flex',
@@ -4554,71 +4604,75 @@ useEffect(() => {
           gap: '0.5rem',
           width: '100%'
         }}>
-          {/* Top row - Cancel and Save */}
+          {/* Row 1 - Save button (full width) */}
+          <Button
+            type="submit"
+            size="sm"
+            variant="outline"
+            {...getHoverHandlers('save')}
+            style={{
+              height: isMobile ? '3rem' : undefined,
+              width: '100%', // Full width
+              fontSize: isMobile ? '1.1rem' : 'inherit',
+              backgroundColor: (!isMobile && hoveredButton === 'save') ? '#0056b3' : '#007AFF',
+              color: 'white',
+              transition: 'background-color 0.2s ease'
+            }}
+          >
+            Save
+          </Button>
+
+          {/* Row 2 - Save & Add Another (2/3) + Delete (1/3) */}
           <div style={{
             display: 'flex',
             gap: '0.5rem',
-            justifyContent: 'space-between',
             width: '100%'
           }}>
-            <Button 
+            <Button
               type="button"
               size="sm"
-              variant="outline" 
-              onClick={() => setModalOpen(false)}
-              {...getHoverHandlers('cancel')}
+              variant="outline"
+              onClick={handleSaveAndAddAnother}
+              {...getHoverHandlers('saveAdd')}
               style={{
                 height: isMobile ? '3rem' : undefined,
-                width: 'calc(50% - 0.25rem)',
+                width: 'calc(66.67% - 0.25rem)', // 2/3 width minus half the gap
                 fontSize: isMobile ? '1.1rem' : 'inherit',
-                backgroundColor: hoveredButton === 'cancel' ? '#f3f4f6' : 'white', // Light gray on hover
-                borderColor: hoveredButton === 'cancel' ? '#d1d5db' : '#e2e8f0', // Darker border on hover
-                transition: 'all 0.2s ease',
-                  transition: isMobile ? 'none' : 'background-color 0.2s ease' // No transition on mobile
-
+                backgroundColor: (!isMobile && hoveredButton === 'saveAdd') ? '#e6800e' : '#FFA500',
+                color: 'white',
+                transition: 'background-color 0.2s ease'
               }}
             >
-              Cancel{!isMobile && " (Esc)"}
+              Save & Add Another
             </Button>
-            
+
             <Button
-              type="submit"
+              type="button"
               size="sm"
               variant="outline"
-              {...getHoverHandlers('save')}
+              onClick={() => {
+                // Delete the current point
+                const newPoints = points.filter((_, index) => index !== editingPoint.index);
+                const updatedPoints = newPoints.map((point, index) => ({
+                  ...point,
+                  x: (isMobile && rotated) ? (index + 1) * (G * 1.5) : (index + 1) * G
+                }));
+                setActivePoints(updatedPoints);
+                setModalOpen(false);
+              }}
+              {...getHoverHandlers('delete')}
               style={{
                 height: isMobile ? '3rem' : undefined,
-                width: 'calc(50% - 0.25rem)',
+                width: 'calc(33.33% - 0.25rem)', // 1/3 width minus half the gap
                 fontSize: isMobile ? '1.1rem' : 'inherit',
-                backgroundColor: hoveredButton === 'save' ? '#0056b3' : '#007AFF', // Darker on hover
+                backgroundColor: (!isMobile && hoveredButton === 'delete') ? '#dc2626' : '#ef4444',
                 color: 'white',
-                 transition: isMobile ? 'none' : 'background-color 0.2s ease' // No transition on mobile
-                
+                transition: 'background-color 0.2s ease'
               }}
             >
-              Save
+              Delete
             </Button>
           </div>
-
-          {/* Bottom row - Save & Add Another */}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={handleSaveAndAddAnother}
-            {...getHoverHandlers('saveAdd')}
-            style={{
-              height: isMobile ? '3rem' : undefined,
-              width: '100%',
-              fontSize: isMobile ? '1.1rem' : 'inherit',
-              backgroundColor: hoveredButton === 'saveAdd' ? '#e6800e' : '#FFA500', // Darker on hover
-              color: 'white',
-                transition: isMobile ? 'none' : 'background-color 0.2s ease' // No transition on mobile
-
-            }}
-          >
-            Save & Add Another
-          </Button>
         </div>
       </form>
     </div>
