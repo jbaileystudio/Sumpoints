@@ -13,7 +13,7 @@ import { MdContentCopy } from "react-icons/md";
 
 
 
-// Constants for our grid and layout
+// Constants for the grid and layout
 const G = 75;  // Grid size
 const T = 175; // Text width
 const H = '70%'; // Drawing height
@@ -29,7 +29,7 @@ const isIPad = () => {
 
 
 
-// Generate hash points for our grid
+// Generate hash points for the grid
 const HASH_COUNT = 10;
 const HASH_POINTS = Array.from(
   { length: HASH_COUNT * 2 + 1 }, 
@@ -44,7 +44,7 @@ const findClosestPoint = y => {
 
 // Mobile Flow Pills Component
 
-// Modified MobileFlowPills with improved pill editing experience
+// Modified MobileFlowPills with pill editing experience
 const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onDuplicateFlow }) => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -657,7 +657,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
 
 
 const InteractiveDrawing = () => {
-// State management
+ // State management
  // const [points, setPoints] = useState([]);
   const [ghostPoints, setGhostPoints] = useState([]);
   const [undoStack, setUndoStack] = useState([]);
@@ -690,9 +690,7 @@ const InteractiveDrawing = () => {
   const [tappedPoint, setTappedPoint] = useState(null);
   const [touchStartTime, setTouchStartTime] = useState(null);
   const [touchMoved, setTouchMoved] = useState(false);
-//  const [digitalPoints, setDigitalPoints] = useState(new Set());
   const [showDigitalCutout, setShowDigitalCutout] = useState(false);
-//  const [bluePoints, setBluePoints] = useState(new Set());
   const [showAnalyticsCutout, setShowAnalyticsCutout] = useState(false);
   const [cutoutType, setCutoutType] = useState('none');
   const [hasTouchCapability] = useState('ontouchstart' in window);
@@ -729,7 +727,7 @@ const InteractiveDrawing = () => {
   const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
-  // More strict PWA detection - need BOTH conditions to be true
+  // More strict PWA detection - need both conditions to be true
   const matchesStandalone = window.matchMedia('(display-mode: standalone)').matches;
   const isStandaloneModern = window.navigator.standalone === true;
   
@@ -746,7 +744,7 @@ const handleSaveAndAddAnother = () => {
   console.log('Before save - Current points:', points);
   console.log('Trying to save:', { index: editingPoint.index, text: editText });
   
-  // Save the current point AND create new point in one state update
+  // Save the current point and create new point in one state update
   setActivePoints(prevPoints => {
     // First, save the current point's text
     const updatedPoints = prevPoints.map(p => 
@@ -767,7 +765,7 @@ const handleSaveAndAddAnother = () => {
     const newPoints = [...updatedPoints];
     newPoints.splice(currentIndex + 1, 0, newPoint);
     
-    // Recalculate x positions for all points WITH proper mobile spacing
+    // Recalculate x positions for all points with proper mobile spacing
     return newPoints.map((point, index) => ({
       ...point,
       x: (isMobile && rotated) ? (index + 1) * (G * 1.5) : (index + 1) * G
@@ -966,9 +964,9 @@ const setActiveBluePoints = (newSetOrUpdater) => {
 // Add this effect to trigger the marching ants animation when flows change
 const [hideAnts, setHideAnts] = useState(false);
 
-// Modify your flow switching effect
+// Modify the flow switching effect
 // Add more debug logging to track the sequence
-// In your flow change effect, before setting the transition
+// In the flow change effect, before setting the transition
 useEffect(() => {
  console.log("🔄 FLOW CHANGE DETECTED");
  
@@ -1195,107 +1193,107 @@ useEffect(() => {
     // Create SVG content similar to your current export
     const scores = calculateScores(allPoints);
     const svgContent = `
-  <svg 
-    width="${totalWidth * scale}px"
-    height="${600 * scale}px" 
-    viewBox="0 0 ${totalWidth} 600"
-    style="background-color: white;"
-    preserveAspectRatio="xMidYMid meet"
-    shape-rendering="geometricPrecision"
-  >
-    <defs>
-      <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
-        ${HASH_POINTS.map((hp, i) => `
-          <line 
-            x1="-6" y1="${hp}%" 
-            x2="6" y2="${hp}%" 
-            stroke="grey"
-          />
-        `).join('')}
-      </pattern>
+    <svg 
+      width="${totalWidth * scale}px"
+      height="${600 * scale}px" 
+      viewBox="0 0 ${totalWidth} 600"
+      style="background-color: white;"
+      preserveAspectRatio="xMidYMid meet"
+      shape-rendering="geometricPrecision"
+    >
+      <defs>
+        <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
+          ${HASH_POINTS.map((hp, i) => `
+            <line 
+              x1="-6" y1="${hp}%" 
+              x2="6" y2="${hp}%" 
+              stroke="grey"
+            />
+          `).join('')}
+        </pattern>
 
-      <!-- Add hatching patterns -->
-      <pattern id="yellow-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
-        <path d="M0,10 l10,-10 M-2,12 l14,-14 M8,12 l4,-4" 
-          stroke="black" 
-          strokeWidth="1"
-          fill="none"
-        />
-      </pattern>
-
-      <pattern id="blue-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
-        <path d="M10,10 l-10,-10 M12,12 l-14,-14 M-2,2 l4,-4" 
-          stroke="black" 
-          strokeWidth="1"
-          fill="none"
-        />
-      </pattern>
-
-      <!-- Both hatches - crossing pattern (#) -->
-        <pattern id="both-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
-          <!-- Yellow direction (\) -->
+        <!-- Add hatching patterns -->
+        <pattern id="yellow-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
           <path d="M0,10 l10,-10 M-2,12 l14,-14 M8,12 l4,-4" 
             stroke="black" 
             strokeWidth="1"
             fill="none"
           />
-          <!-- Blue direction (/) -->
+        </pattern>
+
+        <pattern id="blue-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
           <path d="M10,10 l-10,-10 M12,12 l-14,-14 M-2,2 l4,-4" 
             stroke="black" 
             strokeWidth="1"
             fill="none"
           />
         </pattern>
-    </defs>
 
-    <!-- Background grid elements -->
-    <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
-    
-    <!-- Vertical grid lines -->
-    <line x1="0" y1="0" x2="0" y2="100%" stroke="grey"/>
-    <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="#ADADAD"/>
-    ${Array.from({ length: Math.ceil(totalWidth / G) }, (_, i) => 
-      `<line 
-        x1="${(i + 1) * G}" 
-        y1="0" 
-        x2="${(i + 1) * G}" 
-        y2="100%" 
-        stroke="grey"
-      />`
-    ).join('')}
+        <!-- Both hatches - crossing pattern (#) -->
+          <pattern id="both-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
+            <!-- Yellow direction (\) -->
+            <path d="M0,10 l10,-10 M-2,12 l14,-14 M8,12 l4,-4" 
+              stroke="black" 
+              strokeWidth="1"
+              fill="none"
+            />
+            <!-- Blue direction (/) -->
+            <path d="M10,10 l-10,-10 M12,12 l-14,-14 M-2,2 l4,-4" 
+              stroke="black" 
+              strokeWidth="1"
+              fill="none"
+            />
+          </pattern>
+      </defs>
 
-    <!-- Center line - moved after grid elements -->
-    <line x1="0" y1="50%" x2="${totalWidth}" y2="50%" stroke="grey" stroke-width="1"/>
+      <!-- Background grid elements -->
+      <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
+      
+      <!-- Vertical grid lines -->
+      <line x1="0" y1="0" x2="0" y2="100%" stroke="grey"/>
+      <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="#ADADAD"/>
+      ${Array.from({ length: Math.ceil(totalWidth / G) }, (_, i) => 
+        `<line 
+          x1="${(i + 1) * G}" 
+          y1="0" 
+          x2="${(i + 1) * G}" 
+          y2="100%" 
+          stroke="grey"
+        />`
+      ).join('')}
 
-    <!-- Add cutout patterns if selected -->
-    ${cutoutType !== 'none' ? 
-      Array.from({ length: Math.ceil(totalWidth / G) }, (_, i) => {
-        const x = (i + 1) * G;
-        const point = allPoints.find(p => p.x === x);
-        
-        if (!point) return '';
-        
-        let pattern = '';
-        if (cutoutType === 'yellow' && !digitalPoints.has(point.id)) {
-          pattern = 'url(#yellow-hatch)';
-        } else if (cutoutType === 'blue' && !bluePoints.has(point.id)) {
-          pattern = 'url(#blue-hatch)';
-        } else if (cutoutType === 'both' && !(digitalPoints.has(point.id) && bluePoints.has(point.id))) {
-          pattern = 'url(#both-hatch)';
-        }
+      <!-- Center line - moved after grid elements -->
+      <line x1="0" y1="50%" x2="${totalWidth}" y2="50%" stroke="grey" stroke-width="1"/>
 
-        return pattern ? `
-          <rect
-            x="${x - G/2}"
-            y="0"
-            width="${G}"
-            height="100%"
-            fill="${pattern}"
-            opacity="0.5"
-          />
-        ` : '';
-      }).join('') 
-    : ''}
+      <!-- Add cutout patterns if selected -->
+      ${cutoutType !== 'none' ? 
+        Array.from({ length: Math.ceil(totalWidth / G) }, (_, i) => {
+          const x = (i + 1) * G;
+          const point = allPoints.find(p => p.x === x);
+          
+          if (!point) return '';
+          
+          let pattern = '';
+          if (cutoutType === 'yellow' && !digitalPoints.has(point.id)) {
+            pattern = 'url(#yellow-hatch)';
+          } else if (cutoutType === 'blue' && !bluePoints.has(point.id)) {
+            pattern = 'url(#blue-hatch)';
+          } else if (cutoutType === 'both' && !(digitalPoints.has(point.id) && bluePoints.has(point.id))) {
+            pattern = 'url(#both-hatch)';
+          }
+
+          return pattern ? `
+            <rect
+              x="${x - G/2}"
+              y="0"
+              width="${G}"
+              height="100%"
+              fill="${pattern}"
+              opacity="0.5"
+            />
+          ` : '';
+        }).join('') 
+      : ''}
 
 ${showPoints ? `
     <!-- Points and connecting lines | Including export stroke width -->
@@ -2813,7 +2811,7 @@ useEffect(() => {
             );
           })}
 
-    {/* Popup - moved outside and after points */}
+{/* Popup - moved outside and after points */}
 {showPoints && (previewPositions.length > 0 ? previewPositions : allPoints).map((point, i) => {
   const pos = getPos(point, i);
   return isMobile && tappedPoint && (point.id === tappedPoint.point.id) && (
@@ -3215,10 +3213,8 @@ useEffect(() => {
           flex: 1 !important;
           min-width: 0 !important;
         }
-      `}</style>
 
-    <style>{`
-    .toggle-switch {
+        .toggle-switch {
       position: relative;
       display: inline-block;
       width: 40px;
@@ -3262,17 +3258,11 @@ useEffect(() => {
     input:checked + .toggle-slider:before {
       transform: translateX(16px);
     }
-    `}</style>
-
-    <style>{`
-        @keyframes m{0%{background-position:0 0}100%{background-position:20px 0}}
+      @keyframes m{0%{background-position:0 0}100%{background-position:20px 0}}
         @keyframes v{0%{background-position:0 0}100%{background-position:0 20px}}
         .r{writing-mode:vertical-rl;transform:rotate(180deg)}
-    `}</style>
-
-   
-    <style>{`
-  @keyframes slideUp {
+      
+@keyframes slideUp {
     from {
       transform: translateY(100%);
     }
@@ -3349,7 +3339,9 @@ useEffect(() => {
   .action-sheet-option:last-child {
     border-bottom: none;
   }
-`}</style>
+
+      `}</style>
+
 
 {/* Outer white container */}
 <div style={{
@@ -3733,7 +3725,7 @@ useEffect(() => {
         flexShrink: 0,
         width: isMobile ? '100%' : `calc(100% - ${H})`,
       // More precise height calculation - just enough for one extra description
-  minHeight: isMobile && rotated ? 
+        minHeight: isMobile && rotated ? 
     `${(points.length + 2) * (G * 1.5)}px` : 
     'auto'
       }}>
@@ -4106,7 +4098,7 @@ useEffect(() => {
     onMouseMove={handleMouseMove}
     onClick={handleClick}
     onMouseEnter={() => setIsHoveringChart(true)}  // Add this
-  onMouseLeave={() => setIsHoveringChart(false)} // Add this
+    onMouseLeave={() => setIsHoveringChart(false)} // Add this
     >
     {renderSVG(true)}
 
@@ -4864,7 +4856,6 @@ const BottomTray = ({
         borderTop: '1px solid #848484ff',
         paddingBottom: isPWA ? '2.5rem' : '0.75rem', // PWA gets extra padding, everything else gets minimal
         backgroundColor: 'white',
-        //backgroundColor: isPWA ? 'lightblue' : 'lightgreen', // Temporary visual indicator
         touchAction: 'none',
         userSelect: 'none',
         zIndex: 50
