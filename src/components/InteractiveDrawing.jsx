@@ -445,18 +445,21 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        className="flow-dropdown-button"
         style={{
           padding: '0.5rem 1rem',
-          border: '1px solid #848484ff',
+          border: 'none',
           borderRadius: '0.375rem',
           backgroundColor: 'white',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',  // Add this line
+          justifyContent: 'space-between',
           gap: '0.5rem',
           fontSize: '1rem',
           height: '2.25rem',
-          width: '240px'
+          width: 'auto', // Changed from '240px' to 'auto'
+          minWidth: '120px', // Minimum width so it doesn't get too small
+          maxWidth: '300px' // Maximum width so it doesn't get too wide
         }}
       >
         <span>{activeFlow?.name}</span>
@@ -483,47 +486,53 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
           overflowY: 'auto'
         }}>
 
-          {/* Add Flow Option (no changes needed) */}
+          {/* Add Flow Option */}
           <button
             onClick={() => {
               onAddFlow();
               setIsOpen(false);
             }}
+            className="dropdown-option" // Add CSS class instead
             style={{
               padding: '0.5rem 1rem',
               width: '100%',
               textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.5rem',
+              borderBottom: '1px solid #d1d5db',
+              backgroundColor: 'white' // Base color
             }}
+            // Remove onMouseEnter and onMouseLeave
           >
             <span style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '1.5rem',
-              height: '1.5rem',
-              borderRadius: '50%',
-              backgroundColor: '#f3f4f6'
-            }}>+</span>
-            <span>Add new flow</span>
+              fontSize: '16px',        // Add explicit font size
+              lineHeight: '1',         // Remove line-height spacing
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              marginBottom: '0.25rem',
+              marginTop: '0.25rem',
+            }}>Add a new flow</span>
           </button>
 
           {/* Flow items */}
-          {flows.map(flow => (
-            <div
-              key={flow.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '0.5rem 1rem',
-                width: '100%',
-                backgroundColor: flow.id === activeFlowId ? '#f3f4f6' : 'white',
-                borderBottom: '1px solid #848484ff'
-              }}
-            >
+          {flows.map((flow, index) => (
+          <div
+            key={flow.id}
+            className={`flow-item ${flow.id === activeFlowId ? 'active' : ''}`}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0.5rem 1rem',
+              width: '100%',
+              backgroundColor: flow.id === activeFlowId ? '#f3f4f6' : 'white',
+              borderBottom: index === flows.length - 1 ? 'none' : '1px solid #e2e8f0' // Remove border from last item
+            }}
+          >
               {editingFlowId === flow.id ? (
                 // Edit mode
                 <input
@@ -540,8 +549,8 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                     padding: '0.25rem',
                     border: '1px solid #848484ff',
                     borderRadius: '0.25rem',
-                            marginRight: '0.75rem' // Add this line to create more spacing
-
+                    marginRight: '0.75rem', // Add this line to create more spacing
+                    color: '#1f2937' // Add this line to force black text
                   }}
                 />
               ) : (
@@ -3057,6 +3066,56 @@ useEffect(() => {
           100% { transform: translateX(100%); }
         }
 
+        .dropdown-option {
+          transition: background-color 0.2s ease;
+        }
+
+        .dropdown-option:hover {
+          background-color: #dce8fbff !important; /* Same blue as event inputs */
+        }
+
+        .flow-item {
+          transition: background-color 0.2s ease;
+        }
+
+        .flow-item:hover {
+          background-color: #dce8fbff !important; /* Same blue as event inputs */
+        }
+
+        .flow-item.active {
+          background-color: #000712ff !important; /* Darker blue for selected state */
+          color: white !important;
+        }
+
+        .flow-dropdown-button {
+          transition: background-color 0.2s ease;
+        }
+
+        .flow-dropdown-button:hover {
+          background-color: #dce8fbff !important;
+        }
+
+        .document-title {
+          transition: all 0.2s ease;
+        }
+
+        .document-title:hover,
+        .document-title:focus {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+          background-color: #fafbff !important;
+        }
+
+        .event-input {
+          transition: all 0.2s ease;
+        }
+
+        .event-input:hover {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+          background-color: #fafbff !important;
+        }
+
         @keyframes slideBottom {
           0%, 20% { transform: translateY(0); } /* Stay in place for first 20% of animation (down from 30%) */
           100% { transform: translateY(100%); }
@@ -3351,6 +3410,12 @@ useEffect(() => {
         onChange={(e) => setFilename(e.target.value)}
         placeholder="Drawing Name"
         autoComplete="off"
+        className="document-title" // Add this class
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.target.blur(); // This unfocuses the input
+          }
+        }}
         style={{
           minWidth: '200px',
           maxWidth: '14rem',
@@ -3360,7 +3425,7 @@ useEffect(() => {
           fontWeight: 600,
           height: '2.25rem',
           padding: '0.25rem',
-          borderColor: '#848484ff',
+          border: '.75px solid #000000ff'
         }}
       />
 
@@ -3723,9 +3788,9 @@ useEffect(() => {
                   opacity: hoveredInsertId === point.id ? 1 : 0,
                   cursor: 'pointer',
                   pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto',
-                  backgroundColor: 'rgba(59, 130, 246, 1)', // Light soft blue
-  borderRadius: '8px', // Rounded corners
-  border: '1px solid rgba(59, 130, 246, 0.2)' // Subtle blue border
+                  backgroundColor: '#dce8fbff', // Light soft blue
+                  borderRadius: '8px', // Rounded corners
+                  border: '0px solid rgba(59, 130, 246, 0.2)' // Subtle blue border
                 }}
                 onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
                 onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
@@ -3737,7 +3802,7 @@ useEffect(() => {
                  height: '24px',
                  borderRadius: '50%',
                  backgroundColor: '#fff',
-                 border: '2px solid #9ca3af',
+                 border: '0px solid #9ca3af',
                  display: 'flex',
                  alignItems: 'center',
                  justifyContent: 'center',
@@ -3888,19 +3953,20 @@ useEffect(() => {
 
                {/* SECTION 2: Description Input */}
                <Input
-                 type="text"
-                 value={point.text}
-                 readOnly
-                 onClick={() => handleInputClick(point, i)}
-                 onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
-                 placeholder={`Event ${i + 1}`}
-                 style={{
-                   width: '270px',
-                   height: isMobile ? '5rem' : '2.5rem',
-                   border: '1px solid #848484ff',
-                   borderRadius: '.8rem'
-                 }}
-               />
+                  type="text"
+                  value={point.text}
+                  readOnly
+                  onClick={() => handleInputClick(point, i)}
+                  onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
+                  placeholder={`Event ${i + 1}`}
+                  className="event-input" // Add this class
+                  style={{
+                    width: '270px',
+                    height: isMobile ? '5rem' : '2.5rem',
+                    border: '1px solid #848484ff',
+                    borderRadius: '.8rem'
+                  }}
+                />
 
                {/* SECTION 3: Drag Handle */}
                <div
@@ -4220,9 +4286,9 @@ useEffect(() => {
                         opacity: hoveredInsertId === point.id ? 1 : 0,
                         cursor: 'pointer',
                         pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto',
-                        backgroundColor: 'rgba(59, 130, 246, 1)', // Light soft blue
-  borderRadius: '8px', // Rounded corners
-  border: '1px solid rgba(59, 130, 246, 0.2)' // Subtle blue border
+                        backgroundColor: '#dce8fbff', // Light soft blue
+                        borderRadius: '8px', // Rounded corners
+                        border: '0px solid rgba(59, 130, 246, 0.2)' // Subtle blue border
                       }}
                       onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
                       onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
@@ -4234,7 +4300,7 @@ useEffect(() => {
                           height: '24px',
                           borderRadius: '50%',
                           backgroundColor: '#fff',
-                          border: '2px solid #9ca3af',
+                          border: '0px solid #9ca3af',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -4385,8 +4451,8 @@ useEffect(() => {
                     onClick={() => handleInputClick(point, i)}
                     onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
                     placeholder={`Event ${i + 1}`}
-                    className="r text-center"
-                    style={{ 
+                    className="r text-center event-input" // Add event-input to existing classes
+                    style={{
                       height: '175px',
                       width: '2.5rem',
                       border: '1px solid #848484ff',
