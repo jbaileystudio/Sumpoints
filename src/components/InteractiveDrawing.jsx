@@ -4549,8 +4549,13 @@ useEffect(() => {
   onKeyDown={(e) => {
     if (e.key === 'Escape') {
       setModalOpen(false);
+    } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && e.shiftKey) {
+      // Cmd+Shift+Enter for Save & Add Another
+      e.preventDefault();
+      handleSaveAndAddAnother();
     } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      // Restore the Cmd+Enter shortcut
+      // Cmd+Enter for regular Save
+      e.preventDefault();
       handleTextInput(editingPoint.index, editText, editingPoint.point.isGhost);
       setModalOpen(false);
     }
