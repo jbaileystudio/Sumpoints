@@ -10,6 +10,7 @@ import { TbChartDots3 } from "react-icons/tb";
 import { MdOutlineAutoGraph, MdHideSource, MdOutlineSsidChart } from "react-icons/md";
 import { IoMdColorPalette } from "react-icons/io";
 import { MdContentCopy } from "react-icons/md";
+import * as QRCode from 'qrcode';
 
 
 
@@ -40,6 +41,49 @@ const findClosestPoint = y => {
   return HASH_POINTS.reduce((prev, curr) => 
     Math.abs(curr - y) < Math.abs(prev - y) ? curr : prev
     );
+};
+
+// Simple homepage URL - no data compression needed
+const generateHomepageURL = () => {
+  return 'https://sumpoints.com';
+};
+
+const decompressDrawingData = (compressedData) => {
+  try {
+    const jsonString = atob(compressedData);
+    const optimized = JSON.parse(jsonString);
+    
+    // Create scaffolding events
+    const points = Array.from({length: optimized.c}, (_, i) => ({
+      x: (i + 1) * 75,
+      y: 50, // All start at center line
+      text: `Event ${i + 1}`, // Generic text
+      id: Date.now() + i
+    }));
+    
+    const drawingData = {
+      version: optimized.v,
+      filename: optimized.f + ' (Imported)',
+      flows: [{
+        id: "imported-flow",
+        name: "Imported Flow",
+        points: points,
+        digitalPoints: new Set(), // No colors
+        bluePoints: new Set()     // No colors
+      }],
+      activeFlowId: "imported-flow"
+    };
+    
+    console.log('Created scaffolding with', points.length, 'events');
+    return drawingData;
+  } catch (error) {
+    console.error('Decompression failed:', error);
+    return null;
+  }
+};
+
+const generateShareableURL = () => {
+  return 'https://sumpoints.com';
 };
 
 // Mobile Flow Pills Component
@@ -1152,12 +1196,35 @@ useEffect(() => {
   const handlePdfExport = async () => {
     console.log('Starting PDF export');
 
-     // Get the active flow
+    // Get the active flow
     const activeFlow = getActiveFlow();
     const allPoints = getAllPoints(); // Active flow points for main export
 
     console.log('Points gathered:', allPoints);
     console.log('Active flow:', activeFlow);
+
+    // Generate simple homepage QR code
+    let qrCodeDataURL = null;
+    const shareURL = generateShareableURL();
+
+    console.log('ShareURL result:', shareURL); // Add this line
+    console.log('ShareURL length:', shareURL ? shareURL.length : 'null'); // Add this line
+
+    if (shareURL) {
+      try {
+        qrCodeDataURL = await QRCode.toDataURL(shareURL, {
+          width: 200,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        });
+        console.log('Homepage QR code generated for:', shareURL);
+      } catch (error) {
+        console.error('QR code generation failed:', error);
+      }
+    }
 
     // Add the formatted filename here, right after getting allPoints
     const formattedFilename = `${filename}_${activeFlow.name}_${allPoints.length} Events${
@@ -1445,8 +1512,20 @@ ${showPoints ? `
           contentStart,
           pageWidth - margins * 2,
           (pageWidth - margins * 2) * svgAspectRatio
-          );
+        );
         console.log('Added image to PDF');
+
+        // Add QR code if generated successfully
+        if (qrCodeDataURL) {
+          const qrSize = 0.5; // Small QR code size
+          const qrX = pageWidth - margins - qrSize + 0.02; // Right edge
+          const qrY = margins - 0.18; // Top edge
+          
+          pdf.addImage(qrCodeDataURL, 'PNG', qrX, qrY, qrSize, qrSize);
+          console.log('Added QR code to PDF');
+        } else {
+          console.log('No QR code data to add to PDF'); // Add this line
+        }
 
   // Add vertical descriptions
         pdf.setFontSize(9);
