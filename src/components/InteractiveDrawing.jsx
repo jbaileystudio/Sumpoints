@@ -3861,7 +3861,8 @@ useEffect(() => {
                   pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto',
                   backgroundColor: '#dce8fbff', // Light soft blue
                   borderRadius: '8px', // Rounded corners
-                  border: '0px solid rgba(59, 130, 246, 0.2)' // Subtle blue border
+                  border: '0px solid rgba(59, 130, 246, 0.2)', // Subtle blue border
+                  zIndex: 999
                 }}
                 onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
                 onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
@@ -4355,11 +4356,12 @@ useEffect(() => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         opacity: hoveredInsertId === point.id ? 1 : 0,
+                        backgroundColor: '#dce8fbff', // Light soft blue
                         cursor: 'pointer',
                         pointerEvents: draggedDescriptionIndex !== null ? 'none' : 'auto',
-                        backgroundColor: '#dce8fbff', // Light soft blue
                         borderRadius: '8px', // Rounded corners
-                        border: '0px solid rgba(59, 130, 246, 0.2)' // Subtle blue border
+                        border: '0px solid rgba(59, 130, 246, 0.2)', // Subtle blue border
+                        zIndex: 999
                       }}
                       onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
                       onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
