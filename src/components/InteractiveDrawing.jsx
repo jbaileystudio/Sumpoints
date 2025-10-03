@@ -1752,35 +1752,29 @@ const handleMouseMove = e => {
 const handleClick = e => {
   if (recentTouch) return; // Prevent handleClick after recent touch
   
-  setTappedPoint(null);
-  // ... rest of your handleClick code
+  // If preview box is open, close it and don't create a point
+  if (tappedPoint) {
+    setTappedPoint(null);
+    return; // Exit early - don't create a point
+  }
   
   console.log('Click event:', {
     editMode,
     dragging,
-    hoveredPointId,  // Update this
-    hoveredInsertId, // Add this
+    hoveredPointId,
+    hoveredInsertId,
     justDropped,
     target: e.target.closest('.drawing-area')
   });
-  
 
   if (!drawingRef.current || dragging || hoveredPointId || hoveredInsertId || justDropped || 
     !e.target.closest('.drawing-area')) {
-    console.log('Click blocked by:', {
-      noDrawingRef: !drawingRef.current,
-      dragging,
-      hoveredPointId,  // Update this
-      hoveredInsertId, // Add this
-      justDropped,
-      noDrawingArea: !e.target.closest('.drawing-area')
-    });
-  return;
-}
+    return;
+  }
 
-const pos = getMousePos(e);
-const x = getNextX();
-const rawY = rotated ? 100-pos.x : pos.y;
+  const pos = getMousePos(e);
+  const x = getNextX();
+  const rawY = rotated ? 100-pos.x : pos.y;
 
 console.log('Position calculations:', {
   pos,
