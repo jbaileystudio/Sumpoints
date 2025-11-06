@@ -629,9 +629,9 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: '#10b981',
+                      color: flow.id === activeFlowId ? 'white' : '#10b981', // Conditional color
                       cursor: 'pointer',
-                      opacity: 0.7,
+                      opacity: flow.id === activeFlowId ? 1 : 0.7, // Full opacity when active
                       padding: '4px'
                     }}
                   >
@@ -650,9 +650,9 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: '#60a5fa',
+                      color: flow.id === activeFlowId ? 'white' : '#60a5fa', // Conditional color
                       cursor: 'pointer',
-                      opacity: 0.7,
+                      opacity: flow.id === activeFlowId ? 1 : 0.7, // Full opacity when active
                       padding: '4px'
                     }}
                   >
@@ -675,9 +675,9 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: '#ef4444',
+                      color: flow.id === activeFlowId ? 'white' : '#ef4444', // Conditional color
                       cursor: 'pointer',
-                      opacity: 0.7,
+                      opacity: flow.id === activeFlowId ? 1 : 0.7, // Full opacity when active
                       padding: '4px'
                     }}
                   >
@@ -1582,11 +1582,40 @@ ${showPoints ? `
             textToWrite,
             x,
             pageHeight - margins - 0.2,
-            {
-              align: 'left',
-              angle: 90
-            }
+              {
+                align: 'left',
+                angle: 90
+              }
             );
+
+            // ADD STRIKETHROUGH HERE - Only if cutout mode is active
+            if (cutoutType !== 'none') {
+              let shouldStrikethrough = false;
+              
+              if (cutoutType === 'yellow' && !digitalPoints.has(point.id)) {
+                shouldStrikethrough = true; // Yellow cutout and point is NOT digital
+              } else if (cutoutType === 'blue' && !bluePoints.has(point.id)) {
+                shouldStrikethrough = true; // Blue cutout and point is NOT blue
+              } else if (cutoutType === 'both' && !(digitalPoints.has(point.id) && bluePoints.has(point.id))) {
+                shouldStrikethrough = true; // Both cutout and point doesn't have BOTH markers
+              }
+              
+              if (shouldStrikethrough) {
+                const textDimensions = pdf.getTextDimensions(textToWrite);
+                const textWidth = textDimensions.w; // Actual width of the text
+                
+                pdf.setLineWidth(0.03); // Thick line
+                pdf.setDrawColor(0, 0, 0); // Black color
+                
+                // Draw line matching exact text length (accounting for 90° rotation)
+                pdf.line(
+                  x - 0.03, // Slightly offset from text
+                  pageHeight - margins - 0.2,
+                  x - 0.03,
+                  pageHeight - margins - 0.2 - textWidth // Extends for full text length
+                );
+              }
+            }
         });
 
         console.log('Saving PDF...');
