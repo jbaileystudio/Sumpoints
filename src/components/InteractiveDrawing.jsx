@@ -1667,25 +1667,71 @@ ${showPoints ? `
   const [hoverInsertIndex, setHoverInsertIndex] = useState(null);
 
   // Add a function to handle inserting at an index
-  const handleInsertAt = (index) => {
+  const handleInsertAt = (index, mouseEvent) => { // Accept the mouse event
     const allPoints = getAllPoints();
     const newX = (allPoints[index].x + (index > 0 ? allPoints[index - 1].x : 0)) / 2;
-
     const newPoint = {
       x: newX,
       y: 50,
       text: '',
       id: Date.now()
     };
-
-  // Insert the new point
+    
+    // Insert the new point
     const newPoints = [...points];
     newPoints.splice(index, 0, newPoint);
-  // Update x positions
+    
+    // Update x positions
     newPoints.forEach((point, i) => {
       point.x = (i + 1) * G;
     });
+    
     setActivePoints(newPoints);
+    
+    // Force layout recalculation
+    if (containerRef.current) {
+      const newDimension = ((newPoints.length + 4) * G);
+      
+      if (!rotated) {
+        containerRef.current.style.width = `${newDimension}px`;
+      } else {
+        containerRef.current.style.height = `${newDimension}px`;
+      }
+      
+      containerRef.current.offsetHeight;
+    }
+    
+    // After layout is recalculated, determine which insert zone mouse is now over
+    setTimeout(() => {
+      if (mouseEvent) {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          const mouseX = mouseEvent.clientX;
+          const mouseY = mouseEvent.clientY;
+          
+          // Find which insert zone the mouse is now hovering over
+          const updatedPoints = newPoints.map((p, i) => ({...p, x: (i + 1) * G}));
+          
+          for (let i = 1; i < updatedPoints.length; i++) {
+            const point = updatedPoints[i];
+            const insertX = rotated ? rect.left + (rect.width * 0.5) : rect.left + point.x - (G/2);
+            const insertY = rotated ? rect.top + point.x - (G/2) : rect.top + (rect.height * 0.5);
+            
+            // Check if mouse is within this insert zone
+            const inZone = rotated 
+              ? Math.abs(mouseY - insertY) < 40 
+              : Math.abs(mouseX - insertX) < 40;
+            
+            if (inZone) {
+              setHoveredInsertId(point.id);
+              return;
+            }
+          }
+        }
+      }
+      
+      setHoveredInsertId(null);
+    }, 50);
   };
 
 
@@ -2257,7 +2303,7 @@ const isFirstPointRef = useRef(true);
 
 
 const addGhostPoint = () => {
-    console.log('addGhostPoint called'); // Add this
+  console.log('addGhostPoint called');
   const x = getNextX();
   
   // Check if this is the first point
@@ -2281,6 +2327,20 @@ const addGhostPoint = () => {
     return newPoints;
   });
   
+  // Force layout recalculation after adding point
+  if (containerRef.current) {
+    const newDimension = ((points.length + 1 + 4) * G);
+    
+    if (!rotated) {
+      containerRef.current.style.width = `${newDimension}px`;
+    } else {
+      containerRef.current.style.height = `${newDimension}px`;
+    }
+    
+    // Force browser to recalculate layout immediately
+    containerRef.current.offsetHeight;
+  }
+  
   scrollToPoint(x);
   
   // For mobile, direct approach
@@ -2289,8 +2349,8 @@ const addGhostPoint = () => {
     setTimeout(() => {
       // Force open the modal for all points including first
       setEditingPoint({
-        point: { id: Date.now(), text: '' }, // Dummy point, will be replaced
-        index: points.length // This will be the index of the new point
+        point: { id: Date.now(), text: '' },
+        index: points.length
       });
       setEditText('');
       setModalOpen(true);
@@ -3889,7 +3949,7 @@ useEffect(() => {
                 }}
                 onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
                 onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
-                onClick={() => handleInsertAt(i)}
+                onClick={(e) => handleInsertAt(i, e)} // Pass the event
               >
              <div
                style={{
@@ -4388,7 +4448,7 @@ useEffect(() => {
                       }}
                       onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
                       onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
-                      onClick={() => handleInsertAt(i)}
+                      onClick={(e) => handleInsertAt(i, e)} // Pass the event
                     >
                       <div
                         style={{
@@ -4825,6 +4885,21 @@ useEffect(() => {
                   x: (isMobile && rotated) ? (index + 1) * (G * 1.5) : (index + 1) * G
                 }));
                 setActivePoints(updatedPoints);
+
+                // Force layout recalculation after deletion
+                if (containerRef.current) {
+                  const newDimension = ((updatedPoints.length + 4) * G);
+                  
+                  if (!rotated) {
+                    containerRef.current.style.width = `${newDimension}px`;
+                  } else {
+                    containerRef.current.style.height = `${newDimension}px`;
+                  }
+                  
+                  // Force browser to recalculate layout immediately
+                  containerRef.current.offsetHeight;
+                }
+
                 setModalOpen(false);
               }}
               {...getHoverHandlers('delete')}
