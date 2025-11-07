@@ -442,7 +442,7 @@ const Portal = ({ children }) => {
 };
 
 // Desktop Flow Dropdown Component
-const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow }) => {
+const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDeleteFlow, onRenameFlow, onDuplicateFlow }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   
@@ -662,6 +662,27 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
                     </svg>
                   </button>
                 )}
+
+                {/* Duplicate button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDuplicateFlow(flow);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: flow.id === activeFlowId ? 'white' : '#60a5fa',
+                    cursor: 'pointer',
+                    opacity: flow.id === activeFlowId ? 1 : 0.7,
+                    padding: '4px'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </button>
 
                 {/* Delete button */}
                 {flows.length > 1 && (
@@ -3545,6 +3566,7 @@ useEffect(() => {
             onAddFlow={addNewFlow}
             onDeleteFlow={deleteFlow}
             onRenameFlow={renameFlow}
+            onDuplicateFlow={duplicateFlow}
           />
         </>
       )}
