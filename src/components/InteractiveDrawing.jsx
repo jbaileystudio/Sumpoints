@@ -3248,12 +3248,16 @@ useEffect(() => {
     }}>
 
     <style>{`
-        html, body {
-          background-color: white;
-          margin: 0;
-          padding: 0;
-        }
-    `}</style>
+      html, body {
+        background-color: white;
+        margin: 0;
+        padding: 0;
+      }
+      
+      :root {
+        color-scheme: light only;
+      }
+  `}</style>
 
     <style>{`
         @keyframes slideRight {
