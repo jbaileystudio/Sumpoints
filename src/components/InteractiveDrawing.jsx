@@ -3237,14 +3237,23 @@ useEffect(() => {
       height: '100dvh',
       display: 'flex',
       flexDirection: 'column',
-      position: 'fixed',  // Add this
-      overflowY: 'hidden',  // Add this
-      WebkitOverflowScrolling: 'touch',  // Add this
+      position: 'fixed',
+      overflowY: 'hidden',
+      WebkitOverflowScrolling: 'touch',
       top: 0,
       left: 0,
       right: 0,
-      bottom: 0
+      bottom: 0,
+      backgroundColor: 'white'  // Also add this while we're here
     }}>
+
+    <style>{`
+        html, body {
+          background-color: white;
+          margin: 0;
+          padding: 0;
+        }
+    `}</style>
 
     <style>{`
         @keyframes slideRight {
@@ -3403,11 +3412,11 @@ useEffect(() => {
         }
 
         .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 40px;
-      height: 24px;
-    }
+          position: relative;
+          display: inline-block;
+          width: 40px;
+          height: 24px;
+        }
 
     .toggle-switch input {
       opacity: 0;
