@@ -809,9 +809,12 @@ const handleSaveAndAddAnother = () => {
   console.log('Before save - Current points:', points);
   console.log('Trying to save:', { index: editingPoint.index, text: editText });
   
-  // Save the current point and create new point in one state update
+  // Store the current index before any state changes
+  const currentIndex = editingPoint.index;
+  
+  // Save the current point AND create new point in one state update
   setActivePoints(prevPoints => {
-    // First, save the current point's text
+    // First, save the current point's text (always save, even if empty)
     const updatedPoints = prevPoints.map(p => 
       p.id === editingPoint.point.id ? {...p, text: editText} : p
     );
@@ -819,7 +822,6 @@ const handleSaveAndAddAnother = () => {
     console.log('Updated points after save:', updatedPoints);
     
     // Then insert the new point after the current one
-    const currentIndex = editingPoint.index;
     const newPoint = {
       x: (currentIndex + 2) * G,
       y: 50,
@@ -830,27 +832,30 @@ const handleSaveAndAddAnother = () => {
     const newPoints = [...updatedPoints];
     newPoints.splice(currentIndex + 1, 0, newPoint);
     
-    // Recalculate x positions for all points with proper mobile spacing
-    return newPoints.map((point, index) => ({
+    // Recalculate x positions for all points WITH proper mobile spacing
+    const finalPoints = newPoints.map((point, index) => ({
       ...point,
       x: (isMobile && rotated) ? (index + 1) * (G * 1.5) : (index + 1) * G
     }));
+    
+// Use setTimeout to ensure state is updated before opening new modal
+    setTimeout(() => {
+      // Find the newly created point in the updated points array
+      const newPointIndex = currentIndex + 1;
+      const actualNewPoint = finalPoints[newPointIndex];
+      
+      // Scroll to show the new point behind the modal
+      scrollToPoint(actualNewPoint.x);
+      
+      setEditingPoint({
+        point: actualNewPoint,
+        index: newPointIndex
+      });
+      setEditText('');
+    }, 50);
+    
+    return finalPoints;
   });
-  
-  // Create the new point object for editing
-  const newPoint = {
-    x: 0, // Will be recalculated above
-    y: 50,
-    text: '',
-    id: Date.now()
-  };
-  
-  // Open modal for the new point
-  setEditingPoint({
-    point: newPoint,
-    index: editingPoint.index + 1
-  });
-  setEditText('');
 };
 
 // Add this function inside your component (before the return statement)
