@@ -150,28 +150,28 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
       overflowX: 'auto',
       padding: '0.5rem',
       gap: '1rem',
-      borderBottom: '1px solid #848484ff'
+      // borderBottom: '1px solid #848484ff'
     }}>
       
       {/* Add Flow Button - First in the list */}
       <button
         style={{
-          padding: '0.5rem 1.25rem',
+          padding: '0',
           marginLeft: '.5rem',
-          borderRadius: '9999px',
-          border: '1px solid #848484ff',
-          backgroundColor: 'white',
-          color: '#1f2937',
+          borderRadius: '50%',
+          border: '1px solid #dadde1ff',
+          background: '#e5e7eb',
+          color: '#1f2937ff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          minWidth: '44px',
+          width: '38px',
           height: '38px',
-          flexShrink: 0 // Prevent shrinking
+          flexShrink: 0
         }}
         onClick={onAddFlow}
       >
-        +
+        <span style={{ transform: 'translateY(-1px)', display: 'block' }}>+</span>
       </button>
       
       {/* Flow Pills */}
@@ -252,8 +252,10 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 display: 'flex',
                 alignItems: 'center',
                 borderRadius: '9999px',
-                border: '1px solid #848484ff',
-                backgroundColor: flow.id === activeFlowId ? '#3b82f6' : 'white',
+                border: 'none',
+                background: flow.id === activeFlowId ? 
+                  'linear-gradient(to bottom, #60a5fa, #3b82f6)' : 
+                  '#e5e7eb',
                 overflow: 'hidden',
                 height: '38px',
               }}
@@ -263,7 +265,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
               <div
                 onClick={() => onSelectFlow(flow.id)}
                 style={{
-                  padding: '0.5rem 1rem',
+                  padding: '0.5rem 0.5rem 0.5rem 1rem',
                   color: flow.id === activeFlowId ? 'white' : '#1f2937',
                   fontWeight: flow.id === activeFlowId ? '400' : '400',
                   whiteSpace: 'nowrap',
@@ -281,13 +283,13 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: '0 0.75rem',
-                  height: '100%',
+                  width: '38px',
+                  height: '38px',
                   backgroundColor: flow.id === activeFlowId ? 
-                    'rgba(255, 255, 255, 0.15)' : 
-                    'rgba(0, 0, 0, 0.03)',
+                    'rgba(0, 0, 0, 0.1)' : 
+                    'rgba(0, 0, 0, 0.08)',
                   cursor: 'pointer',
-                  minWidth: '44px',
+                  borderRadius: '50%',
                 }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" 
@@ -308,8 +310,8 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 className="dropup-menu-content"
                 style={{
                   position: 'absolute',
-                  backgroundColor: 'white',
-                  border: '1px solid #848484ff',
+                  backgroundColor: flow.id === activeFlowId ? '#eff6ff' : '#f3f4f6',
+                  border: flow.id === activeFlowId ? '1px solid #bfdbfe' : '1px solid #e5e7eb',
                   borderRadius: '0.375rem',
                   boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)',
                   width: '150px',
@@ -319,12 +321,10 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                 }}
                 ref={el => {
                   if (el) {
-                    // Get the position of the button element
                     const button = document.querySelector(`[data-menu-button="${flow.id}"]`);
                     if (button) {
                       const rect = button.getBoundingClientRect();
-                      // Position the menu above the button
-                      el.style.top = `${rect.top - el.offsetHeight - 8}px`;
+                      el.style.top = `${rect.top - el.offsetHeight - 16}px`;
                       el.style.left = `${rect.right - el.offsetWidth}px`;
                     }
                   }
@@ -338,8 +338,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                     padding: '0.75rem 1rem',
                     width: '100%',
                     textAlign: 'left',
-                    borderBottom: '1px solid #848484ff',
-                    backgroundColor: 'white'
+                    backgroundColor: 'transparent'
                   }}
                   onClick={() => {
                     handleEditClick(flow.id, flow.name);
@@ -360,8 +359,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                     padding: '0.75rem 1rem',
                     width: '100%',
                     textAlign: 'left',
-                    borderBottom: '1px solid #848484ff',
-                    backgroundColor: 'white'
+                    backgroundColor: 'transparent'
                   }}
                   onClick={() => {
                     console.log('Duplicate clicked for flow:', flow);
@@ -385,7 +383,7 @@ const MobileFlowPills = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onDelet
                       padding: '0.75rem 1rem',
                       width: '100%',
                       textAlign: 'left',
-                      backgroundColor: 'white'
+                      backgroundColor: 'transparent'
                     }}
                     onClick={() => {
                       if (confirm(`Delete flow "${flow.name}"?`)) {
@@ -3547,7 +3545,7 @@ useEffect(() => {
 {/* Outer white container */}
 <div style={{
   background: 'white',
-  borderBottom: '1px solid #848484ff',
+  borderBottom: isMobile ? '1px solid #e5e7eb' : '1px solid #848484ff',
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'center',
@@ -3559,21 +3557,22 @@ useEffect(() => {
   
   {/* FIRST ROW */}
   <div style={{
-    padding: '.667rem 2rem .334rem 2rem',
+    padding: isMobile ? '.667rem 0.85rem .334rem 0.85rem' : '.667rem 2rem .334rem 2rem',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: isMobile ? 'center' : 'space-between',
+    justifyContent: 'space-between',
     width: '100%',
   }}>
     
     {/* Left - Flow selector */}
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '0.5rem',
-      width: '300px',
-      justifyContent: 'flex-start'
-    }}>
+    {!isMobile && (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.5rem',
+        width: '300px',
+        justifyContent: 'flex-start'
+      }}>
       {!isMobile && (
         <>
           <span style={{ fontSize: '14px', lineHeight: '1' }}>Flow:</span>
@@ -3589,14 +3588,19 @@ useEffect(() => {
         </>
       )}
     </div>
+    )}
+
 
     {/* Center - Document name + Export */}
     <div style={{ 
       display: 'flex', 
       alignItems: 'center', 
-      gap: '0.75rem',
-      flex: isMobile ? 'none' : 1,
-      justifyContent: 'center'
+      gap: isMobile ? '0.5rem' : '0.75rem',
+      flex: 1,
+      justifyContent: isMobile ? 'space-between' : 'center',
+      width: isMobile ? '100%' : 'auto',
+      paddingLeft: isMobile ? '0' : '0',
+      paddingRight: isMobile ? '0' : '0'
     }}>
       <Input 
         type="text"
@@ -3604,22 +3608,22 @@ useEffect(() => {
         onChange={(e) => setFilename(e.target.value)}
         placeholder="Drawing Name"
         autoComplete="off"
-        className="document-title" // Add this class
+        className="document-title"
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
-            e.target.blur(); // This unfocuses the input
+            e.target.blur();
           }
         }}
         style={{
-          minWidth: '200px',
-          maxWidth: '14rem',
+          minWidth: isMobile ? '0' : '200px',
+          maxWidth: isMobile ? 'none' : '14rem',
           width: '100%',
-          textAlign: 'center',
+          textAlign: isMobile ? 'left' : 'center',
           fontSize: '1rem',
           fontWeight: 600,
           height: '2.25rem',
           padding: '0.25rem',
-          border: '.75px solid #000000ff'
+          border: isMobile ? 'none' : '.75px solid #000000ff'
         }}
       />
 
@@ -3629,10 +3633,17 @@ useEffect(() => {
         onClick={() => handlePdfExport()}
         style={{ 
           display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.5rem',
-          height: '2.25rem',
-          borderColor: '#848484ff',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: isMobile ? '38px' : 'auto',
+          maxWidth: isMobile ? '38px' : 'auto',
+          width: isMobile ? '38px' : 'auto',
+          height: isMobile ? '38px' : '2.25rem',
+          padding: isMobile ? '0' : undefined,
+          borderRadius: isMobile ? '50%' : undefined,
+          border: isMobile ? '1px solid #dadde1ff' : '1px solid #848484ff',
+          background: isMobile ? '#e5e7eb' : 'transparent',
+          borderColor: isMobile ? 'none' : '#848484ff',
         }}
       >
         <Download style={{ width: '1rem', height: '1rem' }}/>
@@ -3640,14 +3651,14 @@ useEffect(() => {
     </div>
 
     {/* Right - Rotation buttons */}
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '0.75rem',
-      width: '300px',
-      justifyContent: 'flex-end'
-    }}>
-      {!isMobile && (
+    {!isMobile && (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.75rem',
+        width: '300px',
+        justifyContent: 'flex-end'
+      }}>
         <>
           <button 
             className="icon-button"
@@ -3666,8 +3677,8 @@ useEffect(() => {
             <RotateCwSquare className="rotating-cw-icon rotation-icon" />
           </button>
         </>
-      )}
-    </div>
+      </div>
+    )}  {/* <-- Closing )} here too! */}
   </div>
 
   {/* SECOND ROW - Hide entirely on mobile */}
@@ -3897,11 +3908,11 @@ useEffect(() => {
       position: 'relative',
       flex: 1,
       overflowY: 'auto',
-      background: '#f9fafb',
+      background: isMobile ? '#e5e7eb' : '#f9fafb',
       cursor: dragging ? 'ew-resize' : (hoveredPointId || hoveredInsertId) ? 'ew-resize' : 'crosshair',
       height: isMobile ? 
-        'calc(100dvh - (env(safe-area-inset-bottom, 1rem) + 4rem))' : // Mobile: account for header and tray
-        'calc(100dvh - 80px)'  // Desktop: just account for header
+        'calc(100dvh - (env(safe-area-inset-bottom, 1rem) + 4rem))' : 
+        'calc(100dvh - 80px)'
     }}
   >
     <div 
@@ -3922,28 +3933,27 @@ useEffect(() => {
     >
       <div style={{
         position: 'relative',
-        background: 'white',
+        background: isMobile ? '#f4f5f8ff' : 'white',
         borderRight: '1px solid #848484ff',
         flexShrink: 0,
         width: isMobile ? '100%' : `calc(100% - ${H})`,
-      // More precise height calculation - just enough for one extra description
         minHeight: isMobile && rotated ? 
-    `${(points.length + 2) * (G * 1.5)}px` : 
-    'auto'
+          `${(points.length + 2) * (G * 1.5)}px` : 
+          'auto'
       }}>
         <div style={{
           position: 'absolute',
           top: isMobile && rotated ? 
-            `${(points.length + 1) * (G * 1.5) + (G * 0.2)}px` : // Add extra spacing
+            `${(points.length + 1) * (G * 1.5) + (G * 0.2)}px` : 
             `${getNextX()}px`,
-          left: isMobile ? '50%' : '55%',  // Use 50% on mobile, 50% otherwise on vertical
+          left: isMobile ? '50%' : '55%',
           transform: 'translate(-50%,-50%) rotate(90deg)',
-          width: isMobile ? '5rem' : '2.5rem', //Vertical Plus Button Height
-          height: isMobile ? '20rem' : '5rem', // Vertical Plus Button Width
-          border: '1px solid #848484ff',
-          borderRadius: '0.375rem',
-          backgroundColor: 'white', // Ensure white background
-          zIndex: 5 // Keep above other elements
+          width: isMobile ? '5rem' : '2.5rem',
+          height: isMobile ? '5rem' : '5rem',
+          border: isMobile ? '1px solid #dadde1ff' : '1px solid #848484ff',
+          borderRadius: isMobile ? '50%' : '0.375rem',
+          background: isMobile ? '#ffffffff' : 'white',
+          zIndex: 5
         }}>
 
           <Button  
@@ -3954,10 +3964,10 @@ useEffect(() => {
             style={{ 
               width: '100%', 
               height: '100%', 
-              borderRadius: '0.375rem',
+              borderRadius: isMobile ? '50%' : '0.375rem',
               transition: 'background-color 0.2s',
               fontSize: isMobile ? '1.25rem' : 'inherit',
-              backgroundColor: (!isMobile && hoveredButton === 'addEvent') ? '#f3f4f6' : 'white',
+              backgroundColor: isMobile ? 'transparent' : ((!isMobile && hoveredButton === 'addEvent') ? '#f3f4f6' : 'white'),
             }}
           >
             <Plus className="w-4 h-4"/>
@@ -4106,7 +4116,7 @@ useEffect(() => {
                      width: isMobile ? '32px' : '24px',    // Bigger on mobile
                      height: isMobile ? '32px' : '24px',   // Bigger on mobile
                      borderRadius: '50%',
-                     border: '1px solid #666',
+                    border: '1px solid #dadde1ff',
                      backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
                      cursor: 'pointer',
                      transition: 'background-color 0.2s'
@@ -4138,7 +4148,7 @@ useEffect(() => {
                      width: isMobile ? '32px' : '24px',    // Bigger on mobile
                      height: isMobile ? '32px' : '24px',   // Bigger on mobile
                      borderRadius: '50%',
-                     border: '1px solid #666',
+                    border: '1px solid #dadde1ff',
                      backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
                      cursor: 'pointer',
                      transition: 'background-color 0.2s'
@@ -4154,11 +4164,11 @@ useEffect(() => {
                   onClick={() => handleInputClick(point, i)}
                   onChange={e => handleTextInput(i, e.target.value, point.isGhost)}
                   placeholder={`Event ${i + 1}`}
-                  className="event-input" // Add this class
+                  className="event-input"
                   style={{
                     width: '270px',
                     height: isMobile ? '5rem' : '2.5rem',
-                    border: '1px solid #848484ff',
+                    border: '1px solid #dadde1ff',
                     borderRadius: '.8rem'
                   }}
                 />
@@ -5077,7 +5087,7 @@ const BottomTray = ({
         left: 0,
         right: 0,
         background: 'white',
-        borderTop: '1px solid #848484ff',
+        borderTop: '1px solid #e7e7e7ff',
         paddingBottom: isPWA ? '2.5rem' : '0.75rem', // PWA gets extra padding, everything else gets minimal
         backgroundColor: 'white',
         touchAction: 'none',
@@ -5103,46 +5113,63 @@ const BottomTray = ({
         }}>
           
           {/* First group - State toggles */}
-          <Button 
-            size="sm"
-            variant="outline"
-            className="bottom-button"
-            onClick={() => setRotated(true)}
-            style={{
-              backgroundColor: rotated ? '#3b82f6' : 'white',
-              color: rotated ? 'white' : '#1f2937',
-              borderColor: rotated ? '#3b82f6' : '#848484ff'
-            }}
-          >
-            <PiListDashesBold style={{ 
-              width: '20px', 
-              height: '20px', 
-              marginBottom: '4px',
-              color: rotated ? 'white' : 'inherit'
-            }}/>
-            Events
-          </Button>
-          
-          <Button 
-            size="sm"
-            variant="outline"
-            className="bottom-button"
-            onClick={() => setRotated(false)}
-            style={{
-              backgroundColor: !rotated ? '#3b82f6' : 'white',
-              color: !rotated ? 'white' : '#1f2937',
-              borderColor: !rotated ? '#3b82f6' : '#848484ff'
-            }}
-          >
-            <TbChartDots3 style={{ 
-              width: '20px', 
-              height: '20px', 
-              marginBottom: '4px',
-              transform: 'rotate(90deg)',
-              color: !rotated ? 'white' : 'inherit'
-            }}/>
-            Chart
-          </Button>
+          {/* Segmented control container */}
+          <div style={{
+            display: 'flex',
+            backgroundColor: '#e5e7eb',
+            borderRadius: '8px',
+            padding: '0 4px',  // <-- This adds 4px padding left and right only
+            flex: 3,
+            gap: '4px'
+          }}>
+            <Button 
+              size="sm"
+              variant="ghost"
+              className="bottom-button"
+              onClick={() => setRotated(true)}
+              style={{
+    background: rotated ? 'linear-gradient(to bottom, #60a5fa, #3b82f6)' : 'transparent',
+                color: rotated ? 'white' : '#1f2937',
+                border: 'none',
+                borderRadius: '6px',
+                flex: 1,
+                margin: '0 -4px'
+              }}
+            >
+              <PiListDashesBold style={{ 
+                width: '20px', 
+                height: '20px', 
+                marginBottom: '4px',
+                color: rotated ? 'white' : 'inherit'
+              }}/>
+              Events
+            </Button>
+
+            <Button 
+              size="sm"
+              variant="ghost"
+              className="bottom-button"
+              onClick={() => setRotated(false)}
+              style={{
+    background: !rotated ? 'linear-gradient(to bottom, #60a5fa, #3b82f6)' : 'transparent',
+                color: !rotated ? 'white' : '#1f2937',
+                border: 'none',
+                borderRadius: '6px',
+                flex: 1,
+                margin: '0 -4px' 
+
+              }}
+            >
+              <TbChartDots3 style={{ 
+                width: '20px', 
+                height: '20px', 
+                marginBottom: '4px',
+                transform: 'rotate(90deg)',
+                color: !rotated ? 'white' : 'inherit'
+              }}/>
+              Chart
+            </Button>
+          </div>
 
           {/* Second group - Action buttons */}
           
