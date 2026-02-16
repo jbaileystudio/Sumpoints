@@ -9,6 +9,7 @@ import { PiListDashesBold } from "react-icons/pi";
 import { TbChartDots3 } from "react-icons/tb";
 import { MdOutlineAutoGraph, MdHideSource, MdOutlineSsidChart } from "react-icons/md";
 import { IoMdColorPalette } from "react-icons/io";
+import { FaExchangeAlt } from "react-icons/fa";
 import { MdContentCopy } from "react-icons/md";
 import * as QRCode from 'qrcode';
 
@@ -518,7 +519,7 @@ const DesktopFlowDropdown = ({ flows, activeFlowId, onSelectFlow, onAddFlow, onD
           position: 'absolute',
           top: 'calc(100% + 0.25rem)',
           left: 0,
-          zIndex: 10,
+          zIndex: 1000,
           backgroundColor: 'white',
           border: '1px solid #848484ff',
           borderRadius: '0.375rem',
@@ -735,6 +736,10 @@ const InteractiveDrawing = () => {
   const [justDropped, setJustDropped] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState(null);
+  const [copyImportModalOpen, setCopyImportModalOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState('');
+  const [showCopiedMessage, setShowCopiedMessage] = useState(false);
   const [editText, setEditText] = useState('');
   const [draggedDescriptionIndex, setDraggedDescriptionIndex] = useState(null);
   const [draggedOverIndex, setDraggedOverIndex] = useState(null);
@@ -1665,6 +1670,132 @@ ${showPoints ? `
     } catch (error) {
       console.error('Error in PDF creation:', error);
     }
+  };
+
+  const handleCopyTimeline = () => {
+    let text = `${filename}\n\n`;
+    
+    flows.forEach(flow => {
+      text += `Flow: ${flow.name}\n`;
+      flow.points.forEach(point => {
+        const value = Math.round((50 - point.y) / 5);
+        text += `${point.text || 'No description'}, ${value}\n`;
+      });
+      text += '\n'; // Blank line between flows
+    });
+    
+    navigator.clipboard.writeText(text).then(() => {
+      setShowCopiedMessage(true);
+      setTimeout(() => setShowCopiedMessage(false), 2000);
+    });
+  };
+
+  const handleImportTimeline = () => {
+    setImportError('');
+    
+    if (!importText.trim()) {
+      setImportError('ERROR: No text provided');
+      return;
+    }
+    
+    const lines = importText.trim().split('\n').map(line => line.trim());
+    
+    if (lines.length < 2) {
+      setImportError('ERROR: Need at least a title and one flow');
+      return;
+    }
+    
+    const newTitle = lines[0];
+    const newFlows = [];
+    let currentFlow = null;
+    let lineNum = 0;
+    
+    for (let i = 1; i < lines.length; i++) {
+      lineNum = i + 1;
+      const line = lines[i];
+      
+      // Skip blank lines
+      if (!line) continue;
+      
+      // Check if this is a flow declaration
+      if (line.startsWith('Flow:')) {
+        // Save previous flow if it exists
+        if (currentFlow && currentFlow.points.length > 0) {
+          newFlows.push(currentFlow);
+        }
+        
+        // Start new flow
+        const flowName = line.substring(5).trim();
+        if (!flowName) {
+          setImportError(`ERROR: Line ${lineNum}: Flow name cannot be empty`);
+          return;
+        }
+        
+        currentFlow = {
+          id: `flow-${Date.now()}-${newFlows.length}`,
+          name: flowName,
+          points: [],
+          digitalPoints: new Set(),
+          bluePoints: new Set()
+        };
+        continue;
+      }
+      
+      // Must be an event line
+      if (!currentFlow) {
+        setImportError(`ERROR: Line ${lineNum}: Events must come after a "Flow:" declaration`);
+        return;
+      }
+      
+      const lastCommaIndex = line.lastIndexOf(',');
+      if (lastCommaIndex === -1) {
+        setImportError(`ERROR: Line ${lineNum}: Missing comma separator`);
+        return;
+      }
+      
+      const description = line.substring(0, lastCommaIndex).trim();
+      const valueStr = line.substring(lastCommaIndex + 1).trim();
+      const value = parseInt(valueStr);
+      
+      if (isNaN(value)) {
+        setImportError(`ERROR: Line ${lineNum}: "${valueStr}" is not a valid number`);
+        return;
+      }
+      
+      if (value < -10 || value > 10) {
+        setImportError(`ERROR: Line ${lineNum}: Value ${value} is out of range (-10 to 10)`);
+        return;
+      }
+      
+      // Convert value to y position
+      const y = 50 - (value * 5);
+      
+      currentFlow.points.push({
+        x: (currentFlow.points.length + 1) * G,
+        y: y,
+        text: description,
+        id: Date.now() + i,
+        isAbove: y < 50
+      });
+    }
+    
+    // Don't forget the last flow
+    if (currentFlow && currentFlow.points.length > 0) {
+      newFlows.push(currentFlow);
+    }
+    
+    if (newFlows.length === 0) {
+      setImportError('ERROR: No valid flows found');
+      return;
+    }
+    
+    // Import successful - replace everything
+    setFilename(newTitle);
+    setFlows(newFlows);
+    setActiveFlowId(newFlows[0].id);
+    setCopyImportModalOpen(false);
+    setImportText('');
+    setImportError('');
   };
 
   // Add this with your other functions near the top of your component
@@ -3648,6 +3779,28 @@ useEffect(() => {
       >
         <Download style={{ width: '1rem', height: '1rem' }}/>
       </Button>
+
+      <Button 
+        size="sm" 
+        variant="outline" 
+        onClick={() => setCopyImportModalOpen(true)}
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: isMobile ? '38px' : 'auto',
+          maxWidth: isMobile ? '38px' : 'auto',
+          width: isMobile ? '38px' : 'auto',
+          height: isMobile ? '38px' : '2.25rem',
+          padding: isMobile ? '0' : undefined,
+          borderRadius: isMobile ? '50%' : undefined,
+          border: isMobile ? '1px solid #dadde1ff' : '1px solid #848484ff',
+          background: isMobile ? '#e5e7eb' : 'transparent',
+          borderColor: isMobile ? 'none' : '#848484ff',
+        }}
+      >
+        <FaExchangeAlt style={{ width: '1rem', height: '1rem' }}/>
+      </Button>
     </div>
 
     {/* Right - Rotation buttons */}
@@ -3953,7 +4106,7 @@ useEffect(() => {
           border: isMobile ? '1px solid #dadde1ff' : '1px solid #848484ff',
           borderRadius: isMobile ? '50%' : '0.375rem',
           background: isMobile ? '#ffffffff' : 'white',
-          zIndex: 5
+          zIndex: 1
         }}>
 
           <Button  
@@ -3995,7 +4148,7 @@ useEffect(() => {
                   backgroundColor: '#dce8fbff', // Light soft blue
                   borderRadius: '8px', // Rounded corners
                   border: '0px solid rgba(59, 130, 246, 0.2)', // Subtle blue border
-                  zIndex: 999
+                  zIndex: 0
                 }}
                 onMouseEnter={() => !isMobile && setHoveredInsertId(point.id)}
                 onMouseLeave={() => !isMobile && setHoveredInsertId(null)}
@@ -4116,7 +4269,7 @@ useEffect(() => {
                      width: isMobile ? '32px' : '24px',    // Bigger on mobile
                      height: isMobile ? '32px' : '24px',   // Bigger on mobile
                      borderRadius: '50%',
-                    border: '1px solid #dadde1ff',
+                     border: '1px solid #666',
                      backgroundColor: digitalPoints.has(point.id) ? '#FCD34D' : 'transparent',
                      cursor: 'pointer',
                      transition: 'background-color 0.2s'
@@ -4148,7 +4301,7 @@ useEffect(() => {
                      width: isMobile ? '32px' : '24px',    // Bigger on mobile
                      height: isMobile ? '32px' : '24px',   // Bigger on mobile
                      borderRadius: '50%',
-                    border: '1px solid #dadde1ff',
+                     border: '1px solid #666',
                      backgroundColor: bluePoints.has(point.id) ? '#3B82F6' : 'transparent',
                      cursor: 'pointer',
                      transition: 'background-color 0.2s'
@@ -4996,6 +5149,161 @@ useEffect(() => {
       setShowAnalyticsCutout={setShowAnalyticsCutout}
       onDuplicateFlow={duplicateFlow}  // Add this line
     />}
+
+    {copyImportModalOpen && (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    maxHeight: 'none',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    overflow: 'hidden'
+  }}>
+    <div style={{
+      backgroundColor: 'white',
+      padding: '2rem',
+      borderRadius: '0.5rem',
+      width: '90%',
+      maxWidth: '500px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1rem'
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        margin: 0
+      }}>
+        <h2 style={{ 
+          margin: 0, 
+          fontSize: '2rem'
+        }}>
+          Copy & Import
+        </h2>
+        <button
+          onClick={() => {
+            setCopyImportModalOpen(false);
+            setImportText('');
+            setImportError('');
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#000000ff',
+            fontSize: '24px',
+            cursor: 'pointer',
+            padding: '4px',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '32px',
+            height: '32px'
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Copy button */}
+      <Button
+        onClick={handleCopyTimeline}
+        size="sm"
+        variant="outline"
+        style={{
+          height: isMobile ? '3rem' : undefined,
+          width: '100%',
+          fontSize: isMobile ? '1.1rem' : 'inherit',
+          backgroundColor: '#007AFF',
+          color: 'white',
+          position: 'relative'
+        }}
+      >
+        Copy Timeline
+        {showCopiedMessage && (
+          <span style={{
+            position: 'absolute',
+            right: '1rem',
+            color: '#10b981',
+            fontWeight: 'bold'
+          }}>
+            ✓ Copied!
+          </span>
+        )}
+      </Button>
+
+      {/* Import text area */}
+      <textarea
+        value={importText}
+        onChange={(e) => {
+          setImportText(e.target.value);
+          setImportError('');
+        }}
+        placeholder={`Paste timeline here...\n\nTimeline Title\n\nFlow: Flow Name\nEvent description, -10 to 10\nEvent description, -10 to 10\n\nFlow: Another Flow Name\nEvent description, -10 to 10\nEvent description, -10 to 10`}
+        style={{
+          width: '100%',
+          height: isMobile ? '150px' : '200px',
+          padding: '0.5rem',
+          borderRadius: '0.25rem',
+          border: '1px solid #e2e8f0',
+          fontSize: isMobile ? '1.1rem' : 'inherit',
+          fontFamily: 'monospace',
+          resize: 'vertical',
+          boxSizing: 'border-box'
+        }}
+      />
+
+      {/* Warning text */}
+      <p style={{
+        fontSize: '0.75rem',
+        color: '#6b7280',
+        margin: '0',
+        fontStyle: 'italic'
+      }}>
+        Importing will replace your current timeline and all its flows.
+      </p>
+
+      {/* Error message */}
+      {importError && (
+        <div style={{
+          padding: '0.75rem',
+          backgroundColor: '#fee2e2',
+          border: '1px solid #ef4444',
+          borderRadius: '0.25rem',
+          color: '#dc2626',
+          fontSize: '0.875rem',
+          fontFamily: 'monospace'
+        }}>
+          {importError}
+        </div>
+      )}
+
+      {/* Import button */}
+      <Button
+        onClick={handleImportTimeline}
+        size="sm"
+        variant="outline"
+        style={{
+          height: isMobile ? '3rem' : undefined,
+          width: '100%',
+          fontSize: isMobile ? '1.1rem' : 'inherit',
+          backgroundColor: '#10b981',
+          color: 'white'
+        }}
+      >
+        Import
+      </Button>
+    </div>
+  </div>
+)}
   </div>
   );
 };
