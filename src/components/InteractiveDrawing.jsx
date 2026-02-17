@@ -1466,7 +1466,8 @@ ${showPoints ? `
     const pdf = new jsPDF({
       orientation: 'landscape',
       unit: 'in',
-      format: 'letter'
+      format: 'letter',
+      compress: true
     });
 
     // Before the PDF text gets set
@@ -1532,7 +1533,10 @@ ${showPoints ? `
             ctx.drawImage(img, 0, 0);
 
         // Convert canvas to PNG data URL
-        const pngDataUrl = canvas.toDataURL('image/png', 1.0);  // Added quality parameter
+        console.log('PNG quality setting:', 0.8);
+        const pngDataUrl = canvas.toDataURL('image/png', 0.8);
+        console.log('PNG data URL length:', pngDataUrl.length, 'bytes:', Math.round(pngDataUrl.length * 0.75 / 1024), 'KB');
+
         
         pdf.addImage(
           pngDataUrl,
