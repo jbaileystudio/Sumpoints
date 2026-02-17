@@ -1222,58 +1222,55 @@ useEffect(() => {
     localStorage.setItem('drawingState', JSON.stringify(state));
   };
 
-  const handlePdfExport = async () => {
-    console.log('Starting PDF export');
+const handlePdfExport = async () => {
+  console.log('Starting PDF export for all flows');
 
-    // Get the active flow
-    const activeFlow = getActiveFlow();
-    const allPoints = getAllPoints(); // Active flow points for main export
+  // Create PDF once at the start
+  const pdf = new jsPDF({
+    orientation: 'landscape',
+    unit: 'in',
+    format: 'letter',
+    compress: true
+  });
 
-    console.log('Points gathered:', allPoints);
-    console.log('Active flow:', activeFlow);
+  const pageWidth = 11;
+  const pageHeight = 8.5;
+  const margins = 0.5;
 
-    // Generate simple homepage QR code
-    let qrCodeDataURL = null;
-    const shareURL = generateShareableURL();
+  // Generate QR code once (same for all flows)
+  let qrCodeDataURL = null;
+  const shareURL = generateShareableURL();
+  
+  if (shareURL) {
+    try {
+      qrCodeDataURL = await QRCode.toDataURL(shareURL, {
+        width: 200,
+        margin: 1,
+        color: { dark: '#000000', light: '#FFFFFF' }
+      });
+      console.log('QR code generated');
+    } catch (error) {
+      console.error('QR code generation failed:', error);
+    }
+  }
 
-    console.log('ShareURL result:', shareURL); // Add this line
-    console.log('ShareURL length:', shareURL ? shareURL.length : 'null'); // Add this line
+  // Loop through each flow
+  for (let flowIndex = 0; flowIndex < flows.length; flowIndex++) {
+    const flow = flows[flowIndex];
+    const flowPoints = flow.points;
+    const flowDigitalPoints = flow.digitalPoints;
+    const flowBluePoints = flow.bluePoints;
 
-    if (shareURL) {
-      try {
-        qrCodeDataURL = await QRCode.toDataURL(shareURL, {
-          width: 200,
-          margin: 1,
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          }
-        });
-        console.log('Homepage QR code generated for:', shareURL);
-      } catch (error) {
-        console.error('QR code generation failed:', error);
-      }
+    console.log(`Processing flow ${flowIndex + 1}/${flows.length}:`, flow.name);
+
+    // Add new page for each flow after the first
+    if (flowIndex > 0) {
+      pdf.addPage();
     }
 
-    // Add the formatted filename here, right after getting allPoints
-    const formattedFilename = `${filename}_${activeFlow.name}_${allPoints.length} Events${
-      cumulativeType !== 'none' ? `_Cumulative Score ${calculateScores(activeFlow.points).total}` : ''
-    }${
-      cumulativeType === 'bars' ? '_Bars' : 
-      cumulativeType === 'line' ? '_Line' : ''
-    }${
-      cutoutType === 'yellow' ? '_Yellow Cutout' :
-      cutoutType === 'blue' ? '_Blue Cutout' :
-      cutoutType === 'both' ? '_Green Cutout' : ''
-    }`;
-    // Calculate minimum width for 15 points
-    const minWidth = 16 * G;  // 15 points + 1 extra space
-    const totalWidth = Math.max(minWidth, (allPoints.length + 1) * G);
-
-    // Calculate scale to fit on letter paper (8.5 x 11 inches)
-    const pageWidth = 11; // landscape letter width in inches
-    const pageHeight = 8.5; // landscape letter height in inches
-    const margins = 0.5; // half-inch margins
+    // Calculate dimensions for this flow
+    const minWidth = 16 * G;
+    const totalWidth = Math.max(minWidth, (flowPoints.length + 1) * G);
     const availableWidth = pageWidth - (margins * 2);
     const availableHeight = pageHeight - (margins * 2);
     
@@ -1281,13 +1278,12 @@ useEffect(() => {
       (availableWidth * 96) / totalWidth,
       (availableHeight * 96) / 600,
       1
-      );
+    );
 
-    console.log('Calculated dimensions:', { totalWidth, scale });
+    // Calculate scores for this flow
+    const scores = calculateScores(flowPoints);
 
-
-    // Create SVG content similar to your current export
-    const scores = calculateScores(allPoints);
+    // Generate SVG for this flow
     const svgContent = `
     <svg 
       width="${totalWidth * scale}px"
@@ -1298,383 +1294,225 @@ useEffect(() => {
       shape-rendering="geometricPrecision"
     >
       <defs>
-        <pattern id="print-grid" width="${G}" height="100%" patternUnits="userSpaceOnUse">
+        <pattern id="print-grid-${flowIndex}" width="${G}" height="100%" patternUnits="userSpaceOnUse">
           ${HASH_POINTS.map((hp, i) => `
-            <line 
-              x1="-6" y1="${hp}%" 
-              x2="6" y2="${hp}%" 
-              stroke="grey"
-            />
+            <line x1="-6" y1="${hp}%" x2="6" y2="${hp}%" stroke="grey" />
           `).join('')}
         </pattern>
 
-        <!-- Add hatching patterns -->
-        <pattern id="yellow-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
-          <path d="M0,10 l10,-10 M-2,12 l14,-14 M8,12 l4,-4" 
-            stroke="black" 
-            strokeWidth="1"
-            fill="none"
-          />
+        <pattern id="yellow-hatch-${flowIndex}" width="10" height="10" patternUnits="userSpaceOnUse">
+          <path d="M0,10 l10,-10 M-2,12 l14,-14 M8,12 l4,-4" stroke="black" strokeWidth="1" fill="none" />
         </pattern>
 
-        <pattern id="blue-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
-          <path d="M10,10 l-10,-10 M12,12 l-14,-14 M-2,2 l4,-4" 
-            stroke="black" 
-            strokeWidth="1"
-            fill="none"
-          />
+        <pattern id="blue-hatch-${flowIndex}" width="10" height="10" patternUnits="userSpaceOnUse">
+          <path d="M10,10 l-10,-10 M12,12 l-14,-14 M-2,2 l4,-4" stroke="black" strokeWidth="1" fill="none" />
         </pattern>
 
-        <!-- Both hatches - crossing pattern (#) -->
-          <pattern id="both-hatch" width="10" height="10" patternUnits="userSpaceOnUse">
-            <!-- Yellow direction (\) -->
-            <path d="M0,10 l10,-10 M-2,12 l14,-14 M8,12 l4,-4" 
-              stroke="black" 
-              strokeWidth="1"
-              fill="none"
-            />
-            <!-- Blue direction (/) -->
-            <path d="M10,10 l-10,-10 M12,12 l-14,-14 M-2,2 l4,-4" 
-              stroke="black" 
-              strokeWidth="1"
-              fill="none"
-            />
-          </pattern>
+        <pattern id="both-hatch-${flowIndex}" width="10" height="10" patternUnits="userSpaceOnUse">
+          <path d="M0,10 l10,-10 M-2,12 l14,-14 M8,12 l4,-4" stroke="black" strokeWidth="1" fill="none" />
+          <path d="M10,10 l-10,-10 M12,12 l-14,-14 M-2,2 l4,-4" stroke="black" strokeWidth="1" fill="none" />
+        </pattern>
       </defs>
 
-      <!-- Background grid elements -->
-      <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid)"/>
+      <rect x="${G}" width="${totalWidth - G}" height="100%" fill="url(#print-grid-${flowIndex})"/>
       
-      <!-- Vertical grid lines -->
       <line x1="0" y1="0" x2="0" y2="100%" stroke="grey"/>
       <line x1="${G}" y1="0" x2="${G}" y2="100%" stroke="#ADADAD"/>
       ${Array.from({ length: Math.ceil(totalWidth / G) }, (_, i) => 
-        `<line 
-          x1="${(i + 1) * G}" 
-          y1="0" 
-          x2="${(i + 1) * G}" 
-          y2="100%" 
-          stroke="grey"
-        />`
+        `<line x1="${(i + 1) * G}" y1="0" x2="${(i + 1) * G}" y2="100%" stroke="grey" />`
       ).join('')}
 
-      <!-- Center line - moved after grid elements -->
       <line x1="0" y1="50%" x2="${totalWidth}" y2="50%" stroke="grey" stroke-width="1"/>
 
-      <!-- Add cutout patterns if selected -->
       ${cutoutType !== 'none' ? 
         Array.from({ length: Math.ceil(totalWidth / G) }, (_, i) => {
           const x = (i + 1) * G;
-          const point = allPoints.find(p => p.x === x);
-          
+          const point = flowPoints.find(p => p.x === x);
           if (!point) return '';
           
           let pattern = '';
-          if (cutoutType === 'yellow' && !digitalPoints.has(point.id)) {
-            pattern = 'url(#yellow-hatch)';
-          } else if (cutoutType === 'blue' && !bluePoints.has(point.id)) {
-            pattern = 'url(#blue-hatch)';
-          } else if (cutoutType === 'both' && !(digitalPoints.has(point.id) && bluePoints.has(point.id))) {
-            pattern = 'url(#both-hatch)';
+          if (cutoutType === 'yellow' && !flowDigitalPoints.has(point.id)) {
+            pattern = `url(#yellow-hatch-${flowIndex})`;
+          } else if (cutoutType === 'blue' && !flowBluePoints.has(point.id)) {
+            pattern = `url(#blue-hatch-${flowIndex})`;
+          } else if (cutoutType === 'both' && !(flowDigitalPoints.has(point.id) && flowBluePoints.has(point.id))) {
+            pattern = `url(#both-hatch-${flowIndex})`;
           }
 
-          return pattern ? `
-            <rect
-              x="${x - G/2}"
-              y="0"
-              width="${G}"
-              height="100%"
-              fill="${pattern}"
-              opacity="0.5"
-            />
-          ` : '';
+          return pattern ? `<rect x="${x - G/2}" y="0" width="${G}" height="100%" fill="${pattern}" opacity="0.5" />` : '';
         }).join('') 
       : ''}
 
-${showPoints ? `
-    <!-- Points and connecting lines | Including export stroke width -->
-    ${allPoints.map((point, i) => i > 0 ? `
-      <line 
-        x1="${allPoints[i-1].x}" 
-        y1="${allPoints[i-1].y}%" 
-        x2="${point.x}" 
-        y2="${point.y}%" 
-        stroke="black" 
-        stroke-width="2"
-      />
-    ` : '').join('')}
+      ${showPoints ? `
+        ${flowPoints.map((point, i) => i > 0 ? `
+          <line x1="${flowPoints[i-1].x}" y1="${flowPoints[i-1].y}%" x2="${point.x}" y2="${point.y}%" stroke="black" stroke-width="2" />
+        ` : '').join('')}
+        ${flowPoints.map(point => `
+          <circle cx="${point.x}" cy="${point.y}%" r="${P}" fill="black" />
+        `).join('')}
+      ` : ''}
 
-    ${allPoints.map(point => `
-      <circle 
-        cx="${point.x}" 
-        cy="${point.y}%" 
-        r="${P}" 
-        fill="black"
-      />
-    `).join('')}
-` : ''}
+      ${cumulativeType === 'line' ? 
+        (() => {
+          const gridFactor = 5;
+          const points = scores.cumulative.map((score, i) => ({
+            x: (i + 1) * G,
+            y: 300 - (score * gridFactor * 6)
+          }));
+          const pathData = points.reduce((path, point, index) => 
+            index === 0 ? `M ${point.x} ${point.y}` : `${path} L ${point.x} ${point.y}`, ''
+          );
+          return `<path d="${pathData}" stroke="#666666" stroke-width="3" fill="none" />`;
+        })()
+      : cumulativeType === 'bars' ?
+        scores.cumulative.map((score, i) => {
+          const gridFactor = 5;
+          const offsetPercent = score * gridFactor;
+          const barHeight = Math.abs(offsetPercent * 6);
+          const y = score >= 0 ? 300 - barHeight : 300;
+          return `<rect x="${(i + 1) * G - (G * 0.4)}" y="${y}" width="${G * 0.8}" height="${barHeight}" fill="#666666" />`;
+        }).join('')
+      : ''}
+    </svg>
+    `;
 
+    // Convert SVG to image and add to PDF
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = totalWidth * scale * 2;
+    canvas.height = 600 * scale * 2;
+    ctx.scale(2, 2);
 
-    <!-- Add cumulative visualization if selected -->
-    ${cumulativeType === 'line' ? 
-      (() => {
-        const scale = 2; // PDF scale factor
-        const gridFactor = 5; // Grid hash mark scale
-        
-        const points = scores.cumulative.map((score, i) => ({
-          x: (i + 1) * G,
-          y: 300 - (score * gridFactor * 6) // Use 6 for PDF scaling
-        }));
-        
-        const pathData = points.reduce((path, point, index) => 
-          index === 0 ? `M ${point.x} ${point.y}` : `${path} L ${point.x} ${point.y}`
-        , '');
-        
-        return `
-          <path
-            d="${pathData}"
-            stroke="#666666"
-            stroke-width="3"
-            fill="none"
-          />
-        `;
-      })()
-    : cumulativeType === 'bars' ?
-      scores.cumulative.map((score, i) => {
-        const gridFactor = 5; // Grid hash mark scale
-        const offsetPercent = score * gridFactor;
-        const barHeight = Math.abs(offsetPercent * 6); // Use 6 for PDF scaling
-        const y = score >= 0 ? 300 - barHeight : 300;
-        
-        return `
-          <rect
-            x="${(i + 1) * G - (G * 0.4)}"
-            y="${y}"
-            width="${G * 0.8}"
-            height="${barHeight}"
-            fill="#666666"
-          />
-        `;
-      }).join('')
-    : ''}
-  </svg>
-`;
+    const container = document.createElement('div');
+    container.innerHTML = svgContent;
+    document.body.appendChild(container);
+    const svgElement = container.querySelector('svg');
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
 
-    // Inside the try block
-    try {
-    console.log('Creating PDF instance');
-    const pdf = new jsPDF({
-      orientation: 'landscape',
-      unit: 'in',
-      format: 'letter',
-      compress: true
-    });
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
 
-    // Before the PDF text gets set
-    const stats = getCutoutStats(points, digitalPoints, bluePoints, cutoutType);
-    const cutoutText = cutoutType !== 'none' && stats ? 
-      `${cutoutType === 'yellow' ? 'Yellow' : cutoutType === 'blue' ? 'Blue' : 'Green'} Cutout: ` +
-      `${stats.covered} Events Covered (${stats.coveredPercent}%), ` +
-      `${stats.notCovered} Events Not Covered (${stats.notCoveredPercent}%)` 
-      : '';
+          const pngDataUrl = canvas.toDataURL('image/png', 0.8);
 
-      // Keep the title as is
-      pdf.setFontSize(16);
-      pdf.text(filename, margins, margins);
+          // Add title
+          pdf.setFontSize(16);
+          pdf.text(filename, margins, margins);
 
-      // Add title and count right after PDF creation
-      pdf.setFontSize(12);
-      pdf.text(
-        `${activeFlow.name} / ${allPoints.length} Events${
-          cumulativeType !== 'none' ? ` / Cumulative Score ${calculateScores(activeFlow.points).total}` : '' 
-        }${
-          cumulativeType === 'bars' ? ' / Bars' : 
-          cumulativeType === 'line' ? ' / Line' : ''
-        }${
-          cutoutType !== 'none' ? ` / ${cutoutText}` : ''
-        }`,
-        margins, 
-        margins + 0.3
-      );
-      const contentStart = margins + 0.5;
+          // Add flow info
+          const stats = getCutoutStats(flowPoints, flowDigitalPoints, flowBluePoints, cutoutType);
+          const cutoutText = cutoutType !== 'none' && stats ? 
+            `${cutoutType === 'yellow' ? 'Yellow' : cutoutType === 'blue' ? 'Blue' : 'Green'} Cutout: ${stats.covered} Events Covered (${stats.coveredPercent}%), ${stats.notCovered} Events Not Covered (${stats.notCoveredPercent}%)` 
+            : '';
 
-  // Aspect ratio calculations
-      const svgAspectRatio = 600 / totalWidth;
-      const pageAspectRatio = (pageHeight - margins * 3) / (pageWidth - margins * 2);
+          pdf.setFontSize(12);
+          pdf.text(
+            `${flow.name} / ${flowPoints.length} Events${
+              cumulativeType !== 'none' ? ` / Cumulative Score ${scores.total}` : ''
+            }${
+              cumulativeType === 'bars' ? ' / Bars' : cumulativeType === 'line' ? ' / Line' : ''
+            }${
+              cutoutType !== 'none' ? ` / ${cutoutText}` : ''
+            }`,
+            margins,
+            margins + 0.3
+          );
 
-  // Create a temporary canvas with higher resolution
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = totalWidth * scale * 2;
-      canvas.height = 600 * scale * 2;
-      ctx.scale(2, 2);
+          const contentStart = margins + 0.5;
+          const svgAspectRatio = 600 / totalWidth;
 
-  // Create a temporary container and add SVG to DOM
-      const container = document.createElement('div');
-      container.innerHTML = svgContent;
-      document.body.appendChild(container);
+          // Add chart image
+          pdf.addImage(
+            pngDataUrl,
+            'PNG',
+            margins,
+            contentStart,
+            pageWidth - margins * 2,
+            (pageWidth - margins * 2) * svgAspectRatio
+          );
 
-  // Get the SVG element
-      const svgElement = container.querySelector('svg');
-
-  // Convert SVG to data URL using canvas
-      const svgData = new XMLSerializer().serializeToString(svgElement);
-      const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-      console.log('Created SVG data URL');
-
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = async () => {
-          console.log('Image loaded');
-          try {
-        // Draw image to canvas first
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-
-        // Convert canvas to PNG data URL
-        console.log('PNG quality setting:', 0.8);
-        const pngDataUrl = canvas.toDataURL('image/png', 0.8);
-        console.log('PNG data URL length:', pngDataUrl.length, 'bytes:', Math.round(pngDataUrl.length * 0.75 / 1024), 'KB');
-
-        
-        pdf.addImage(
-          pngDataUrl,
-          'PNG',
-          margins,
-          contentStart,
-          pageWidth - margins * 2,
-          (pageWidth - margins * 2) * svgAspectRatio
-        );
-        console.log('Added image to PDF');
-
-        // Add QR code if generated successfully
-        if (qrCodeDataURL) {
-          const qrSize = 0.5; // Small QR code size
-          const qrX = pageWidth - margins - qrSize + 0.02; // Right edge
-          const qrY = margins - 0.18; // Top edge
-          
-          pdf.addImage(qrCodeDataURL, 'PNG', qrX, qrY, qrSize, qrSize);
-          console.log('Added QR code to PDF');
-        } else {
-          console.log('No QR code data to add to PDF'); // Add this line
-        }
-
-  // Add vertical descriptions
-        pdf.setFontSize(9);
-        const baseCharLimit = 26;
-
-        allPoints.forEach((point, i) => {
-          const x = (point.x * scale / 96) + margins;
-
-  // For 15 or fewer points, always use baseCharLimit
-        let charLimit = baseCharLimit;
-        if (allPoints.length > 15) {
-          const pointRatio = allPoints.length / 15;
-          const heightGain = (1 / scale);
-          const additionalChars = Math.floor(baseCharLimit * Math.sqrt(pointRatio) * heightGain * 0.8);
-          charLimit = baseCharLimit + additionalChars;
-        }
-
-  //The key factors for adjusting how aggressively the character count increases beyond 15 points are:
-  //The 0.8 multiplier at the end - decreasing this will make the character count increase less aggressively, increasing it will allow more characters
-  //The Math.sqrt(pointRatio) - using square root makes the increase more gradual. You could change this to just pointRatio for a more linear increase
-  //The heightGain factor - this accounts for how much the scale shrinks as more points are added
-
-  //For example:
-
-  //More aggressive: Change 0.8 to 1.2
-  //Less aggressive: Change 0.8 to 0.5
-  //Much more aggressive: Remove Math.sqrt and just use pointRatio
-  //Much less aggressive: Use Math.cbrt(pointRatio) (cube root) instead of square root
-
-          let textToWrite = point.text || 'No description';
-
-          console.log('Processing text:', {
-            originalText: textToWrite,
-            length: textToWrite.length,
-            charLimit
-          });
-
-          if (textToWrite.length > charLimit) {
-            const chunks = [];
-            for (let i = 0; i < textToWrite.length; i += charLimit) {
-              chunks.push(textToWrite.slice(i, i + charLimit));
-            }
-            textToWrite = chunks.join('\n');
-
-            console.log('After chunking:', {
-              chunks,
-              chunkLengths: chunks.map(c => c.length),
-              finalText: textToWrite
-            });
+          // Add QR code
+          if (qrCodeDataURL) {
+            const qrSize = 0.5;
+            pdf.addImage(qrCodeDataURL, 'PNG', pageWidth - margins - qrSize + 0.02, margins - 0.18, qrSize, qrSize);
           }
 
-  // Remove maxWidth to prevent PDF.js from doing its own text wrapping
-          pdf.text(
-            textToWrite,
-            x,
-            pageHeight - margins - 0.2,
-              {
-                align: 'left',
-                angle: 90
-              }
-            );
+          // Add event descriptions
+          pdf.setFontSize(9);
+          const baseCharLimit = 26;
 
-            // ADD STRIKETHROUGH HERE - Only if cutout mode is active
+          flowPoints.forEach((point, i) => {
+            const x = (point.x * scale / 96) + margins;
+            let charLimit = baseCharLimit;
+            
+            if (flowPoints.length > 15) {
+              const pointRatio = flowPoints.length / 15;
+              const heightGain = (1 / scale);
+              const additionalChars = Math.floor(baseCharLimit * Math.sqrt(pointRatio) * heightGain * 0.8);
+              charLimit = baseCharLimit + additionalChars;
+            }
+
+            let textToWrite = point.text || 'No description';
+            if (textToWrite.length > charLimit) {
+              const chunks = [];
+              for (let i = 0; i < textToWrite.length; i += charLimit) {
+                chunks.push(textToWrite.slice(i, i + charLimit));
+              }
+              textToWrite = chunks.join('\n');
+            }
+
+            pdf.text(textToWrite, x, pageHeight - margins - 0.2, { align: 'left', angle: 90 });
+
+            // Add strikethrough if needed
             if (cutoutType !== 'none') {
               let shouldStrikethrough = false;
-              
-              if (cutoutType === 'yellow' && !digitalPoints.has(point.id)) {
-                shouldStrikethrough = true; // Yellow cutout and point is NOT digital
-              } else if (cutoutType === 'blue' && !bluePoints.has(point.id)) {
-                shouldStrikethrough = true; // Blue cutout and point is NOT blue
-              } else if (cutoutType === 'both' && !(digitalPoints.has(point.id) && bluePoints.has(point.id))) {
-                shouldStrikethrough = true; // Both cutout and point doesn't have BOTH markers
+              if (cutoutType === 'yellow' && !flowDigitalPoints.has(point.id)) {
+                shouldStrikethrough = true;
+              } else if (cutoutType === 'blue' && !flowBluePoints.has(point.id)) {
+                shouldStrikethrough = true;
+              } else if (cutoutType === 'both' && !(flowDigitalPoints.has(point.id) && flowBluePoints.has(point.id))) {
+                shouldStrikethrough = true;
               }
               
               if (shouldStrikethrough) {
-                const textDimensions = pdf.getTextDimensions(textToWrite);
-                const textWidth = textDimensions.w; // Actual width of the text
-                
-                pdf.setLineWidth(0.03); // Thick line
-                pdf.setDrawColor(0, 0, 0); // Black color
-                
-                // Draw line matching exact text length (accounting for 90° rotation)
-                pdf.line(
-                  x - 0.03, // Slightly offset from text
-                  pageHeight - margins - 0.2,
-                  x - 0.03,
-                  pageHeight - margins - 0.2 - textWidth // Extends for full text length
-                );
+                const textWidth = pdf.getTextDimensions(textToWrite).w;
+                pdf.setLineWidth(0.03);
+                pdf.setDrawColor(0, 0, 0);
+                pdf.line(x - 0.03, pageHeight - margins - 0.2, x - 0.03, pageHeight - margins - 0.2 - textWidth);
               }
             }
-        });
+          });
 
-        console.log('Saving PDF...');
-        pdf.save(`${formattedFilename}.pdf`);
-        console.log('PDF saved!');
-
+          document.body.removeChild(container);
+          canvas.remove();
+          resolve();
+        } catch (error) {
+          document.body.removeChild(container);
+          canvas.remove();
+          reject(error);
+        }
+      };
+      
+      img.onerror = (error) => {
         document.body.removeChild(container);
         canvas.remove();
-        resolve();
-      } catch (error) {
-        console.error('Error in image processing:', error);
-        document.body.removeChild(container);
-        canvas.remove();
-      }
-    };
-    img.onerror = (error) => {
-      console.error('Error loading image:', error);
-      document.body.removeChild(container);
-      canvas.remove();
-    };
-    img.src = svgDataUrl;
-  });
-    } catch (error) {
-      console.error('Error in PDF creation:', error);
-    }
-  };
+        reject(error);
+      };
+      
+      img.src = svgDataUrl;
+    });
+  }
+
+  // Save once at the end with simplified filename
+  const formattedFilename = `${filename}_All_Flows_${flows.reduce((sum, f) => sum + f.points.length, 0)} Events`;
+  pdf.save(`${formattedFilename}.pdf`);
+  console.log('Multi-flow PDF saved!');
+};
 
   const handleCopyTimeline = () => {
     let text = `${filename}\n\n`;
